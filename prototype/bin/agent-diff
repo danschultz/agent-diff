@@ -1,0 +1,11 @@
+#!/bin/sh
+# Resolves symlinks so this script can be linked onto PATH.
+SOURCE="$0"
+while [ -h "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  case "$SOURCE" in /*) ;; *) SOURCE="$DIR/$SOURCE" ;; esac
+done
+DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+# Hooks may run with a reduced PATH, so the node binary can be pinned.
+exec "${AGENT_DIFF_NODE:-node}" --no-warnings "$DIR/../src/cli/main.ts" "$@"
