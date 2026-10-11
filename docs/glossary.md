@@ -17,8 +17,7 @@ An AI coding agent that makes changes in one or more
 ### Agent session
 
 One running instance of an [agent](#agent), usually managed by a
-[harness](#harness). [Notifications](#notification) are delivered to an
-agent session. When an agent restarts, it runs in a new agent session.
+[harness](#harness). When an agent restarts, it runs in a new agent session.
 Always write "agent session" or "[review session](#review-session)", never
 just "session".
 
@@ -112,25 +111,17 @@ shows each file's git status.
 
 A tool that runs and manages [agent sessions](#agent-session), such as cmux,
 herdr, or otty.
-Harnesses can register agents and deliver [notifications](#notification).
+Harnesses can register agents.
 
 ### Main agent
 
 The agent at the top of an [agent tree](#agent-tree).
 
-### Notification
-
-A short message that tells an agent [feedback](#feedback) is available in a
-[review session](#review-session) and how to fetch it. It doesn't contain
-the comments themselves. See
-[0005](decisions/0005-notify-then-pull-feedback.md).
-
 ### Registration
 
 An agent, or its [harness](#harness), reporting the agent to the
-[review server](#review-server): its ID, its parent, its
-[workspaces](#workspace), and how to send it a
-[notification](#notification).
+[review server](#review-server): its ID, its parent, and its
+[workspaces](#workspace).
 
 ### Review
 
@@ -143,7 +134,8 @@ time.
 
 The local server that stores review state in SQLite, watches
 [workspaces](#workspace) for changes, serves the [review UI](#review-ui),
-and provides the API that agents and other tools call.
+and provides the API that the review UI and the `agent-diff` CLI call. See
+[0011](decisions/0011-api-core-with-cli-client.md).
 
 ### Review session
 

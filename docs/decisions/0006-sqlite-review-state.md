@@ -1,7 +1,11 @@
 # 0006: Review state is stored in SQLite
 
-- Status: Accepted
+- Status: Accepted, amended by [0010](0010-user-prompts-agent-to-fetch-review.md)
 - Date: 2026-10-10
+
+> **Amended by [0010](0010-user-prompts-agent-to-fetch-review.md):** the
+> review server no longer sends messages to agents, so there's no delivery
+> status to store.
 
 ## Problem
 

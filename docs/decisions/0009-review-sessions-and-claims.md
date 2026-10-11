@@ -1,7 +1,11 @@
 # 0009: Reviews are submitted to review sessions, and agents claim feedback per workspace
 
-- Status: Accepted
+- Status: Accepted, amended by [0010](0010-user-prompts-agent-to-fetch-review.md)
 - Date: 2026-10-10
+
+> **Amended by [0010](0010-user-prompts-agent-to-fetch-review.md):** no
+> agents are told when a review is submitted. The reviewer prompts an agent,
+> which claims a workspace and fetches the most recent review.
 
 ## Problem
 

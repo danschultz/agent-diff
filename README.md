@@ -31,10 +31,11 @@ and sends that feedback back to agents to address.
    each workspace's branch to its base ref.
 6. The reviewer adds comments on a single line, a range of lines, or the
    review as a whole. Comments are drafts until they're submitted.
-7. The reviewer submits a review to the review session. Agents get a short
-   notification, and an agent claims a workspace, fetches its comments from
-   the review server, and addresses them. Agents don't block while a review
-   session is open, so the human can keep working with them in the meantime.
+7. The reviewer submits a review to the review session, then tells the agent
+   to apply it, for example "Apply the latest feedback." The agent claims a
+   workspace, fetches the most recent review with `agent-diff review`, and
+   addresses its comments. Agents don't block while a review session is
+   open, so the human can keep working with them in the meantime.
 8. Whenever any actor changes the code, the diff updates live. The review
    server watches the file system, so this includes agents in other processes
    and humans editing in their IDE.
@@ -50,14 +51,17 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
 - The file view can show unchanged files.
 - The reviewer can open the code in an IDE.
 - The agent tree is reported by agents and harnesses, not inferred from git.
-- Agents are notified when feedback is submitted, then fetch it from the
-  review server.
+- The user prompts the agent to apply a review, and the agent fetches the
+  most recent review from the review server. The server never contacts
+  agents.
 - Review state is stored in SQLite, so it survives crashes and restarts.
 - The review UI live-reloads by watching the file system.
 - Comments follow the code as it changes, and are marked outdated rather
   than guessed when their lines change.
 - Reviews are submitted to review sessions, and agents claim feedback per
   workspace.
+- The review server has an API. Agents and harnesses use the `agent-diff`
+  CLI, which calls it. There's no MCP server.
 
 ## Diff modes
 
@@ -103,14 +107,13 @@ There should be deeper integration with agent and terminal tooling where it
 helps, for example:
 
 - **cmux**: open the review UI in a pane or browser surface next to the
-  agent's terminal, and send notifications to the right workspace or
-  surface.
-- **otty** and **herdr**: equivalent hooks for opening the review UI and
-  notifying agent sessions that feedback is available.
+  agent's terminal.
+- **otty** and **herdr**: equivalent hooks for opening the review UI.
 
-How agents start review sessions, claim workspaces, and fetch feedback should
-be a small, documented interface (for example a CLI plus an MCP server) so
-that any harness can adopt it.
+Agents and harnesses start review sessions, claim workspaces, and fetch
+reviews through the `agent-diff` CLI, a small, documented interface that any
+harness can adopt. The CLI calls the review server's API, which the review
+UI also uses.
 
 ### Open in an IDE
 

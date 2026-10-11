@@ -1,6 +1,8 @@
 # 0005: Agents are notified of feedback, then pull it from the server
 
-- Status: Accepted, amended by [0009](0009-review-sessions-and-claims.md)
+- Status: Accepted, amended by [0009](0009-review-sessions-and-claims.md),
+  [0010](0010-user-prompts-agent-to-fetch-review.md), and
+  [0011](0011-api-core-with-cli-client.md)
 - Date: 2026-10-10
 
 > **Amended by [0009](0009-review-sessions-and-claims.md):** feedback goes to
@@ -8,6 +10,15 @@
 > feedback is available in a review session, and an agent claims a workspace
 > before fetching its comments. Feedback for an agent that has exited waits
 > in the review session until another agent claims it.
+
+> **Amended by [0010](0010-user-prompts-agent-to-fetch-review.md):** the
+> review server no longer sends a message when a review is submitted. The
+> reviewer prompts the agent, and the agent fetches the most recent review
+> with `agent-diff review`.
+
+> **Amended by [0011](0011-api-core-with-cli-client.md):** agents fetch
+> feedback through the CLI, which calls the review server's API. There's no
+> MCP tool.
 
 ## Problem
 
