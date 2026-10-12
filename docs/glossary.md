@@ -56,13 +56,6 @@ addressed. See [0008](decisions/0008-comment-reanchoring.md).
 The branch or commit that a git [working directory](#working-directory)'s
 changes are compared against.
 
-### Brief
-
-A well-defined task Dan writes as a GitHub issue from the brief issue
-template, for `implement` to hand to a new [agent session](#agent-session)
-that works on it unattended. See
-[0014](decisions/0014-implement-briefs-headlessly.md).
-
 ### Claim
 
 An agent's lease on a [working directory](#working-directory) in a [review
