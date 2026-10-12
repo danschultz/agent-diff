@@ -846,6 +846,9 @@ show the working-tree version, and load the tree lazily. **Two-way.**
 
 ### 6.1 One diff renderer for the continuous view
 
+Decided in [0012](../../docs/decisions/0012-codemirror-renders-diffs.md):
+CodeMirror, with measurements of all four viewers.
+
 **Why it matters.** The redesign wants one continuous diff of all files,
 per-file collapse, a "viewed" mark, and selecting a line range by dragging
 a + over the line numbers. Comment placement, selection, and keyboard

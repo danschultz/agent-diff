@@ -62,6 +62,7 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
   workspace.
 - The review server has an API. Agents and harnesses use the `agent-diff`
   CLI, which calls it. There's no MCP server.
+- The review UI renders diffs with CodeMirror.
 
 ## Diff modes
 
