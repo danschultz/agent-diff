@@ -36,6 +36,11 @@ Hooks (read the hook's JSON from stdin, never fail the agent)
 
 Server
   agent-diff serve [--port <n>] [--static]
+
+Other
+  agent-diff --version, -v
+      Print the version and exit.
+  agent-diff help, --help, -h
 `;
 
 const [command = 'help', ...rest] = process.argv.slice(2);
@@ -76,6 +81,9 @@ async function run(cmd: string, args: string[]): Promise<void> {
       return;
     case 'serve':
       return serve(args);
+    case '--version':
+    case '-v':
+      return version();
     case 'help':
     case '--help':
     case '-h':
@@ -87,6 +95,11 @@ async function run(cmd: string, args: string[]): Promise<void> {
 }
 
 // Commands
+
+function version() {
+  const pkg = JSON.parse(readFileSync(path.join(prototypeDir, 'package.json'), 'utf8')) as { version: string };
+  console.log(pkg.version);
+}
 
 async function start(args: string[]) {
   const { values, positionals } = parseArgs({
