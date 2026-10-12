@@ -53,6 +53,11 @@ export function runGit(cwd: string, args: string[], options: RunOptions = {}): P
       if (!(options.okCodes ?? [0]).includes(result.code)) reject(new GitError(args, result.code, result.stderr));
       else resolve(result);
     });
+    // git may exit without reading stdin. The write then fails with EPIPE,
+    // and the exit code and stderr decide the result instead.
+    child.stdin.on('error', (error: NodeJS.ErrnoException) => {
+      if (error.code !== 'EPIPE') reject(error);
+    });
     child.stdin.end(options.input ?? '');
   });
 }
