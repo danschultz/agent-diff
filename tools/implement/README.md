@@ -16,7 +16,10 @@ and adds the `agent:queued` label. A systemd user timer runs
    request for the brief's branch, and `claude agents --json`:
    - Pull request merged or closed, or issue closed without a pull request:
      stops the agent session if it's running, removes the worktree with
-     `git worktree remove --force`, and deletes the local branch.
+     `git worktree remove --force`, deletes the local branch, stops tracking
+     the brief, then removes every `agent:*` label from the issue. Other
+     labels are kept. If removing the labels fails, the failure is logged
+     and not retried.
    - Agent session exited without a pull request: moves the brief to
      `agent:failed` and comments the end of its output. The worktree is kept
      until the issue is closed.
