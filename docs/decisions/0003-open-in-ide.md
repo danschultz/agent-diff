@@ -1,7 +1,11 @@
 # 0003: The reviewer can open the code in an IDE
 
-- Status: Accepted
+- Status: Accepted, amended by [0013](0013-working-directories.md)
 - Date: 2026-10-09
+
+> **Amended by [0013](0013-working-directories.md):** "Open worktree" is
+> now "Open working directory." "Open branch" applies only to git working
+> directories.
 
 ## Problem
 
@@ -14,7 +18,7 @@ practical.
 From the review UI, the reviewer can open the code in an editor such as VS
 Code or IntelliJ:
 
-- **Open worktree**: opens the workspace's worktree directory as a project.
+- **Open worktree**: opens the working directory as a project.
 - **Open branch**: opens the branch being reviewed. If that branch isn't
   checked out in a worktree, the tool creates a worktree for it (or asks
   first) rather than switching the branch of an existing checkout.

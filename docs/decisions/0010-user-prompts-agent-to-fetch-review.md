@@ -1,10 +1,15 @@
 # 0010: The user prompts the agent to fetch the latest review
 
 - Status: Accepted, amended by [0011](0011-api-core-with-cli-client.md)
+  and [0013](0013-working-directories.md)
 - Date: 2026-10-11
 
 > **Amended by [0011](0011-api-core-with-cli-client.md):** there's no MCP
 > tool. Agents run `agent-diff review`, which calls the review server's API.
+
+> **Amended by [0013](0013-working-directories.md):** the agent's current
+> directory doesn't have to match a working directory exactly. The CLI
+> finds the working directory that contains it.
 
 ## Problem
 
@@ -26,13 +31,14 @@ saves them is switching to the agent's terminal.
   feedback." The review UI shows a prompt to copy after each submit.
 - **The agent pulls the review.** The agent runs `agent-diff review` (or an
   equivalent MCP tool), which returns the most recent submitted review for
-  the agent's workspace. The workspace is worked out from the agent's working
-  directory, so the prompt doesn't need IDs.
-- **Claims are unchanged.** The agent claims the workspace, addresses the
-  comments, and completes the claim
+  the agent's working directory. The working directory is worked out from
+  the agent's current directory, so the prompt doesn't need IDs.
+- **Claims are unchanged.** The agent claims the working directory, addresses
+  the comments, and completes the claim
   ([0009](0009-review-sessions-and-claims.md)).
 - **Fleets go through the main agent.** With several agents, the user
-  prompts the main agent, which hands workspaces to its sub-agents.
+  prompts the main agent, which hands working directories to its
+  sub-agents.
 - **The review server never contacts agents.** Agents always pull.
 
 Unchanged from 0005: comments are drafts until their review is submitted,
@@ -50,7 +56,7 @@ waiting for review.
   review is submitted, so the "who is notified" follow-up no longer applies.
 - **Registration ([0004](0004-agent-tree-is-an-input.md)).** An agent no
   longer reports how to reach it, only its ID, its parent, and its
-  workspaces.
+  working directories.
 
 ## Tradeoffs
 
@@ -73,8 +79,8 @@ Costs:
 - Only the most recent review is returned. If the reviewer submits two
   reviews before prompting the agent, the earlier one isn't applied unless
   the agent asks for it.
-- The agent's working directory must match a workspace in a review session,
-  or the agent has to say which one it means.
+- The agent's current directory must match a working directory in a review
+  session, or the agent has to say which one it means.
 
 ## Follow-up design choices
 
@@ -83,8 +89,9 @@ Costs:
   session wasn't addressed.
 - **Copyable prompt.** What the prompt shown after submit says, and whether
   it names the review session.
-- **Workspace lookup.** What happens when the working directory matches no
-  workspace, or a workspace in several review sessions.
+- **Working directory lookup.** What happens when the current directory
+  matches no working directory, or a working directory in several review
+  sessions.
 - **Output format.** Whether `agent-diff review` returns JSON or text
   formatted for a language model.
 - **CLI naming.** `agent-diff review` now fetches a review, so starting a

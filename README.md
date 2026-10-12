@@ -9,33 +9,35 @@ A code review tool for humans reviewing the output of coding agents.
 ## Why
 
 Agents (and fleets of agents) increasingly make changes across one or many
-repositories at once. Reviewing that work today means jumping between
-terminals, branches, and `git diff` invocations, then copy-pasting feedback
-back into a chat. `agent-diff` gives the reviewer a single UI that shows what
-changed in every workspace, lets them leave line-level and overall comments,
-and sends that feedback back to agents to address.
+repositories at once. Reviewing that work today means jumping between terminals,
+branches, and `git diff` invocations, then copy-pasting feedback back into a
+chat. `agent-diff` gives the reviewer a single UI that shows what changed in
+every working directory, lets them leave line-level and overall comments, and
+sends that feedback back to agents to address.
 
 ## Typical workflow
 
 1. An actor (human or agent) asks an agent to make a code change in one or
    more repos.
 2. That agent, or a fleet of sub-agents it delegates to, makes the changes,
-   each in its own workspace.
-3. An actor starts a review session over the workspaces to review. For
-   example, a human asks the main agent to start one covering all of its
-   sub-agents' workspaces, or asks a sub-agent to start one for its own.
-   Workspaces can be added to the review session later.
-4. The review UI opens for that review session. The reviewer can switch
-   between workspaces, and filter by agent when the agent tree is known.
+   each in its own working directory.
+3. An actor starts a review session over the working directories to review.
+   For example, a human asks the main agent to start one covering all of its
+   sub-agents' working directories, or asks a sub-agent to start one for its
+   own. Working directories can be added to the review session later.
+4. The review UI opens for that review session. The reviewer can switch between
+   working directories, and filter by agent when the agent tree is known.
 5. The reviewer sees the changed files in the file view and a diff comparing
-   each workspace's branch to its base ref.
+   each working directory to its base ref. A working directory doesn't have
+   to be a git repo. If it doesn't use git, the file view lists all its files
+   and there's no diff.
 6. The reviewer adds comments on a single line, a range of lines, or the
    review as a whole. Comments are drafts until they're submitted.
-7. The reviewer submits a review to the review session, then tells the agent
-   to apply it, for example "Apply the latest feedback." The agent claims a
-   workspace, fetches the most recent review with `agent-diff review`, and
-   addresses its comments. Agents don't block while a review session is
-   open, so the human can keep working with them in the meantime.
+7. The reviewer submits a review to the review session, then tells the agent to
+   apply it, for example "Apply the latest feedback." The agent claims a working
+   directory, fetches the most recent review with `agent-diff review`, and
+   addresses its comments. Agents don't block while a review session is open, so
+   the human can keep working with them in the meantime.
 8. Whenever any actor changes the code, the diff updates live. The review
    server watches the file system, so this includes agents in other processes
    and humans editing in their IDE.
@@ -59,14 +61,18 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
 - Comments follow the code as it changes, and are marked outdated rather
   than guessed when their lines change.
 - Reviews are submitted to review sessions, and agents claim feedback per
-  workspace.
+  working directory.
 - The review server has an API. Agents and harnesses use the `agent-diff`
   CLI, which calls it. There's no MCP server.
 - The review UI renders diffs with CodeMirror.
+- Review sessions cover working directories, which don't have to use git.
+  Only files under the working directory are shown, and the branch is
+  whatever `HEAD` points to.
 
 ## Diff modes
 
-The reviewer can switch what the diff shows:
+For a working directory that uses git, the reviewer can switch what the diff
+shows:
 
 | Mode        | Compares                                                  |
 | ----------- | --------------------------------------------------------- |
@@ -99,8 +105,10 @@ between them.
   it has and how many lines were added and removed.
 - In the tree view, a directory shows when it contains changes, so collapsed
   folders still show where the work is.
-- With several workspaces in the review session, files are grouped by
-  workspace.
+- With several working directories in the review session, files are grouped
+  by working directory.
+- For a working directory that doesn't use git, there are no diff modes or
+  git statuses, and the file view lists all its files.
 
 ## Integrations
 
@@ -111,7 +119,7 @@ helps, for example:
   agent's terminal.
 - **otty** and **herdr**: equivalent hooks for opening the review UI.
 
-Agents and harnesses start review sessions, claim workspaces, and fetch
+Agents and harnesses start review sessions, claim working directories, and fetch
 reviews through the `agent-diff` CLI, a small, documented interface that any
 harness can adopt. The CLI calls the review server's API, which the review
 UI also uses.
@@ -121,10 +129,11 @@ UI also uses.
 From the review UI, the reviewer can open the code in their editor, for
 example VS Code or IntelliJ:
 
-- **Open worktree**: opens the workspace's worktree directory as a project.
-- **Open branch**: opens the branch being reviewed. If that branch isn't
-  checked out in a worktree, the tool needs to create a worktree for it (or
-  ask first) rather than switching the branch of an existing checkout.
+- **Open working directory**: opens the working directory as a project.
+- **Open branch**: for a git working directory, opens the branch being
+  reviewed. If that branch isn't checked out in a worktree, the tool needs
+  to create a worktree for it (or ask first) rather than switching the
+  branch of an existing checkout.
 - **Open file**: opens the selected file, at the selected line when there is
   one, from the diff or the file view.
 
@@ -172,17 +181,9 @@ Examples of how this helps:
   - A [comment](docs/glossary.md#comment) is a draft "until its review is
     submitted," but a [review](docs/glossary.md#review) only exists once it's
     submitted, so drafts point to a review that doesn't exist yet.
-  - A [workspace](docs/glossary.md#workspace) includes the branch being
-    reviewed and a base ref, but agents and registration also use it for
-    wherever an agent works, outside any review session. Decide whether the
-    base ref belongs to the workspace or to the workspace within a review
-    session, and whether "at most one active claim" is per review session
-    or overall.
   - The "Last turn" [diff mode](docs/glossary.md#diff-mode) doesn't say whose
-    turn it is when several agents work in one workspace, and it says
+    turn it is when several agents work in one working directory, and it says
     "current state" where the other modes say "working tree."
-  - cmux, one of the harnesses, uses "workspace" for its own concept, which
-    may confuse agents running inside it.
 
 ## Open questions
 

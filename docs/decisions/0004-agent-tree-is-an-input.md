@@ -41,7 +41,7 @@ Benefits:
   agent session, and only the agent or its harness knows how to reach it.
 - **"Last turn" needs agent input anyway.** Snapshots at turn boundaries
   depend on the agent signaling when a turn ends, so reporting identity and
-  workspaces adds little extra work.
+  working directories adds little extra work.
 - **Simplicity.** The app has no heuristics to maintain or debug and is easy
   to test with a fixture tree.
 
@@ -72,5 +72,4 @@ Costs:
 - **Stale agents.** How the app detects agents that stopped reporting
   (heartbeat or explicit end event) and how it shows them.
 - **What an agent reports.** The exact schema, for example ID, parent ID,
-  label, workspaces (repo, worktree, base ref, head branch), and how to send
-  it feedback.
+  label, working directories, and how to send it feedback.

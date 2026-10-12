@@ -12,8 +12,8 @@ report changes, or by watching the files directly.
 
 ## Solution
 
-The review server watches the file system of every workspace in the review
-session.
+The review server watches the file system of every working directory in
+the review session.
 When something changes, it recomputes the affected diffs and file statuses
 and pushes the update to the browser.
 

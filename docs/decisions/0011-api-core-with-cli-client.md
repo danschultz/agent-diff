@@ -6,7 +6,7 @@
 ## Problem
 
 Agents, harnesses, and the review UI all need to drive the review server:
-start and end review sessions, add workspaces, take claims, and fetch
+start and end review sessions, add working directories, take claims, and fetch
 reviews. Earlier decisions left the interface open, suggesting a CLI, an MCP
 server, or both ([0005](0005-notify-then-pull-feedback.md),
 [0010](0010-user-prompts-agent-to-fetch-review.md)).
@@ -16,7 +16,7 @@ talks to the review server ([0001](0001-local-web-app.md)). So the choice is
 which interface agents and harnesses use:
 
 - **API only.** Every caller has to find the server and its port, handle
-  the auth token, and send its working directory. Agents are error-prone
+  the auth token, and send its current directory. Agents are error-prone
   with raw HTTP, and an HTTP call can't start a server that isn't running.
 - **CLI only.** The CLI can handle all of that once, but the review UI still
   needs an API, so the CLI would need to work without one or duplicate the
@@ -29,9 +29,9 @@ which interface agents and harnesses use:
 - **The CLI calls the API.** `agent-diff` is a client of the API, not a
   second implementation. It doesn't read or write the SQLite database
   directly.
-- **Agents and harnesses use the CLI.** It's the documented interface for
-  them. The CLI handles finding the review server, starting it when it isn't
-  running, authenticating, and working out the workspace from the working
+- **Agents and harnesses use the CLI.** It's the documented interface for them.
+  The CLI handles finding the review server, starting it when it isn't running,
+  authenticating, and working out the working directory from the current
   directory.
 - **No MCP server.** None is planned. Agents run the CLI from their shell.
 
@@ -42,7 +42,7 @@ Benefits:
 - One implementation of the behavior, in the review server, shared by the
   review UI and the CLI.
 - Finding the server, starting it, authenticating, and looking up the
-  workspace are solved once, in the CLI, instead of by every agent and
+  working directory are solved once, in the CLI, instead of by every agent and
   harness.
 - Agents run short commands like `agent-diff review` rather than writing
   HTTP requests.

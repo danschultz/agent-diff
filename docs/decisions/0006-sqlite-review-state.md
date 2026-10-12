@@ -22,10 +22,10 @@ with drafts intact and an agent can fetch feedback again.
 
 The database holds the state the app creates:
 
-- Registered agents, the agent tree, and each agent's workspaces and how to
-  notify it ([0004](0004-agent-tree-is-an-input.md)).
-- Review sessions, their workspaces, the reviews submitted to them, and
-  claims ([0009](0009-review-sessions-and-claims.md)).
+- Registered agents, the agent tree, and each agent's working directories and
+  how to notify it ([0004](0004-agent-tree-is-an-input.md)).
+- Review sessions, their working directories, the reviews submitted to
+  them, and claims ([0009](0009-review-sessions-and-claims.md)).
 - Comments, both drafts and submitted, with their anchors (file, line range,
   diff side, and the commit or snapshot they were written against).
 - Delivery status for feedback notifications

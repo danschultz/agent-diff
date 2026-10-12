@@ -12,7 +12,7 @@ A human or agent that requests changes, makes changes, or starts a
 ### Agent
 
 An AI coding agent that makes changes in one or more
-[workspaces](#workspace).
+[working directories](#working-directory).
 
 ### Agent session
 
@@ -53,19 +53,19 @@ addressed. See [0008](decisions/0008-comment-reanchoring.md).
 
 ### Base ref
 
-The branch or commit that a [workspace](#workspace)'s changes are compared
-against.
+The branch or commit that a git [working directory](#working-directory)'s
+changes are compared against.
 
 ### Claim
 
-An agent's lease on a [workspace](#workspace) in a
-[review session](#review-session), taken so the agent can address that
-workspace's unaddressed [feedback](#feedback). A workspace has at most one
-active claim at a time. The agent renews the claim while working, and it
-expires if the agent stops renewing it. The agent can also release a claim,
-or complete it when the feedback is addressed. Claims are advisory: they
-help agents coordinate but don't stop other processes from editing files.
-See [0009](decisions/0009-review-sessions-and-claims.md).
+An agent's lease on a [working directory](#working-directory) in a [review
+session](#review-session), taken so the agent can address that working
+directory's unaddressed [feedback](#feedback). A working directory has at most
+one active claim at a time. The agent renews the claim while working, and it
+expires if the agent stops renewing it. The agent can also release a claim, or
+complete it when the feedback is addressed. Claims are advisory: they help
+agents coordinate but don't stop other processes from editing files. See
+[0009](decisions/0009-review-sessions-and-claims.md).
 
 ### Comment
 
@@ -74,9 +74,15 @@ or the [review](#review) as a whole (an overall comment). A comment is a
 [draft](#draft) until its review is submitted. Each line or range comment
 has an [anchor](#anchor) and an [anchor state](#anchor-state).
 
+### Current directory
+
+The directory a process, such as an agent or the `agent-diff` CLI, is
+running in. The CLI finds the [working directory](#working-directory) that
+contains it. See [0013](decisions/0013-working-directories.md).
+
 ### Diff mode
 
-What the diff compares for a [workspace](#workspace):
+What the diff compares for a git [working directory](#working-directory):
 
 - **All changes:** the [base ref](#base-ref) to the working tree.
 - **Committed:** the base ref to `HEAD`.
@@ -84,6 +90,8 @@ What the diff compares for a [workspace](#workspace):
 - **Unstaged:** the index to the working tree.
 - **Last turn:** the previous [turn snapshot](#turn-snapshot) to the current
   state.
+
+A working directory that doesn't use git has no diff modes.
 
 ### Draft
 
@@ -105,7 +113,8 @@ on it. See [0008](decisions/0008-comment-reanchoring.md).
 
 The tree or list of files shown next to the diff in the
 [review UI](#review-ui). It's filtered by the [diff mode](#diff-mode) and
-shows each file's git status.
+shows each file's git status. For a working directory that doesn't use git,
+it lists all files.
 
 ### Harness
 
@@ -121,26 +130,27 @@ The agent at the top of an [agent tree](#agent-tree).
 
 An agent, or its [harness](#harness), reporting the agent to the
 [review server](#review-server): its ID, its parent, and its
-[workspaces](#workspace).
+[working directories](#working-directory).
 
 ### Review
 
-A batch of [comments](#comment) the [reviewer](#reviewer) submits to a
-[review session](#review-session). A review can span several
-[workspaces](#workspace), and a review session can receive many reviews over
-time.
+A batch of [comments](#comment) the [reviewer](#reviewer) submits to a [review
+session](#review-session). A review can span several [working
+directories](#working-directory), and a review session can receive many reviews
+over time.
 
 ### Review server
 
-The local server that stores review state in SQLite, watches
-[workspaces](#workspace) for changes, serves the [review UI](#review-ui),
-and provides the API that the review UI and the `agent-diff` CLI call. See
-[0011](decisions/0011-api-core-with-cli-client.md).
+The local server that stores review state in SQLite, watches [working
+directories](#working-directory) for changes, serves the [review
+UI](#review-ui), and provides the API that the review UI and the `agent-diff`
+CLI call. See [0011](decisions/0011-api-core-with-cli-client.md).
 
 ### Review session
 
-A set of [workspaces](#workspace) under review. An [actor](#actor) starts a
-review session through an API call, workspaces can be added after it starts,
+A set of [working directories](#working-directory) under review. An
+[actor](#actor) starts a review session through an API call, working
+directories can be added after it starts,
 and [reviews](#review) are submitted to it. A review session ends through an
 API call from the reviewer in the review UI, an agent, or other automation.
 See [0009](decisions/0009-review-sessions-and-claims.md).
@@ -166,10 +176,17 @@ One stretch of work an agent does in response to a prompt.
 
 ### Turn snapshot
 
-The state of a [workspace](#workspace) recorded at a [turn](#turn)
-boundary. Used by the "Last turn" [diff mode](#diff-mode).
+The state of a [working directory](#working-directory) recorded at a
+[turn](#turn) boundary. Used by the "Last turn" [diff mode](#diff-mode).
 
-### Workspace
+### Working directory
 
-A repo, the branch being reviewed, the worktree or working directory it's
-checked out in, and the [base ref](#base-ref) it's compared against.
+A directory on disk that agents make changes in and that
+[review sessions](#review-session) cover. It may be a git repo, a git
+worktree, or a directory inside a repo, or it may not use git at all. The
+diff and the [file view](#file-view) only include files under it, even when
+git runs against the whole repo. In a git working directory, the branch is
+whatever `HEAD` points to, and isn't part of the working directory. A
+working directory that doesn't use git has no diffs. Not to be confused with
+a process's [current directory](#current-directory). See
+[0013](decisions/0013-working-directories.md).
