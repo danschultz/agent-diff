@@ -4,13 +4,23 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { run } from './exec.ts';
+import { githubOverHttps } from './git.ts';
 
 export interface AgentSessionInfo {
+  /** The short id that `claude stop` takes. */
+  id: string;
   sessionId: string;
   cwd: string;
-  /** "busy" while working, "idle" while waiting. */
-  status: string;
+  /**
+   * "working" while working; "blocked", "done", and others while waiting.
+   * Sessions without a live process have only this, not `status`.
+   */
+  state: string;
   name?: string;
+}
+
+export function isWorking(session: AgentSessionInfo): boolean {
+  return session.state === 'working';
 }
 
 export interface StartOptions {
@@ -25,8 +35,8 @@ export interface Claude {
   resume(cwd: string, sessionId: string, prompt: string): void;
   /** Agent sessions that are running now. */
   running(): AgentSessionInfo[];
-  /** Stops an agent session. Its conversation is kept, so it can be resumed. */
-  stop(name: string): void;
+  /** Stops an agent session by its short id. Its conversation is kept, so it can be resumed. */
+  stop(id: string): void;
   /** The end of an agent session's output, for failure reports. */
   logTail(name: string, sessionId: string | undefined): string;
 }
@@ -50,7 +60,7 @@ export function cleanEnv(source: NodeJS.ProcessEnv = process.env): NodeJS.Proces
   env.HOME = home;
   env.TERM = 'xterm-256color';
   env.PATH = [path.dirname(process.execPath), path.join(home, '.local', 'bin'), '/usr/local/bin', '/usr/bin', '/bin'].join(':');
-  return env;
+  return { ...env, ...githubOverHttps() };
 }
 
 export function cliClaude(claudeBin: string): Claude {
@@ -70,8 +80,8 @@ export function cliClaude(claudeBin: string): Claude {
       const sessions = JSON.parse(claude(['agents', '--json'])) as AgentSessionInfo[];
       return sessions.map((s) => ({ ...s, cwd: s.cwd && path.resolve(s.cwd) }));
     },
-    stop(name) {
-      claude(['stop', name]);
+    stop(id) {
+      claude(['stop', id]);
     },
     logTail(name, sessionId) {
       try {

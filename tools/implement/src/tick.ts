@@ -2,7 +2,7 @@
 
 import path from 'node:path';
 import { missingFields, slugify } from './brief.ts';
-import type { AgentSessionInfo, Claude } from './claude.ts';
+import { isWorking, type AgentSessionInfo, type Claude } from './claude.ts';
 import { LABELS, type Config } from './config.ts';
 import type { Git } from './git.ts';
 import { moveTo, type GitHub, type Issue, type PullRequest, type Review } from './github.ts';
@@ -85,7 +85,7 @@ function reap(deps: Deps, brief: BriefState, running: AgentSessionInfo[]): Track
   // Finished: the pull request is merged or closed, or the issue was closed
   // without one (a failed brief Dan is done with, or a brief Dan called off).
   if ((pr && pr.state !== 'OPEN') || (!pr && issue.state === 'CLOSED')) {
-    if (session) claude.stop(brief.sessionName);
+    if (session) claude.stop(session.id);
     deps.git.removeWorktree(brief.worktree, brief.branch);
     delete state.briefs[brief.issue];
     deps.log(`#${brief.issue}: ${pr ? `pull request #${pr.number} ${pr.state.toLowerCase()}` : 'issue closed'}, removed ${brief.worktree}`);
@@ -115,12 +115,12 @@ function reap(deps: Deps, brief: BriefState, running: AgentSessionInfo[]): Track
     return { brief, issue, pr, session, occupiesSlot: false };
   }
 
-  if (has(LABELS.review) && session.status !== 'busy') {
-    claude.stop(brief.sessionName);
+  if (has(LABELS.review) && !isWorking(session)) {
+    claude.stop(session.id);
     deps.log(`#${brief.issue}: in review, stopped agent session ${brief.sessionName}`);
     return { brief, issue, pr, session: undefined, occupiesSlot: false, stopped: true };
   }
-  if (has(LABELS.needsInput) && session.status === 'busy') {
+  if (has(LABELS.needsInput) && isWorking(session)) {
     // Dan answered through Remote Control and the agent session is working again.
     moveTo(github, issue, LABELS.working, ALL_LABELS);
   }
