@@ -20,8 +20,9 @@ and adds the `agent:queued` label. A systemd user timer runs
    - Agent session exited without a pull request: moves the brief to
      `agent:failed` and comments the end of its output. The worktree is kept
      until the issue is closed.
-   - Brief in `agent:review` and its agent session idle: stops the agent
-     session with `claude stop`. The conversation is kept.
+   - Brief in `agent:review` and its agent session no longer working:
+     stops the agent session with `claude stop <id>`. The conversation is
+     kept.
 2. **Resumes** a stopped agent session when Dan submits a new review on its
    pull request, with `claude --bg --resume <session-id> "<prompt>"`, and
    moves the brief back to `agent:working`.
@@ -41,6 +42,15 @@ and adds the `agent:queued` label. A systemd user timer runs
 `claude` runs from `~/.local/bin/claude` with a clean environment, so
 wrappers and variables from whatever ran `implement` don't change its
 options.
+
+`implement` and the agent sessions it starts reach GitHub over HTTPS with
+`gh`'s credentials, set through git's environment variables. SSH needs an
+agent that's only there while Dan is logged in, and stalls inside an agent
+session's sandbox. The repo's own config is unchanged, so Dan's own sessions
+keep using SSH.
+
+Every command `implement` runs times out after 5 minutes, and git never
+prompts, so a stuck fetch fails the tick instead of blocking every later one.
 
 ### Hooks
 
@@ -72,7 +82,8 @@ node src/main.ts install   # writes and starts implement.service and implement.t
 loginctl enable-linger "$USER"
 ```
 
-Needs Node 24 or later, git, the `gh` CLI logged in with repo scope, and
+Needs Node 24 or later, git, the `gh` CLI logged in with repo scope (git uses
+its credentials too), and
 Claude Code logged in with Dan's claude.ai account (Remote Control doesn't
 work with an API key). `setup` warns if the repo doesn't delete head
 branches after merge; turn that on with

@@ -112,7 +112,7 @@ function dryRunDeps(github: GitHub, git: Git, claude: Claude): { github: GitHub;
       ...claude,
       start: (o) => would(`run claude --bg --remote-control ${o.name} --name ${o.name} --permission-mode auto --settings ${o.settingsFile} <prompt> in ${o.cwd}, with prompt:\n${o.prompt}`),
       resume: (cwd, id, prompt) => would(`run claude --bg --resume ${id} <prompt> in ${cwd}, with prompt:\n${prompt}`),
-      stop: (name) => would(`run claude stop ${name}`),
+      stop: (id) => would(`run claude stop ${id}`),
     },
   };
 }
@@ -128,7 +128,7 @@ function status(): void {
     console.log(`#${b.issue} ${b.title}`);
     console.log(`  branch:        ${b.branch}`);
     console.log(`  worktree:      ${b.worktree}`);
-    console.log(`  agent session: ${b.sessionName} ${b.sessionId ?? '(id not known yet)'} ${session ? session.status : 'not running'}`);
+    console.log(`  agent session: ${b.sessionName} ${b.sessionId ?? '(id not known yet)'} ${session ? session.state : 'not running'}`);
   }
 }
 

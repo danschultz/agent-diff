@@ -9,8 +9,42 @@ export interface Git {
   prune(): void;
 }
 
+const GITHUB_OVER_HTTPS: [string, string][] = [
+  ['url.https://github.com/.insteadOf', 'git@github.com:'],
+  ['url.https://github.com/.insteadOf', 'ssh://git@github.com/'],
+  ['credential.https://github.com.helper', '!gh auth git-credential'],
+];
+
+/**
+ * Git config, as environment variables, that reaches GitHub over HTTPS with
+ * gh's credentials. SSH needs an agent that's only there while Dan is logged
+ * in, and stalls inside an agent session's sandbox. The repo's own config,
+ * and so Dan's own sessions, keep using SSH.
+ */
+export function githubOverHttps(): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { GIT_CONFIG_COUNT: String(GITHUB_OVER_HTTPS.length) };
+  GITHUB_OVER_HTTPS.forEach(([key, value], i) => {
+    env[`GIT_CONFIG_KEY_${i}`] = key;
+    env[`GIT_CONFIG_VALUE_${i}`] = value;
+  });
+  return env;
+}
+
+/**
+ * Git never waits for input: SSH fails instead of asking for a passphrase or
+ * host key, and HTTPS fails instead of asking for a password.
+ */
+function gitEnv(): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    ...githubOverHttps(),
+    GIT_SSH_COMMAND: 'ssh -o BatchMode=yes -o ConnectTimeout=30',
+    GIT_TERMINAL_PROMPT: '0',
+  };
+}
+
 export function cliGit(repoDir: string): Git {
-  const git = (...args: string[]) => run('git', args, { cwd: repoDir });
+  const git = (...args: string[]) => run('git', args, { cwd: repoDir, env: gitEnv() });
   return {
     addWorktree(dir, branch, baseBranch) {
       git('fetch', '--quiet', 'origin', baseBranch);

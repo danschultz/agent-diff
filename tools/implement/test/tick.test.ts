@@ -48,11 +48,11 @@ function harness(options: { issues?: Issue[]; prs?: Record<string, PullRequest>;
   const claude: Claude = {
     start(o) {
       started.push(o);
-      running.push({ sessionId: `session-${o.name}`, cwd: o.cwd, status: 'busy', name: o.name });
+      running.push({ id: `id-${o.name}`, sessionId: `session-${o.name}`, cwd: o.cwd, state: 'working', name: o.name });
     },
     resume: (cwd, sessionId, prompt) => resumed.push({ cwd, sessionId, prompt }),
     running: () => running,
-    stop: (name) => stopped.push(name),
+    stop: (id) => stopped.push(id),
     logTail: () => 'last words',
   };
   const now = options.now ?? 10 * LAUNCH_GRACE_MS;
@@ -119,7 +119,7 @@ test('respects the concurrency limit, counting running agent sessions', () => {
   const h = harness({
     issues: [issue(1, [LABELS.working]), issue(2, [LABELS.queued]), issue(3, [LABELS.queued])],
     state: { briefs: { 1: tracked(1) } },
-    running: [{ sessionId: 'session-1', cwd: tracked(1).worktree, status: 'busy' }],
+    running: [{ id: 'id-1', sessionId: 'session-1', cwd: tracked(1).worktree, state: 'working' }],
   });
   tick(h.deps);
   assert.deepEqual(h.started.map((s) => s.name), ['brief-2-brief-2']);
@@ -141,15 +141,41 @@ test("doesn't fail a just-launched agent session that isn't listed yet", () => {
   assert.deepEqual(h.issues.get(5)!.labels, [LABELS.working]);
 });
 
-test('stops an idle agent session once its brief is in review', () => {
+test('stops an idle agent session by its id once its brief is in review', () => {
   const h = harness({
     issues: [issue(6, [LABELS.review])],
     state: { briefs: { 6: tracked(6) } },
-    running: [{ sessionId: 'session-6', cwd: tracked(6).worktree, status: 'idle' }],
+    running: [{ id: 'id-6', sessionId: 'session-6', cwd: tracked(6).worktree, state: 'done' }],
     prs: { 'brief/6-brief-6': { number: 60, url: 'u', state: 'OPEN', reviews: [] } },
   });
   tick(h.deps);
-  assert.deepEqual(h.stopped, ['brief-6-brief-6']);
+  assert.deepEqual(h.stopped, ['id-6']);
+});
+
+test("doesn't stop an agent session that's still working after moving its brief to review", () => {
+  const h = harness({
+    issues: [issue(6, [LABELS.review])],
+    state: { briefs: { 6: tracked(6) } },
+    running: [{ id: 'id-6', sessionId: 'session-6', cwd: tracked(6).worktree, state: 'working' }],
+    prs: { 'brief/6-brief-6': { number: 60, url: 'u', state: 'OPEN', reviews: [] } },
+  });
+  tick(h.deps);
+  assert.deepEqual(h.stopped, []);
+});
+
+test('moves a brief back to working when its agent session works again after asking', () => {
+  const h = harness({
+    issues: [issue(5, [LABELS.needsInput]), issue(6, [LABELS.needsInput])],
+    state: { briefs: { 5: tracked(5), 6: tracked(6) } },
+    running: [
+      { id: 'id-5', sessionId: 'session-5', cwd: tracked(5).worktree, state: 'working' },
+      // Listed without a live process, as `claude agents` does for a session waiting on an answer.
+      { id: 'id-6', sessionId: 'session-6', cwd: tracked(6).worktree, state: 'blocked' },
+    ],
+  });
+  tick(h.deps);
+  assert.deepEqual(h.issues.get(5)!.labels, [LABELS.working]);
+  assert.deepEqual(h.issues.get(6)!.labels, [LABELS.needsInput]);
 });
 
 test('resumes a stopped agent session when Dan reviews its pull request', () => {
@@ -184,8 +210,10 @@ test('removes the worktree when the pull request is merged', () => {
     issues: [issue(8, [LABELS.review], { state: 'CLOSED' })],
     state: { briefs: { 8: tracked(8) } },
     prs: { 'brief/8-brief-8': { number: 80, url: 'u', state: 'MERGED', reviews: [] } },
+    running: [{ id: 'id-8', sessionId: 'session-8', cwd: tracked(8).worktree, state: 'done' }],
   });
   tick(h.deps);
+  assert.deepEqual(h.stopped, ['id-8']);
   assert.deepEqual(h.removed, [tracked(8).worktree]);
   assert.equal(h.state.briefs[8], undefined);
 });
