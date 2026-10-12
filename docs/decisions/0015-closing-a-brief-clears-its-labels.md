@@ -21,8 +21,10 @@ issue when its pull request is closed without merging.
 - **The logic is shared with `implement`.** The workflow checks out
   `tools/implement`, sets up Node 24, and runs `implement clear-labels
   <issue>`. That uses the same `LABELS`, the same `gh` wrapper, and a
-  `clearLabels` helper next to `moveTo` in `github.ts`, so the workflow has no
-  logic of its own and the helper is covered by `npm test`.
+  `clearLabels` helper next to `moveTo` in `github.ts`. The workflow has no
+  logic of its own, not even a filter on labels: it runs for every closed
+  issue, and the CLI decides whether there's anything to remove. The helper is
+  covered by `npm test`.
 - **`implement` doesn't touch labels when it finishes with a brief.** Its reap
   step still stops the agent session and removes the worktree and branch.
 - **Closing a pull request without merging leaves the issue open.** "Closes
@@ -45,6 +47,8 @@ Costs:
 - An issue whose pull request was closed without merging keeps its
   `agent:*` labels, such as `agent:review`, while it stays open, even
   though `implement` no longer tracks it.
+- The workflow runs for every closed issue, including ones that were never
+  briefs, though it changes nothing on them.
 - The workflow only runs from the default branch, so it can't be tried
   before it's merged.
 - Label cleanup is triggered from outside `tools/implement/`, and the
