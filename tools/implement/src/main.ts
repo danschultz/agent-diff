@@ -110,8 +110,8 @@ function dryRunDeps(github: GitHub, git: Git, claude: Claude): { github: GitHub;
     },
     claude: {
       ...claude,
-      start: (o) => would(`run claude --bg --remote-control ${o.name} --name ${o.name} --permission-mode auto --settings ${o.settingsFile} <prompt> in ${o.cwd}, with prompt:\n${o.prompt}`),
-      resume: (cwd, id, prompt) => would(`run claude --bg --resume ${id} <prompt> in ${cwd}, with prompt:\n${prompt}`),
+      start: (o) => would(`run in its own systemd scope: claude --bg --remote-control ${o.name} --name ${o.name} --permission-mode auto --settings ${o.settingsFile} <prompt> in ${o.cwd}, with prompt:\n${o.prompt}`),
+      resume: (cwd, id, prompt) => would(`run in its own systemd scope: claude --bg --resume ${id} <prompt> in ${cwd}, with prompt:\n${prompt}`),
       stop: (id) => would(`run claude stop ${id}`),
     },
   };

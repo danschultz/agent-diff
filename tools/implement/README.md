@@ -43,6 +43,17 @@ and adds the `agent:queued` label. A systemd user timer runs
 wrappers and variables from whatever ran `implement` don't change its
 options.
 
+`claude --bg` hands each agent session to a shared Claude Code daemon, and
+starts the daemon if it isn't running. `implement` runs `claude --bg` in its
+own systemd scope (`implement-claude-<id>.scope`, from
+`systemd-run --user --scope`). Otherwise the daemon would be in
+`implement.service`'s cgroup, and systemd would kill it, with every agent
+session it hosts, when the tick exits. The scope goes away when the daemon
+exits, which it does once no agent sessions are left. If the daemon is
+already running, for example because Dan started a background session from a
+terminal, new agent sessions join it wherever it runs, and end if it's
+killed.
+
 `implement` and the agent sessions it starts reach GitHub over HTTPS with
 `gh`'s credentials, set through git's environment variables. SSH needs an
 agent that's only there while Dan is logged in, and stalls inside an agent

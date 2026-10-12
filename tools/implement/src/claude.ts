@@ -1,5 +1,6 @@
 // Starting, resuming, and inspecting background Claude Code agent sessions.
 
+import { randomUUID } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -63,18 +64,33 @@ export function cleanEnv(source: NodeJS.ProcessEnv = process.env): NodeJS.Proces
   return { ...env, ...githubOverHttps() };
 }
 
+/**
+ * Wraps a `claude --bg` command in its own systemd scope.
+ *
+ * `claude --bg` hands the agent session to a shared daemon, and starts that
+ * daemon if it isn't running. The daemon would otherwise land in
+ * implement.service's cgroup, and systemd kills everything left in it when a
+ * tick exits. In its own scope, the daemon outlives the tick, and the scope
+ * goes away when the daemon exits.
+ */
+export function inOwnScope(claudeBin: string, args: string[]): [string, string[]] {
+  const unit = `implement-claude-${randomUUID().slice(0, 8)}`;
+  return ['systemd-run', ['--user', '--scope', '--quiet', '--collect', `--unit=${unit}`, '--', claudeBin, ...args]];
+}
+
 export function cliClaude(claudeBin: string): Claude {
   const claude = (args: string[], cwd?: string) => run(claudeBin, args, { cwd, env: cleanEnv() });
+  const claudeBg = (args: string[], cwd: string) => run(...inOwnScope(claudeBin, ['--bg', ...args]), { cwd, env: cleanEnv() });
   return {
     start({ cwd, name, settingsFile, prompt }) {
       // --remote-control takes an optional name, so it's always given one;
       // otherwise the prompt would be read as the name.
-      claude(['--bg', '--remote-control', name, '--name', name, '--permission-mode', 'auto', '--settings', settingsFile, prompt], cwd);
+      claudeBg(['--remote-control', name, '--name', name, '--permission-mode', 'auto', '--settings', settingsFile, prompt], cwd);
     },
     resume(cwd, sessionId, prompt) {
       // No other options: the agent session keeps the ones it was started
       // with, and passing any would start a copy with a new id.
-      claude(['--bg', '--resume', sessionId, prompt], cwd);
+      claudeBg(['--resume', sessionId, prompt], cwd);
     },
     running() {
       const sessions = JSON.parse(claude(['agents', '--json'])) as AgentSessionInfo[];
