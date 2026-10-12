@@ -1,5 +1,6 @@
 # Removes the agent:* labels from a brief's issue when it's closed, so closed
-# issues don't keep a stale state like agent:review. See decision 0015.
+# issues don't keep a stale state like agent:review. The logic lives in
+# tools/implement (`implement clear-labels`). See decision 0015.
 name: Clear agent labels
 
 on:
@@ -7,6 +8,7 @@ on:
     types: [closed]
 
 permissions:
+  contents: read
   issues: write
 
 jobs:
@@ -14,16 +16,14 @@ jobs:
     if: contains(join(github.event.issue.labels.*.name, ' '), 'agent:')
     runs-on: ubuntu-latest
     steps:
-      - env:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/implement
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node tools/implement/src/main.ts clear-labels "$ISSUE"
+        env:
           GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
+          IMPLEMENT_REPO: ${{ github.repository }}
           ISSUE: ${{ github.event.issue.number }}
-          LABELS: ${{ toJSON(github.event.issue.labels.*.name) }}
-        run: |
-          args=()
-          while IFS= read -r label; do
-            args+=(--remove-label "$label")
-          done < <(jq -r '.[] | select(startswith("agent:"))' <<<"$LABELS")
-          if [ ${#args[@]} -gt 0 ]; then
-            gh issue edit "$ISSUE" "${args[@]}"
-          fi
