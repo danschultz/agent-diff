@@ -16,10 +16,7 @@ and adds the `agent:queued` label. A systemd user timer runs
    request for the brief's branch, and `claude agents --json`:
    - Pull request merged or closed, or issue closed without a pull request:
      stops the agent session if it's running, removes the worktree with
-     `git worktree remove --force`, deletes the local branch, stops tracking
-     the brief, then removes every `agent:*` label from the issue. Other
-     labels are kept. If removing the labels fails, the failure is logged
-     and not retried.
+     `git worktree remove --force`, and deletes the local branch.
    - Agent session exited without a pull request: moves the brief to
      `agent:failed` and comments the end of its output. The worktree is kept
      until the issue is closed.
@@ -41,6 +38,14 @@ and adds the `agent:queued` label. A systemd user timer runs
    ```
 
 4. **Prunes** worktrees deleted by hand, with `git worktree prune`.
+
+`implement` doesn't clear labels when it finishes with a brief. The
+workflow [`clear-agent-labels.yml`](../../.github/workflows/clear-agent-labels.yml)
+removes every `agent:*` label from an issue when it's closed, whether by a
+merged pull request or by hand, and leaves other labels alone. A pull request
+closed without merging leaves its issue open with its labels, until Dan
+closes the issue or queues it again
+([decision 0015](../../docs/decisions/0015-closing-a-brief-clears-its-labels.md)).
 
 `claude` runs from `~/.local/bin/claude` with a clean environment, so
 wrappers and variables from whatever ran `implement` don't change its

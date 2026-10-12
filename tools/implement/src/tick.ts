@@ -9,7 +9,7 @@ import { moveTo, type GitHub, type Issue, type PullRequest, type Review } from '
 import { resumePrompt, startPrompt } from './prompts.ts';
 import type { BriefState, State } from './state.ts';
 
-const ALL_LABELS: readonly string[] = Object.values(LABELS);
+const ALL_LABELS = Object.values(LABELS);
 
 /** How long a just-launched agent session may be missing from `claude agents` before it counts as exited. */
 export const LAUNCH_GRACE_MS = 3 * 60 * 1000;
@@ -89,10 +89,6 @@ function reap(deps: Deps, brief: BriefState, running: AgentSessionInfo[]): Track
     deps.git.removeWorktree(brief.worktree, brief.branch);
     delete state.briefs[brief.issue];
     deps.log(`#${brief.issue}: ${pr ? `pull request #${pr.number} ${pr.state.toLowerCase()}` : 'issue closed'}, removed ${brief.worktree}`);
-    // Last, and on its own: the brief is no longer tracked, so a failure here
-    // is logged once instead of being retried every tick.
-    const stale = issue.labels.filter((l) => ALL_LABELS.includes(l));
-    if (stale.length > 0) guard(deps, brief.issue, () => github.setLabels(issue.number, [], stale));
     return undefined;
   }
 

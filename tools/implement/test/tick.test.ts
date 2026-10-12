@@ -24,9 +24,7 @@ function issue(number: number, labels: string[], extra: Partial<Issue> = {}): Is
   return { number, title: `Brief ${number}`, body: BODY, url: `https://github.com/dan/agent-diff/issues/${number}`, author: 'dan', labels, state: 'OPEN', ...extra };
 }
 
-function harness(
-  options: { issues?: Issue[]; prs?: Record<string, PullRequest>; running?: AgentSessionInfo[]; state?: State; now?: number; failLabels?: boolean } = {},
-) {
+function harness(options: { issues?: Issue[]; prs?: Record<string, PullRequest>; running?: AgentSessionInfo[]; state?: State; now?: number } = {}) {
   const issues = new Map((options.issues ?? []).map((i) => [i.number, i]));
   const prs = options.prs ?? {};
   const running = options.running ?? [];
@@ -36,15 +34,12 @@ function harness(
   const stopped: string[] = [];
   const removed: string[] = [];
   const added: string[] = [];
-  const labelChanges: { issue: number; add: string[]; remove: string[] }[] = [];
   const state: State = options.state ?? { briefs: {} };
   const github: GitHub = {
     queuedIssues: (label) => structuredClone([...issues.values()].filter((i) => i.state === 'OPEN' && i.labels.includes(label))),
     issue: (n) => structuredClone(issues.get(n)!),
     pullRequestForBranch: (branch) => prs[branch],
     setLabels(n, add, remove) {
-      if (options.failLabels) throw new Error('gh failed');
-      labelChanges.push({ issue: n, add, remove });
       const i = issues.get(n)!;
       i.labels = [...i.labels.filter((l) => !remove.includes(l)), ...add.filter((l) => !i.labels.includes(l))];
     },
@@ -72,7 +67,7 @@ function harness(
     sleep() {},
     log() {},
   };
-  return { deps, issues, comments, started, resumed, stopped, removed, added, labelChanges, state, running };
+  return { deps, issues, comments, started, resumed, stopped, removed, added, state, running };
 }
 
 function tracked(n: number, extra: Partial<BriefState> = {}): BriefState {
@@ -221,7 +216,6 @@ test('removes the worktree when the pull request is merged', () => {
   assert.deepEqual(h.stopped, ['id-8']);
   assert.deepEqual(h.removed, [tracked(8).worktree]);
   assert.equal(h.state.briefs[8], undefined);
-  assert.deepEqual(h.issues.get(8)!.labels, []);
 });
 
 test('removes the worktree of a failed brief once its issue is closed', () => {
@@ -229,47 +223,6 @@ test('removes the worktree of a failed brief once its issue is closed', () => {
   tick(h.deps);
   assert.deepEqual(h.removed, [tracked(9).worktree]);
   assert.equal(h.state.briefs[9], undefined);
-  assert.deepEqual(h.issues.get(9)!.labels, []);
-});
-
-test('removes agent labels when the pull request is closed without merging, keeping other labels', () => {
-  const h = harness({
-    issues: [issue(11, ['bug', LABELS.review, 'tools'])],
-    state: { briefs: { 11: tracked(11) } },
-    prs: { 'brief/11-brief-11': { number: 110, url: 'u', state: 'CLOSED', reviews: [] } },
-  });
-  tick(h.deps);
-  assert.deepEqual(h.removed, [tracked(11).worktree]);
-  assert.deepEqual(h.labelChanges, [{ issue: 11, add: [], remove: [LABELS.review] }]);
-  assert.deepEqual(h.issues.get(11)!.labels, ['bug', 'tools']);
-});
-
-test("doesn't change labels on a finished brief that has no agent labels left", () => {
-  const h = harness({
-    issues: [issue(12, ['bug'], { state: 'CLOSED' })],
-    state: { briefs: { 12: tracked(12) } },
-    prs: { 'brief/12-brief-12': { number: 120, url: 'u', state: 'MERGED', reviews: [] } },
-  });
-  tick(h.deps);
-  assert.deepEqual(h.removed, [tracked(12).worktree]);
-  assert.deepEqual(h.labelChanges, []);
-});
-
-test("still removes the worktree when removing a finished brief's labels fails, and doesn't retry", () => {
-  const logs: string[] = [];
-  const h = harness({
-    issues: [issue(13, [LABELS.review], { state: 'CLOSED' })],
-    state: { briefs: { 13: tracked(13) } },
-    prs: { 'brief/13-brief-13': { number: 130, url: 'u', state: 'MERGED', reviews: [] } },
-    failLabels: true,
-  });
-  h.deps.log = (m) => logs.push(m);
-  tick(h.deps);
-  assert.deepEqual(h.removed, [tracked(13).worktree]);
-  assert.equal(h.state.briefs[13], undefined);
-  assert.ok(logs.some((m) => m.includes('#13: gh failed')));
-  tick(h.deps);
-  assert.deepEqual(h.removed, [tracked(13).worktree], 'the next tick no longer tracks the brief');
 });
 
 test('the Notification hook moves the brief to needs-input and posts the question', () => {
