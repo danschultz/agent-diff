@@ -18,4 +18,4 @@ are defined in [docs/glossary.md](docs/glossary.md).
 | ---- | ------------ |
 | [`.rules/glossary.md`](.rules/glossary.md) | Always |
 | [`.rules/decisions.md`](.rules/decisions.md) | When the user settles a design question or answers an open question in `README.md`. |
-| [`.rules/research.md`](.rules/research.md) | When the user or a brief asks for options to be researched, or a proposal in `docs/research` is accepted or rejected. |
+| [`.rules/research.md`](.rules/research.md) | When the user or a brief asks for options to be researched. |

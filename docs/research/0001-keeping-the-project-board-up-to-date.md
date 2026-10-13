@@ -1,6 +1,5 @@
 # 0001: How should the project board stay up to date?
 
-- Status: Proposed
 - Date: 2026-10-12
 
 ## Question
@@ -12,14 +11,14 @@ which are in review, and which are done. Today the board is updated by hand.
 It should update itself with no human involvement
 ([#11](https://github.com/danschultz/agent-diff/issues/11)).
 
-A good answer must:
+The options are compared on whether they:
 
 - Move a brief on the board whenever its state changes, including changes
   made by `implement`, by its `Notification` hook, by an agent session, and
   by Dan.
 - Add briefs to the board without anyone adding them.
 - Recover from a missed update instead of leaving the board wrong.
-- Add as few new credentials and moving parts as possible.
+- Add new credentials or moving parts.
 
 ## Findings
 
@@ -146,8 +145,8 @@ Costs:
 
 Add a step to each tick that reads the briefs and the board, works out the
 Status each brief should have from its labels and whether it's closed, and
-fixes any item that differs. The built-in workflows still move closed items
-to Done as a backstop.
+fixes any item that differs. The built-in workflows can still move closed
+items to Done.
 
 Benefits:
 
@@ -169,78 +168,61 @@ Costs:
 - Reconciling overwrites manual Status changes on briefs, so the board is
   for viewing, not for changing a brief's state.
 
-## Proposal
+### Choices shared by B, C, and D
 
-Use option D, plus the built-in workflows for Done. Later, if 2 minutes is
-too slow for Needs input, also call the sync from `moveTo` (option C), so
-`implement`'s own changes show at once and the tick still catches the rest.
+Options B, C, and D all set Status from labels, so each needs:
 
-### Mapping
+- **A mapping from labels to Status.** For example:
 
-| Brief | Status |
-| ----- | ------ |
-| Open, `agent:queued` | Queued |
-| Open, `agent:working` | Working |
-| Open, `agent:needs-input` | Needs input |
-| Open, `agent:review` | In review |
-| Open, `agent:failed` | Failed |
-| Closed | Done |
+  | Brief | Status |
+  | ----- | ------ |
+  | Open, `agent:queued` | Queued |
+  | Open, `agent:working` | Working |
+  | Open, `agent:needs-input` | Needs input |
+  | Open, `agent:review` | In review |
+  | Open, `agent:failed` | Failed |
+  | Closed | Done |
 
-Failed gets its own column rather than sharing Needs input, because it
-means the agent session has exited and Dan must re-queue or close the
-brief, not answer a question. Open issues with no `agent:*` label, such as
-drafts, are left alone.
+  `agent:failed` could share Needs input instead, but the two need
+  different things from Dan: a failed brief's agent session has exited, so
+  Dan re-queues or closes it rather than answering a question. Open issues
+  with no `agent:*` label, such as drafts, don't need a Status.
+- **Status options on the board** that match the mapping, with Status as
+  the board's column field.
+- **A token with the `project` scope.** For C and D, that's
+  `gh auth refresh -s project` on the server. The scope allows writing to
+  every project Dan owns.
+- **The "Item added to project" workflow turned off**, if it's on, so it
+  doesn't race the sync by setting a default Status. "Item closed" and
+  "Pull request merged" can stay on to set Done.
 
-### Implementation
+### What option D would change in `implement`
 
-1. **One-time setup, by Dan.**
-   - Run `gh auth refresh -s project` on the server.
-   - Give the board's Status field the options Queued, Working, Needs
-     input, In review, Failed, and Done, and use Status as the board's
-     column field.
-   - Keep the "Item closed" and "Pull request merged" workflows on. Turn
-     off "Item added to project", so it doesn't race the sync by setting a
-     default Status.
-2. **Configuration.** Add `IMPLEMENT_PROJECT`, such as `danschultz/3`, to
-   `Config`. When it's unset, the sync step is skipped, so the board stays
-   optional.
-3. **GitHub access.** Add to the `GitHub` interface in
-   `tools/implement/src/github.ts`:
-   - `projectFields()`, from `gh project field-list --format json`, to look
-     up the Status field and its option IDs by name. A missing option is
-     logged once per tick, naming it, and the briefs that need it are
-     skipped.
-   - `projectItems()`, from `gh project item-list --format json` with a
-     high `--limit`, giving each item's id, issue number, and Status.
-   - `addProjectItem(issueUrl)`, from `gh project item-add`.
-   - `setProjectStatus(itemId, optionId)`, from `gh project item-edit`.
-4. **Sync step.** Add `syncBoard(deps)` in `tools/implement/src/board.ts`,
-   called at the end of `tick` after `startQueued`, so it sees the labels
-   that tick set. It:
-   - Lists open issues in the repo with any `agent:*` label, and the
-     board's items.
-   - Adds a brief that isn't on the board, then sets its Status.
-   - Sets the Status of each brief whose Status differs from the mapping.
-   - Leaves closed issues to the built-in workflows, and items from other
-     repos alone.
-   - Runs inside `guard`, so a board failure is logged and never stops
-     briefs from being started, resumed, or reaped.
-5. **Tests.** Extend the fake `GitHub` in `tools/implement/test/` with an
-   in-memory board, and test the mapping, adding missing briefs, skipping
-   unchanged items, leaving other items alone, and handling a missing
-   option.
-6. **Docs.** Update `tools/implement/README.md` with the setup steps, and
-   record a decision amending 0014 once the approach is accepted.
+- **Configuration.** A setting such as `IMPLEMENT_PROJECT=danschultz/3` in
+  `Config`. With it unset, the sync step is skipped.
+- **GitHub access.** New methods on the `GitHub` interface in
+  `tools/implement/src/github.ts`, wrapping `gh project field-list` (to
+  find the Status field and option IDs by name), `gh project item-list`,
+  `gh project item-add`, and `gh project item-edit`.
+- **A sync step** at the end of `tick`, after `startQueued`, so it sees the
+  labels that tick set. It lists open issues with `agent:*` labels and the
+  board's items, adds briefs that are missing, and sets Status where it
+  differs from the mapping. It runs inside `guard`, so a board failure is
+  logged and doesn't stop briefs from being started, resumed, or reaped.
+- **Tests** using the fake `GitHub` in `tools/implement/test/`, extended
+  with an in-memory board.
 
-## Open questions
+Option C would add the same GitHub methods but call them from `moveTo`.
+C and D can be combined, so `implement`'s own changes show at once and the
+tick catches the rest.
 
-- **Column names.** Are Queued, Working, Needs input, In review, Failed,
-  and Done the columns Dan wants? The board's current columns couldn't be
-  read without the `read:project` scope.
-- **Working and Failed.** Should Working and Failed be their own columns,
-  or should Working stay in Queued and Failed show as Needs input?
-- **Scope of the token.** Is Dan comfortable giving the server's `gh`
-  login the `project` scope, which allows writing to every project Dan
-  owns?
-- **Other repos.** If `implement` takes briefs from more repos, as 0014's
-  follow-up choices consider, should they share this board?
+## Gaps
+
+- **The board's current setup.** Its fields, Status options, and enabled
+  workflows couldn't be read, because the server's `gh` token lacks the
+  `read:project` scope.
+- **GitHub plan.** Whether Dan's account is on Free or Pro, which limits
+  auto-add workflows to 1 or 5, wasn't checked.
+- **Other repos.** If `implement` takes briefs from more repos, as
+  decision 0014's follow-up choices consider, each option would need to
+  handle items from several repos. This wasn't looked into.

@@ -22,9 +22,8 @@ answering an open question in `README.md`.
    row in the index.
 7. If the decision introduces or changes terms, update `docs/glossary.md`
    following [`.rules/glossary.md`](glossary.md).
-8. If the decision accepts a proposal from `docs/research`, link to the
-   research in the decision's Problem section, and update the research's
-   status following [`.rules/research.md`](research.md).
+8. If the decision builds on research in `docs/research`, link to it from
+   the decision's Problem section.
 
 Follow-up design choices belong in the decision file. Keep `README.md`'s open
 questions for questions that aren't tied to a single decision.
