@@ -79,7 +79,9 @@ export function reanchor(
   const opts = { ...defaultReanchorOptions, ...options };
   const orig = splitLines(original);
   if (range.start < 1 || range.end < range.start || range.end > orig.length) {
-    throw new Error(`range ${range.start}-${range.end} is outside the original file (${orig.length} lines)`);
+    throw new Error(
+      `range ${range.start}-${range.end} is outside the original file (${orig.length} lines)`,
+    );
   }
   if (current === null) {
     return outdated(null, 'The file no longer exists in this version.');
@@ -108,7 +110,10 @@ export function reanchor(
       insertAfter: null,
       shift,
       similarity: 1,
-      reason: shift === 0 ? 'Commented lines are unchanged.' : `Commented lines are unchanged and moved ${shift > 0 ? 'down' : 'up'} ${Math.abs(shift)} line(s).`,
+      reason:
+        shift === 0
+          ? 'Commented lines are unchanged.'
+          : `Commented lines are unchanged and moved ${shift > 0 ? 'down' : 'up'} ${Math.abs(shift)} line(s).`,
     };
   }
 
@@ -150,14 +155,29 @@ export function reanchor(
 
     // A fuzzy match over the code that replaced the commented lines is the
     // "agent edited exactly these lines" case. That must read as outdated.
-    const overlapsRegion = region.end >= region.start && c <= region.end && c + n - 1 >= region.start;
+    const overlapsRegion =
+      region.end >= region.start &&
+      c <= region.end &&
+      c + n - 1 >= region.start;
     if (!exact && overlapsRegion) continue;
 
-    const context = contextSimilarity(origNorm, s, e, curNorm, c, c + n - 1, opts.contextLines, sim);
+    const context = contextSimilarity(
+      origNorm,
+      s,
+      e,
+      curNorm,
+      c,
+      c + n - 1,
+      opts.contextLines,
+      sim,
+    );
     if (weak && context < opts.minContextSimilarity) continue;
 
     const distance = Math.abs(c - region.start) / Math.max(1, cur.length);
-    const rank = similarity * 0.7 + context * 0.3 - opts.distancePenalty * Math.min(1, distance);
+    const rank =
+      similarity * 0.7 +
+      context * 0.3 -
+      opts.distancePenalty * Math.min(1, distance);
     candidates.push({ start: c, similarity, context, rank, exact });
   }
 
@@ -167,7 +187,9 @@ export function reanchor(
     // Rivals are judged on content alone. Context only breaks ties in ranking,
     // because two copies of the same code are a guess no matter where they sit.
     const rival = candidates.find(
-      (cand) => Math.abs(cand.start - best.start) >= n && cand.similarity >= best.similarity - opts.ambiguityMargin,
+      (cand) =>
+        Math.abs(cand.start - best.start) >= n &&
+        cand.similarity >= best.similarity - opts.ambiguityMargin,
     );
     if (rival) {
       return outdated(
@@ -187,15 +209,23 @@ export function reanchor(
   }
 
   // Layer 3: outdated.
-  return outdated(region, 'Commented lines changed and no confident match was found.');
+  return outdated(
+    region,
+    'Commented lines changed and no confident match was found.',
+  );
 }
 
-function outdated(region: { start: number; end: number } | null, reason: string): ReanchorResult {
+function outdated(
+  region: { start: number; end: number } | null,
+  reason: string,
+): ReanchorResult {
   const hasReplacement = region !== null && region.end >= region.start;
   return {
     state: 'outdated',
     range: null,
-    replacement: hasReplacement ? { start: region.start + 1, end: region.end + 1 } : null,
+    replacement: hasReplacement
+      ? { start: region.start + 1, end: region.end + 1 }
+      : null,
     insertAfter: region !== null && !hasReplacement ? region.start : null,
     shift: null,
     similarity: null,
@@ -226,7 +256,12 @@ export function mapLines(orig: string[], cur: string[]): Int32Array {
  * 0-based range of current lines between the nearest unchanged lines around
  * the commented range. End < start means the lines were removed outright.
  */
-function replacementRegion(map: Int32Array, s: number, e: number, curLength: number): { start: number; end: number } {
+function replacementRegion(
+  map: Int32Array,
+  s: number,
+  e: number,
+  curLength: number,
+): { start: number; end: number } {
   let start = 0;
   for (let i = s - 1; i >= 0; i--) {
     if (map[i] >= 0) {
@@ -263,7 +298,11 @@ function contextSimilarity(
   return total / (2 * k);
 }
 
-function pair(a: string | undefined, b: string | undefined, sim: (a: string, b: string) => number): number {
+function pair(
+  a: string | undefined,
+  b: string | undefined,
+  sim: (a: string, b: string) => number,
+): number {
   if (a === undefined && b === undefined) return 1;
   if (a === undefined || b === undefined) return 0;
   return sim(a, b);

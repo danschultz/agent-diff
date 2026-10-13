@@ -24,7 +24,11 @@ You act on GitHub as Dan's account. Never submit pull request reviews or reply
 in review threads, since those look like Dan reviewing. To say something on
 the pull request, use \`gh pr comment\`.`;
 
-export function startPrompt(brief: BriefState, issue: Issue, baseBranch: string): string {
+export function startPrompt(
+  brief: BriefState,
+  issue: Issue,
+  baseBranch: string,
+): string {
   return `You're implementing brief #${issue.number} in ${brief.repo}, unattended on a headless server. Nobody is watching this terminal.
 
 # Brief #${issue.number}: ${issue.title}
@@ -62,9 +66,16 @@ ${GITHUB_ETIQUETTE}
 `;
 }
 
-export function resumePrompt(brief: BriefState, pr: PullRequest, reviews: Review[]): string {
+export function resumePrompt(
+  brief: BriefState,
+  pr: PullRequest,
+  reviews: Review[],
+): string {
   const summaries = reviews
-    .map((r) => `- Review ${r.id} by @${r.author} (${r.state}, ${r.submittedAt})${r.body.trim() ? `:\n\n${indent(r.body.trim())}` : ''}`)
+    .map(
+      (r) =>
+        `- Review ${r.id} by @${r.author} (${r.state}, ${r.submittedAt})${r.body.trim() ? `:\n\n${indent(r.body.trim())}` : ''}`,
+    )
     .join('\n');
   return `Dan reviewed pull request #${pr.number} (${pr.url}) for brief #${brief.issue}.
 
@@ -86,5 +97,8 @@ ${GITHUB_ETIQUETTE}
 }
 
 function indent(text: string): string {
-  return text.split('\n').map((line) => `    ${line}`).join('\n');
+  return text
+    .split('\n')
+    .map((line) => `    ${line}`)
+    .join('\n');
 }

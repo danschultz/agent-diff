@@ -113,7 +113,9 @@ export class Db {
   constructor(file: string) {
     mkdirSync(path.dirname(file), { recursive: true });
     this.raw = new DatabaseSync(file);
-    this.raw.exec('pragma journal_mode = wal; pragma foreign_keys = on; pragma busy_timeout = 2000;');
+    this.raw.exec(
+      'pragma journal_mode = wal; pragma foreign_keys = on; pragma busy_timeout = 2000;',
+    );
     this.raw.exec(SCHEMA);
   }
 
@@ -121,7 +123,10 @@ export class Db {
     return this.raw.prepare(sql).all(...params) as T[];
   }
 
-  get<T = Row>(sql: string, ...params: (string | number | null)[]): T | undefined {
+  get<T = Row>(
+    sql: string,
+    ...params: (string | number | null)[]
+  ): T | undefined {
     return this.raw.prepare(sql).get(...params) as T | undefined;
   }
 

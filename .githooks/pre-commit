@@ -1,0 +1,19 @@
+#!/bin/sh
+# Runs the repo's checks before every commit. Installed by `npm install` at
+# the repo root, through the `prepare` script in package.json. To add a check,
+# add it to the `check` script in package.json, not here.
+#
+# Git runs hooks from the top of the working tree, so this works in linked
+# worktrees too. Each worktree needs its own `npm install`.
+
+if [ ! -x node_modules/.bin/prettier ]; then
+  echo "pre-commit: the root dependencies aren't installed in $(pwd)." >&2
+  echo "pre-commit: run \`npm install\` there, then commit again." >&2
+  exit 1
+fi
+
+if ! npm run --silent check; then
+  echo "pre-commit: checks failed. Run \`npm run format\` to fix formatting," >&2
+  echo "pre-commit: then stage the changes and commit again." >&2
+  exit 1
+fi

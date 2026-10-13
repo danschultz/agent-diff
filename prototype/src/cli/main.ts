@@ -5,8 +5,20 @@ import { spawn } from 'node:child_process';
 import { closeSync, mkdirSync, openSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { cliCommand, dataDir, prototypeDir, serverInfoFile, serverLogFile, type ServerInfo } from '../shared/paths.ts';
-import type { FeedbackComment, FeedbackResponse, PendingFeedback, ReviewSessionInfo } from '../shared/types.ts';
+import {
+  cliCommand,
+  dataDir,
+  prototypeDir,
+  serverInfoFile,
+  serverLogFile,
+  type ServerInfo,
+} from '../shared/paths.ts';
+import type {
+  FeedbackComment,
+  FeedbackResponse,
+  PendingFeedback,
+  ReviewSessionInfo,
+} from '../shared/types.ts';
 
 const USAGE = `agent-diff (prototype)
 
@@ -102,32 +114,63 @@ async function start(args: string[]) {
   const server = await ensureServer(true);
   const paths = positionals.length ? positionals : [process.cwd()];
   const agentId = values['agent-id'] ?? process.env.AGENT_DIFF_AGENT_ID ?? null;
-  const rs = await api<ReviewSessionInfo>(server, 'POST', '/api/review-sessions', {
-    workspaces: paths.map((p) => ({ path: path.resolve(p), baseRef: values.base ?? null })),
-    title: values.title ?? null,
-    startedBy: agentId,
-  });
+  const rs = await api<ReviewSessionInfo>(
+    server,
+    'POST',
+    '/api/review-sessions',
+    {
+      workspaces: paths.map((p) => ({
+        path: path.resolve(p),
+        baseRef: values.base ?? null,
+      })),
+      title: values.title ?? null,
+      startedBy: agentId,
+    },
+  );
   if (agentId) {
-    for (const p of paths) await api(server, 'POST', '/api/agents', { id: agentId, notify: detectNotify(), workspace: path.resolve(p) });
+    for (const p of paths)
+      await api(server, 'POST', '/api/agents', {
+        id: agentId,
+        notify: detectNotify(),
+        workspace: path.resolve(p),
+      });
   }
   const url = `${server.url}/?rs=${rs.id}`;
   console.log(`Started review session ${rs.id}`);
-  for (const w of rs.workspaces) console.log(`  ${w.root} (${w.branch ?? 'detached'} vs ${w.baseRef})`);
+  for (const w of rs.workspaces)
+    console.log(`  ${w.root} (${w.branch ?? 'detached'} vs ${w.baseRef})`);
   console.log(`Review UI: ${url}`);
-  console.log(`This command doesn't wait for the review. You'll be notified when feedback is submitted.`);
-  if (values.open) spawn('open', [url], { stdio: 'ignore', detached: true }).unref();
+  console.log(
+    `This command doesn't wait for the review. You'll be notified when feedback is submitted.`,
+  );
+  if (values.open)
+    spawn('open', [url], { stdio: 'ignore', detached: true }).unref();
 }
 
 async function add(args: string[]) {
-  const { values, positionals } = parseArgs({ args, allowPositionals: true, options: { base: { type: 'string' } } });
-  const [rsId, dir] = positionals;
-  if (!rsId || !dir) throw new Error('Usage: agent-diff add <review-session> <path> [--base <ref>]');
-  const server = await ensureServer(false);
-  const rs = await api<ReviewSessionInfo>(server, 'POST', `/api/review-sessions/${rsId}/workspaces`, {
-    path: path.resolve(dir),
-    baseRef: values.base ?? null,
+  const { values, positionals } = parseArgs({
+    args,
+    allowPositionals: true,
+    options: { base: { type: 'string' } },
   });
-  console.log(`Review session ${rs.id} now covers ${rs.workspaces.length} workspace(s).`);
+  const [rsId, dir] = positionals;
+  if (!rsId || !dir)
+    throw new Error(
+      'Usage: agent-diff add <review-session> <path> [--base <ref>]',
+    );
+  const server = await ensureServer(false);
+  const rs = await api<ReviewSessionInfo>(
+    server,
+    'POST',
+    `/api/review-sessions/${rsId}/workspaces`,
+    {
+      path: path.resolve(dir),
+      baseRef: values.base ?? null,
+    },
+  );
+  console.log(
+    `Review session ${rs.id} now covers ${rs.workspaces.length} workspace(s).`,
+  );
 }
 
 async function end(args: string[]) {
@@ -135,10 +178,22 @@ async function end(args: string[]) {
   const server = await ensureServer(false);
   let rsId = positionals[0];
   if (!rsId) {
-    const state = await api<{ reviewSessions: ReviewSessionInfo[] }>(server, 'GET', '/api/state');
+    const state = await api<{ reviewSessions: ReviewSessionInfo[] }>(
+      server,
+      'GET',
+      '/api/state',
+    );
     const root = path.resolve(process.cwd());
-    rsId = state.reviewSessions.find((rs) => rs.status === 'open' && rs.workspaces.some((w) => isInside(root, w.root)))?.id ?? '';
-    if (!rsId) throw new Error('No open review session covers this directory. Pass a review session id.');
+    rsId =
+      state.reviewSessions.find(
+        (rs) =>
+          rs.status === 'open' &&
+          rs.workspaces.some((w) => isInside(root, w.root)),
+      )?.id ?? '';
+    if (!rsId)
+      throw new Error(
+        'No open review session covers this directory. Pass a review session id.',
+      );
   }
   await api(server, 'POST', `/api/review-sessions/${rsId}/end`, {});
   console.log(`Ended review session ${rsId}.`);
@@ -150,19 +205,27 @@ async function status() {
     console.log('No review server is running.');
     return;
   }
-  const state = await api<{ reviewSessions: ReviewSessionInfo[]; agents: { id: string; label: string | null; notify: string; busy: boolean }[] }>(
-    server,
-    'GET',
-    '/api/state',
-  );
+  const state = await api<{
+    reviewSessions: ReviewSessionInfo[];
+    agents: {
+      id: string;
+      label: string | null;
+      notify: string;
+      busy: boolean;
+    }[];
+  }>(server, 'GET', '/api/state');
   console.log(`Review server ${server.url} (pid ${server.pid})`);
   console.log(`\nReview sessions:`);
   for (const rs of state.reviewSessions.filter((r) => r.status === 'open')) {
     console.log(`  ${rs.id}  ${server.url}/?rs=${rs.id}`);
-    for (const w of rs.workspaces) console.log(`    ${w.root} (${w.branch ?? 'detached'} vs ${w.baseRef})`);
+    for (const w of rs.workspaces)
+      console.log(`    ${w.root} (${w.branch ?? 'detached'} vs ${w.baseRef})`);
   }
   console.log(`\nAgents:`);
-  for (const a of state.agents) console.log(`  ${a.id}  ${a.label ?? ''}  notify=${a.notify}  ${a.busy ? 'mid-turn' : 'idle'}`);
+  for (const a of state.agents)
+    console.log(
+      `  ${a.id}  ${a.label ?? ''}  notify=${a.notify}  ${a.busy ? 'mid-turn' : 'idle'}`,
+    );
 }
 
 async function register(args: string[]) {
@@ -177,7 +240,8 @@ async function register(args: string[]) {
     },
   });
   const server = await ensureServer(true);
-  const id = values['agent-id'] ?? process.env.AGENT_DIFF_AGENT_ID ?? terminalAgentId();
+  const id =
+    values['agent-id'] ?? process.env.AGENT_DIFF_AGENT_ID ?? terminalAgentId();
   if (!id) throw new Error('Pass --agent-id or set AGENT_DIFF_AGENT_ID.');
   await api(server, 'POST', '/api/agents', {
     id,
@@ -186,7 +250,9 @@ async function register(args: string[]) {
     notify: values.notify ?? detectNotify(),
     workspace: path.resolve(values.workspace ?? process.cwd()),
   });
-  console.log(`Registered agent ${id} (notify ${values.notify ?? detectNotify()}).`);
+  console.log(
+    `Registered agent ${id} (notify ${values.notify ?? detectNotify()}).`,
+  );
 }
 
 async function feedback(args: string[]) {
@@ -215,26 +281,49 @@ async function feedback(args: string[]) {
 }
 
 async function pending(args: string[]) {
-  const { values } = parseArgs({ args, options: { workspace: { type: 'string' } } });
+  const { values } = parseArgs({
+    args,
+    options: { workspace: { type: 'string' } },
+  });
   const server = await findServer();
   if (!server) return;
-  const result = await pendingFor(server, path.resolve(values.workspace ?? process.cwd()));
+  const result = await pendingFor(
+    server,
+    path.resolve(values.workspace ?? process.cwd()),
+  );
   if (result.pending) console.log(result.message);
 }
 
 async function snapshot(args: string[]) {
-  const { values } = parseArgs({ args, options: { workspace: { type: 'string' }, reason: { type: 'string', default: 'manual' } } });
-  const server = await ensureServer(false);
-  const snap = await api<{ seq: number; commit: string }>(server, 'POST', '/api/workspaces/snapshot', {
-    workspace: path.resolve(values.workspace ?? process.cwd()),
-    reason: values.reason,
-    agentId: process.env.AGENT_DIFF_AGENT_ID ?? null,
+  const { values } = parseArgs({
+    args,
+    options: {
+      workspace: { type: 'string' },
+      reason: { type: 'string', default: 'manual' },
+    },
   });
-  console.log(`Recorded turn snapshot ${snap.seq} (${snap.commit.slice(0, 8)}).`);
+  const server = await ensureServer(false);
+  const snap = await api<{ seq: number; commit: string }>(
+    server,
+    'POST',
+    '/api/workspaces/snapshot',
+    {
+      workspace: path.resolve(values.workspace ?? process.cwd()),
+      reason: values.reason,
+      agentId: process.env.AGENT_DIFF_AGENT_ID ?? null,
+    },
+  );
+  console.log(
+    `Recorded turn snapshot ${snap.seq} (${snap.commit.slice(0, 8)}).`,
+  );
 }
 
 async function serve(args: string[]) {
-  const child = spawn(process.execPath, [path.join(prototypeDir, 'src', 'server', 'main.ts'), ...args], { cwd: prototypeDir, stdio: 'inherit' });
+  const child = spawn(
+    process.execPath,
+    [path.join(prototypeDir, 'src', 'server', 'main.ts'), ...args],
+    { cwd: prototypeDir, stdio: 'inherit' },
+  );
   await new Promise((resolve) => child.on('close', resolve));
 }
 
@@ -245,7 +334,11 @@ function AGENT_INSTRUCTIONS(cli: string): string {
 }
 
 async function hook(args: string[]): Promise<void> {
-  const { values, positionals } = parseArgs({ args, allowPositionals: true, options: { 'no-wake': { type: 'boolean', default: false } } });
+  const { values, positionals } = parseArgs({
+    args,
+    allowPositionals: true,
+    options: { 'no-wake': { type: 'boolean', default: false } },
+  });
   const [harness, event] = positionals;
   const input = await readStdinJson();
   const server = await findServer();
@@ -258,20 +351,34 @@ async function hook(args: string[]): Promise<void> {
     const cwd = String(input.cwd ?? process.cwd());
     switch (event) {
       case 'SessionStart':
-        await api(server, 'POST', '/api/agents', { id, ...agent, workspace: cwd }).catch(() => undefined);
+        await api(server, 'POST', '/api/agents', {
+          id,
+          ...agent,
+          workspace: cwd,
+        }).catch(() => undefined);
         process.stdout.write(AGENT_INSTRUCTIONS(cliCommand));
         return;
       case 'UserPromptSubmit': {
         const { pending } = await turn(server, id, 'start', cwd, wake, agent);
         if (pending.pending && wake) {
-          process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: pending.message } }));
+          process.stdout.write(
+            JSON.stringify({
+              hookSpecificOutput: {
+                hookEventName: 'UserPromptSubmit',
+                additionalContext: pending.message,
+              },
+            }),
+          );
         }
         return;
       }
       case 'Stop': {
         const canBlock = wake && !input.stop_hook_active;
         const { pending } = await turn(server, id, 'end', cwd, canBlock, agent);
-        if (pending.pending && canBlock) process.stdout.write(JSON.stringify({ decision: 'block', reason: pending.message }));
+        if (pending.pending && canBlock)
+          process.stdout.write(
+            JSON.stringify({ decision: 'block', reason: pending.message }),
+          );
         return;
       }
       default:
@@ -280,23 +387,45 @@ async function hook(args: string[]): Promise<void> {
   }
 
   if (harness === 'cursor') {
-    const out = (value: object): void => void process.stdout.write(JSON.stringify(value));
-    if (!server) return out(event === 'beforeSubmitPrompt' ? { continue: true } : {});
+    const out = (value: object): void =>
+      void process.stdout.write(JSON.stringify(value));
+    if (!server)
+      return out(event === 'beforeSubmitPrompt' ? { continue: true } : {});
     const id = String(input.conversation_id ?? input.session_id ?? 'cursor');
     const agent = { label: `cursor ${id.slice(0, 8)}`, notify: detectNotify() };
-    const roots = Array.isArray(input.workspace_roots) ? (input.workspace_roots as string[]) : [];
+    const roots = Array.isArray(input.workspace_roots)
+      ? (input.workspace_roots as string[])
+      : [];
     const cwd = roots[0] ?? process.cwd();
     switch (event) {
       case 'sessionStart':
-        await api(server, 'POST', '/api/agents', { id, ...agent, workspace: cwd }).catch(() => undefined);
+        await api(server, 'POST', '/api/agents', {
+          id,
+          ...agent,
+          workspace: cwd,
+        }).catch(() => undefined);
         return out({ additional_context: AGENT_INSTRUCTIONS(cliCommand) });
       case 'beforeSubmitPrompt':
         await turn(server, id, 'start', cwd, false, agent);
         return out({ continue: true });
       case 'stop': {
-        const canFollowUp = wake && input.status === 'completed' && Number(input.loop_count ?? 0) < 3;
-        const { pending } = await turn(server, id, 'end', cwd, canFollowUp, agent);
-        return out(pending.pending && canFollowUp ? { followup_message: pending.message } : {});
+        const canFollowUp =
+          wake &&
+          input.status === 'completed' &&
+          Number(input.loop_count ?? 0) < 3;
+        const { pending } = await turn(
+          server,
+          id,
+          'end',
+          cwd,
+          canFollowUp,
+          agent,
+        );
+        return out(
+          pending.pending && canFollowUp
+            ? { followup_message: pending.message }
+            : {},
+        );
       }
       default:
         throw new Error(`Unsupported Cursor hook event ${event}`);
@@ -314,18 +443,30 @@ async function turn(
   canWake: boolean,
   agent: { label: string; notify: string },
 ): Promise<{ pending: PendingFeedback }> {
-  return api(server, 'POST', `/api/agents/${encodeURIComponent(agentId)}/turn`, {
-    event,
-    cwd,
-    canWake,
-    label: agent.label,
-    notify: agent.notify,
-    parentId: process.env.AGENT_DIFF_PARENT_ID ?? null,
-  });
+  return api(
+    server,
+    'POST',
+    `/api/agents/${encodeURIComponent(agentId)}/turn`,
+    {
+      event,
+      cwd,
+      canWake,
+      label: agent.label,
+      notify: agent.notify,
+      parentId: process.env.AGENT_DIFF_PARENT_ID ?? null,
+    },
+  );
 }
 
-async function pendingFor(server: ServerInfo, workspace: string): Promise<PendingFeedback> {
-  return api(server, 'GET', `/api/feedback/pending?workspace=${encodeURIComponent(workspace)}`);
+async function pendingFor(
+  server: ServerInfo,
+  workspace: string,
+): Promise<PendingFeedback> {
+  return api(
+    server,
+    'GET',
+    `/api/feedback/pending?workspace=${encodeURIComponent(workspace)}`,
+  );
 }
 
 // Formatting
@@ -334,36 +475,54 @@ export function formatFeedback(result: FeedbackResponse, all: boolean): string {
   const lines: string[] = [];
   const ws = result.workspace;
   lines.push('Review feedback from agent-diff');
-  lines.push(`Review session ${result.reviewSessionId}${ws ? `, workspace ${ws.root} (compared with ${ws.baseRef})` : ''}`);
+  lines.push(
+    `Review session ${result.reviewSessionId}${ws ? `, workspace ${ws.root} (compared with ${ws.baseRef})` : ''}`,
+  );
   if (result.comments.length === 0) {
-    lines.push(all ? '\nNo comments have been submitted yet.' : '\nNo new feedback. Run with --all to see every submitted comment.');
+    lines.push(
+      all
+        ? '\nNo comments have been submitted yet.'
+        : '\nNo new feedback. Run with --all to see every submitted comment.',
+    );
     return lines.join('\n') + '\n';
   }
   lines.push(
     `${result.reviews.length} review(s), ${result.comments.length} comment(s). Address each comment, then reply with a short summary of what you changed for each one, by number.`,
   );
   result.comments.forEach((c, i) => lines.push('', ...formatComment(c, i + 1)));
-  lines.push('', `Line numbers are for the current working tree. Run \`${cliCommand} feedback --all\` to see every comment again.`);
+  lines.push(
+    '',
+    `Line numbers are for the current working tree. Run \`${cliCommand} feedback --all\` to see every comment again.`,
+  );
   return lines.join('\n') + '\n';
 }
 
 function formatComment(c: FeedbackComment, n: number): string[] {
-  if (c.kind === 'overall' || !c.original) return [`[${n}] Overall comment`, ...indent(c.body, '    ')];
-  const range = (start: number | null, end: number | null) => (start === end ? `line ${start}` : `lines ${start}-${end}`);
+  if (c.kind === 'overall' || !c.original)
+    return [`[${n}] Overall comment`, ...indent(c.body, '    ')];
+  const range = (start: number | null, end: number | null) =>
+    start === end ? `line ${start}` : `lines ${start}-${end}`;
   const out: string[] = [];
   const where = `${c.path}, ${range(c.original.startLine, c.original.endLine)}${c.side === 'old' ? ' on removed lines (base version)' : ''}`;
   const state = c.current?.state;
   if (state === 'current') {
     const moved = c.current!.startLine !== c.original.startLine;
-    out.push(`[${n}] ${where}${moved ? `, now ${range(c.current!.startLine, c.current!.endLine)}` : ''}`);
+    out.push(
+      `[${n}] ${where}${moved ? `, now ${range(c.current!.startLine, c.current!.endLine)}` : ''}`,
+    );
     out.push(...code(c.current!.code, c.current!.startLine!));
   } else if (state === 'moved') {
-    out.push(`[${n}] ${where}, the code moved or changed slightly and is now at ${range(c.current!.startLine, c.current!.endLine)}`);
+    out.push(
+      `[${n}] ${where}, the code moved or changed slightly and is now at ${range(c.current!.startLine, c.current!.endLine)}`,
+    );
     out.push(...code(c.current!.code, c.current!.startLine!));
   } else {
-    out.push(`[${n}] ${where} (outdated: this code has changed since the comment was written)`);
+    out.push(
+      `[${n}] ${where} (outdated: this code has changed since the comment was written)`,
+    );
     out.push('    Written on:', ...code(c.original.code, c.original.startLine));
-    if (c.current?.startLine) out.push('    Now:', ...code(c.current.code, c.current.startLine));
+    if (c.current?.startLine)
+      out.push('    Now:', ...code(c.current.code, c.current.startLine));
     else out.push('    Now: those lines were removed.');
   }
   out.push('    Comment:', ...indent(c.body, '      '));
@@ -389,7 +548,9 @@ async function findServer(): Promise<ServerInfo | null> {
     return null;
   }
   try {
-    const res = await fetch(`${info.url}/api/health`, { signal: AbortSignal.timeout(1500) });
+    const res = await fetch(`${info.url}/api/health`, {
+      signal: AbortSignal.timeout(1500),
+    });
     return res.ok ? info : null;
   } catch {
     return null;
@@ -399,15 +560,22 @@ async function findServer(): Promise<ServerInfo | null> {
 async function ensureServer(autostart: boolean): Promise<ServerInfo> {
   const found = await findServer();
   if (found) return found;
-  if (!autostart) throw new Error('No review server is running. Start one with `agent-diff start` or `agent-diff serve`.');
+  if (!autostart)
+    throw new Error(
+      'No review server is running. Start one with `agent-diff start` or `agent-diff serve`.',
+    );
   mkdirSync(dataDir, { recursive: true });
   const log = openSync(serverLogFile, 'a');
   // Not the caller's directory: it's often a worktree that gets deleted, and Vite crashes without a cwd.
-  const child = spawn(process.execPath, [path.join(prototypeDir, 'src', 'server', 'main.ts')], {
-    cwd: prototypeDir,
-    detached: true,
-    stdio: ['ignore', log, log],
-  });
+  const child = spawn(
+    process.execPath,
+    [path.join(prototypeDir, 'src', 'server', 'main.ts')],
+    {
+      cwd: prototypeDir,
+      detached: true,
+      stdio: ['ignore', log, log],
+    },
+  );
   child.unref();
   closeSync(log);
   for (let i = 0; i < 100; i++) {
@@ -418,7 +586,12 @@ async function ensureServer(autostart: boolean): Promise<ServerInfo> {
   throw new Error(`The review server didn't start. See ${serverLogFile}.`);
 }
 
-async function api<T = unknown>(server: ServerInfo, method: string, route: string, body?: unknown): Promise<T> {
+async function api<T = unknown>(
+  server: ServerInfo,
+  method: string,
+  route: string,
+  body?: unknown,
+): Promise<T> {
   const res = await fetch(server.url + route, {
     method,
     headers: { 'content-type': 'application/json', 'x-agent-diff': '1' },
@@ -426,7 +599,10 @@ async function api<T = unknown>(server: ServerInfo, method: string, route: strin
     signal: AbortSignal.timeout(30000),
   });
   const data = (await res.json()) as T & { error?: string };
-  if (!res.ok) throw new Error(data.error ?? `${method} ${route} failed with ${res.status}`);
+  if (!res.ok)
+    throw new Error(
+      data.error ?? `${method} ${route} failed with ${res.status}`,
+    );
   return data;
 }
 

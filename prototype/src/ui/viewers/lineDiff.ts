@@ -23,8 +23,17 @@ export function lineDiff(a: string, b: string): Change[] {
     if (gapA === posA || gapB === posB) {
       changes.push(new Change(gapA, posA, gapB, posB));
     } else {
-      for (const c of diff(a.slice(gapA, posA), b.slice(gapB, posB), { scanLimit: 500 })) {
-        changes.push(new Change(c.fromA + gapA, c.toA + gapA, c.fromB + gapB, c.toB + gapB));
+      for (const c of diff(a.slice(gapA, posA), b.slice(gapB, posB), {
+        scanLimit: 500,
+      })) {
+        changes.push(
+          new Change(
+            c.fromA + gapA,
+            c.toA + gapA,
+            c.fromB + gapB,
+            c.toB + gapB,
+          ),
+        );
       }
     }
   };

@@ -58,8 +58,22 @@ export function commentMarks(comments: PlacedComment[]): CommentMark[] {
     const p = comment.placement;
     if (!p || !comment.side) continue;
     const lines = p.range ?? p.replacement;
-    if (lines) marks.push({ comment, state: p.state, side: comment.side, lines, afterLine: lines.end });
-    else if (p.insertAfter !== null) marks.push({ comment, state: p.state, side: comment.side, lines: null, afterLine: p.insertAfter });
+    if (lines)
+      marks.push({
+        comment,
+        state: p.state,
+        side: comment.side,
+        lines,
+        afterLine: lines.end,
+      });
+    else if (p.insertAfter !== null)
+      marks.push({
+        comment,
+        state: p.state,
+        side: comment.side,
+        lines: null,
+        afterLine: p.insertAfter,
+      });
   }
   return marks;
 }
@@ -110,7 +124,8 @@ export function startLineDrag(options: {
     const n = lineAt(e.clientX, e.clientY);
     if (n === null) return;
     const next = { side, start: Math.min(line, n), end: Math.max(line, n) };
-    if (next.start !== current.start || next.end !== current.end) onChange((current = next));
+    if (next.start !== current.start || next.end !== current.end)
+      onChange((current = next));
   };
   const finish = (range: LineSelection | null) => {
     window.removeEventListener('mousemove', move, true);
@@ -129,5 +144,13 @@ export function startLineDrag(options: {
   document.body.classList.add('line-dragging');
 }
 
-export const inRange = (range: LineSelection | null, side: Side, n: number | null) =>
-  n !== null && range !== null && range.side === side && n >= range.start && n <= range.end;
+export const inRange = (
+  range: LineSelection | null,
+  side: Side,
+  n: number | null,
+) =>
+  n !== null &&
+  range !== null &&
+  range.side === side &&
+  n >= range.start &&
+  n <= range.end;

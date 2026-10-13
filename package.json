@@ -1,0 +1,18 @@
+{
+  "name": "agent-diff",
+  "private": true,
+  "description": "Repo-wide tooling for agent-diff, such as formatting. See README.md.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "prepare": "git config core.hooksPath .githooks",
+    "check": "npm run format:check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "3.9.10"
+  }
+}

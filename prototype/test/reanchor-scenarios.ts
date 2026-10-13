@@ -49,7 +49,8 @@ function greet(user) {
   },
   {
     name: 'lines-added-above',
-    description: 'An import and a helper are added above. The comment shifts down with its lines.',
+    description:
+      'An import and a helper are added above. The comment shifts down with its lines.',
     original: `
 import { db } from './db';
 
@@ -91,7 +92,8 @@ function load() {
   },
   {
     name: 'edits-elsewhere',
-    description: 'The reviewer drafts while the agent edits a different function. The comment is untouched.',
+    description:
+      'The reviewer drafts while the agent edits a different function. The comment is untouched.',
     original: `
 function parse(input) {
 >>  return JSON.parse(input);
@@ -112,7 +114,8 @@ function format(value, indent = 2) {
   },
   {
     name: 'repeated-line-shifted',
-    description: 'The commented line appears several times in the file. Diff mapping still follows the right copy.',
+    description:
+      'The commented line appears several times in the file. Diff mapping still follows the right copy.',
     original: `
 function a(x) {
   if (!x) {
@@ -157,7 +160,8 @@ function displayName(user) {
   },
   {
     name: 'agent-addresses-small-edit',
-    description: 'Like the case above, but the edit is tiny (one character). Still outdated, even at a loose threshold.',
+    description:
+      'Like the case above, but the edit is tiny (one character). Still outdated, even at a loose threshold.',
     original: `
 export function total(items) {
   let sum = 0;
@@ -178,7 +182,8 @@ export function total(items) {
   },
   {
     name: 'range-rewritten',
-    description: 'A three-line range is replaced by a different implementation of a different length.',
+    description:
+      'A three-line range is replaced by a different implementation of a different length.',
     original: `
 function retry(fn) {
 >>  for (let i = 0; i < 3; i++) {
@@ -212,7 +217,8 @@ function save(doc) {
   },
   {
     name: 'line-inserted-inside-range',
-    description: 'A line is inserted in the middle of the commented range. The commented lines are no longer contiguous, so the range changed.',
+    description:
+      'A line is inserted in the middle of the commented range. The commented lines are no longer contiguous, so the range changed.',
     original: `
 async function handler(req) {
 >>  const body = await req.json();
@@ -230,7 +236,8 @@ async function handler(req) {
   },
   {
     name: 'function-moved',
-    description: 'The commented function is moved to the bottom of the file unchanged. Content matching follows it.',
+    description:
+      'The commented function is moved to the bottom of the file unchanged. Content matching follows it.',
     original: `
 export function main() {
   run();
@@ -263,7 +270,8 @@ function run() {
   },
   {
     name: 'moved-and-reindented',
-    description: 'The commented lines are wrapped in a new block, so their indentation changes. Whitespace is normalized, so they are found.',
+    description:
+      'The commented lines are wrapped in a new block, so their indentation changes. Whitespace is normalized, so they are found.',
     original: `
 function sync(items) {
 >>  const batch = items.filter((item) => item.dirty);
@@ -359,7 +367,8 @@ function c() {
   },
   {
     name: 'short-line-without-context',
-    description: 'A comment on a lone closing brace whose surroundings were rewritten. Too little content to match safely, so it is outdated.',
+    description:
+      'A comment on a lone closing brace whose surroundings were rewritten. Too little content to match safely, so it is outdated.',
     original: `
 function a() {
   return 1;
@@ -379,7 +388,8 @@ function c() {
   },
   {
     name: 'whitespace-only-change',
-    description: 'A formatter changes only whitespace on the commented line. The lines changed, but an exact normalized match is found in place.',
+    description:
+      'A formatter changes only whitespace on the commented line. The lines changed, but an exact normalized match is found in place.',
     original: `
 function add(a, b) {
 >>  return a+b;
@@ -392,7 +402,8 @@ function add(a, b) {
   },
   {
     name: 'top-of-file-header-added',
-    description: 'A license header is added at the top. A comment on line 1 shifts down.',
+    description:
+      'A license header is added at the top. A comment on line 1 shifts down.',
     original: `
 >>import express from 'express';
 const app = express();`,
@@ -441,7 +452,8 @@ class Cache {
   },
   {
     name: 'blocks-swapped',
-    description: 'Two functions swap places. Either current or moved is acceptable, as long as the comment lands on the same lines.',
+    description:
+      'Two functions swap places. Either current or moved is acceptable, as long as the comment lands on the same lines.',
     original: `
 function first() {
   return 'first function body';
@@ -477,12 +489,16 @@ export function parseMarked(source: string): ParsedMarked {
   lines.forEach((line, i) => {
     if (line.startsWith('>>')) {
       if (start === -1) start = i + 1;
-      else if (end !== i) throw new Error(`Marked lines must be contiguous (line ${i + 1})`);
+      else if (end !== i)
+        throw new Error(`Marked lines must be contiguous (line ${i + 1})`);
       end = i + 1;
       out.push(line.slice(2));
     } else {
       out.push(line);
     }
   });
-  return { text: out.join('\n') + '\n', range: start === -1 ? null : { start, end } };
+  return {
+    text: out.join('\n') + '\n',
+    range: start === -1 ? null : { start, end },
+  };
 }

@@ -22,7 +22,11 @@ export class WorkspaceWatcher {
   private maxWaitTimer: NodeJS.Timeout | null = null;
   private flushing = false;
 
-  constructor(ws: GitWorkspace, settings: () => Settings, onChange: (event: WorkspaceChangedEvent) => void) {
+  constructor(
+    ws: GitWorkspace,
+    settings: () => Settings,
+    onChange: (event: WorkspaceChangedEvent) => void,
+  ) {
     this.ws = ws;
     this.settings = settings;
     this.onChange = onChange;
@@ -32,7 +36,8 @@ export class WorkspaceWatcher {
     const { root, gitDir, commonDir } = this.ws;
     this.watch(root, true);
     if (!isInside(gitDir, root)) this.watch(gitDir, false);
-    if (!isInside(commonDir, root) && commonDir !== gitDir) this.watch(commonDir, true);
+    if (!isInside(commonDir, root) && commonDir !== gitDir)
+      this.watch(commonDir, true);
     this.ws.invalidate();
     this.ws.cacheable = this.watchers.length > 0;
   }
@@ -49,9 +54,13 @@ export class WorkspaceWatcher {
   private watch(dir: string, recursive: boolean): void {
     try {
       const watcher = watch(dir, { recursive }, (_event, filename) => {
-        this.record(filename === null ? null : path.join(dir, filename.toString()));
+        this.record(
+          filename === null ? null : path.join(dir, filename.toString()),
+        );
       });
-      watcher.on('error', (error) => console.warn(`[watch] ${dir}: ${error.message}`));
+      watcher.on('error', (error) =>
+        console.warn(`[watch] ${dir}: ${error.message}`),
+      );
       this.watchers.push(watcher);
     } catch (error) {
       console.warn(`[watch] can't watch ${dir}: ${(error as Error).message}`);
@@ -78,13 +87,16 @@ export class WorkspaceWatcher {
       if (!isInside(file, dir)) continue;
       const rel = path.relative(dir, file).split(path.sep).join('/');
       if (rel.endsWith('.lock')) return 'ignore';
-      if (rel === 'index' || rel === 'HEAD' || rel === 'packed-refs') return dir === gitDir || rel === 'packed-refs' ? 'git' : 'ignore';
-      if (rel.startsWith('refs/') && !rel.startsWith('refs/agent-diff/')) return 'git';
+      if (rel === 'index' || rel === 'HEAD' || rel === 'packed-refs')
+        return dir === gitDir || rel === 'packed-refs' ? 'git' : 'ignore';
+      if (rel.startsWith('refs/') && !rel.startsWith('refs/agent-diff/'))
+        return 'git';
       return 'ignore';
     }
     if (!isInside(file, root)) return 'ignore';
     const rel = path.relative(root, file).split(path.sep).join('/');
-    if (rel === '' || rel === '.git' || rel.startsWith('.git/')) return 'ignore';
+    if (rel === '' || rel === '.git' || rel.startsWith('.git/'))
+      return 'ignore';
     return rel;
   }
 
@@ -143,7 +155,10 @@ export class WorkspaceWatcher {
 
   private async ignoredPaths(paths: string[]): Promise<Set<string>> {
     if (paths.length === 0) return new Set();
-    const out = await git(this.ws.root, ['check-ignore', '-z', '--stdin'], { input: paths.join('\0') + '\0', okCodes: [0, 1] });
+    const out = await git(this.ws.root, ['check-ignore', '-z', '--stdin'], {
+      input: paths.join('\0') + '\0',
+      okCodes: [0, 1],
+    });
     return new Set(out.split('\0').filter(Boolean));
   }
 }

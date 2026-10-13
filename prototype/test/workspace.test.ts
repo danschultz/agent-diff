@@ -38,7 +38,12 @@ function observableState() {
   const indexFile = path.join(repo.dir, '.git', 'index');
   return {
     index: createHash('sha1').update(readFileSync(indexFile)).digest('hex'),
-    status: repo.git('status', '--porcelain=v2', '--branch', '--untracked-files=all'),
+    status: repo.git(
+      'status',
+      '--porcelain=v2',
+      '--branch',
+      '--untracked-files=all',
+    ),
     stash: repo.git('stash', 'list'),
     headReflog: repo.git('reflog', 'show', '--format=%H %gs', 'HEAD'),
     branchReflog: repo.git('reflog', 'show', '--format=%H %gs', 'feature'),
@@ -50,7 +55,11 @@ function observableState() {
   };
 }
 
-async function filesFor(ws: GitWorkspace, mode: DiffMode, snapshot: string | null = null) {
+async function filesFor(
+  ws: GitWorkspace,
+  mode: DiffMode,
+  snapshot: string | null = null,
+) {
   const { from, to } = await ws.sides(mode, 'main', snapshot);
   return (await ws.changedFiles(from, to)).map((f) => `${f.status} ${f.path}`);
 }
@@ -65,19 +74,33 @@ afterEach(() => repo.cleanup());
 describe('diff modes', () => {
   it('report the files each mode compares', async () => {
     const ws = await GitWorkspace.open(repo.dir, repo.dataDir);
-    assert.deepEqual(await filesFor(ws, 'all'), ['modified a.txt', 'modified b.txt', 'modified c.txt', 'untracked new.txt']);
+    assert.deepEqual(await filesFor(ws, 'all'), [
+      'modified a.txt',
+      'modified b.txt',
+      'modified c.txt',
+      'untracked new.txt',
+    ]);
     assert.deepEqual(await filesFor(ws, 'committed'), ['modified c.txt']);
     assert.deepEqual(await filesFor(ws, 'staged'), ['modified a.txt']);
-    assert.deepEqual(await filesFor(ws, 'unstaged'), ['modified b.txt', 'untracked new.txt']);
+    assert.deepEqual(await filesFor(ws, 'unstaged'), [
+      'modified b.txt',
+      'untracked new.txt',
+    ]);
   });
 
   it('last turn shows only changes since the snapshot', async () => {
     const ws = await GitWorkspace.open(repo.dir, repo.dataDir);
-    const { commit } = await ws.createSnapshot('refs/agent-diff/test/snapshots/1', 'turn snapshot');
+    const { commit } = await ws.createSnapshot(
+      'refs/agent-diff/test/snapshots/1',
+      'turn snapshot',
+    );
     repo.write('b.txt', 'b3\n');
     repo.write('later.txt', 'later\n');
     ws.invalidate();
-    assert.deepEqual(await filesFor(ws, 'last-turn', commit), ['modified b.txt', 'untracked later.txt']);
+    assert.deepEqual(await filesFor(ws, 'last-turn', commit), [
+      'modified b.txt',
+      'untracked later.txt',
+    ]);
   });
 
   it('detect renames', async () => {
@@ -85,10 +108,13 @@ describe('diff modes', () => {
     const ws = await GitWorkspace.open(repo.dir, repo.dataDir);
     const { from, to } = await ws.sides('staged', 'main', null);
     const files = await ws.changedFiles(from, to);
-    assert.deepEqual(files.map((f) => [f.status, f.oldPath, f.path]), [
-      ['modified', null, 'a.txt'],
-      ['renamed', 'c.txt', 'renamed.txt'],
-    ]);
+    assert.deepEqual(
+      files.map((f) => [f.status, f.oldPath, f.path]),
+      [
+        ['modified', null, 'a.txt'],
+        ['renamed', 'c.txt', 'renamed.txt'],
+      ],
+    );
   });
 
   it('see same-size edits made in the same second across refreshes', async () => {
@@ -118,7 +144,15 @@ describe('diff modes', () => {
     const ws = await GitWorkspace.open(repo.dir, repo.dataDir);
     const tree = await ws.worktreeTree();
     const [a, b, missing, bin, big, spaced, dir] = await Promise.all(
-      ['a.txt', 'b.txt', 'nope.txt', 'bin.dat', 'big.txt', 'dir/with space.txt', 'dir'].map((p) => ws.readFile(tree, p)),
+      [
+        'a.txt',
+        'b.txt',
+        'nope.txt',
+        'bin.dat',
+        'big.txt',
+        'dir/with space.txt',
+        'dir',
+      ].map((p) => ws.readFile(tree, p)),
     );
     assert.equal(a?.content, 'a2\n');
     assert.equal(b?.content, 'b2\n');
@@ -132,13 +166,18 @@ describe('diff modes', () => {
 
   it('cache state only while watched, and drop it on invalidate', async () => {
     const ws = await GitWorkspace.open(repo.dir, repo.dataDir);
-    const content = async () => (await ws.readFile(await ws.worktreeTree(), 'b.txt'))?.content;
+    const content = async () =>
+      (await ws.readFile(await ws.worktreeTree(), 'b.txt'))?.content;
     repo.write('b.txt', 'b3\n');
     assert.equal(await content(), 'b3\n');
     ws.cacheable = true;
     assert.equal(await content(), 'b3\n');
     repo.write('b.txt', 'b4\n');
-    assert.equal(await content(), 'b3\n', 'served from cache until the watcher invalidates');
+    assert.equal(
+      await content(),
+      'b3\n',
+      'served from cache until the watcher invalidates',
+    );
     ws.invalidate();
     assert.equal(await content(), 'b4\n');
     ws.close();
@@ -151,31 +190,58 @@ describe('turn snapshots and private trees', () => {
     const ws = await GitWorkspace.open(repo.dir, repo.dataDir);
     await ws.indexTree();
     await ws.worktreeTree();
-    await ws.createSnapshot(`refs/agent-diff/${ws.id}/snapshots/1`, 'turn snapshot');
+    await ws.createSnapshot(
+      `refs/agent-diff/${ws.id}/snapshots/1`,
+      'turn snapshot',
+    );
     assert.deepEqual(observableState(), before);
   });
 
   it("don't write a reflog for snapshot refs", async () => {
     const ws = await GitWorkspace.open(repo.dir, repo.dataDir);
-    await ws.createSnapshot(`refs/agent-diff/${ws.id}/snapshots/1`, 'turn snapshot');
-    assert.equal(existsSync(path.join(repo.dir, '.git', 'logs', 'refs', 'agent-diff')), false);
+    await ws.createSnapshot(
+      `refs/agent-diff/${ws.id}/snapshots/1`,
+      'turn snapshot',
+    );
+    assert.equal(
+      existsSync(path.join(repo.dir, '.git', 'logs', 'refs', 'agent-diff')),
+      false,
+    );
   });
 
   it('capture staged, unstaged, and untracked content but not ignored files', async () => {
     const ws = await GitWorkspace.open(repo.dir, repo.dataDir);
-    const { commit } = await ws.createSnapshot(`refs/agent-diff/${ws.id}/snapshots/1`, 'turn snapshot');
-    const files = repo.git('ls-tree', '-r', '--name-only', commit).trim().split('\n');
-    assert.deepEqual(files, ['.gitignore', 'a.txt', 'b.txt', 'c.txt', 'new.txt']);
+    const { commit } = await ws.createSnapshot(
+      `refs/agent-diff/${ws.id}/snapshots/1`,
+      'turn snapshot',
+    );
+    const files = repo
+      .git('ls-tree', '-r', '--name-only', commit)
+      .trim()
+      .split('\n');
+    assert.deepEqual(files, [
+      '.gitignore',
+      'a.txt',
+      'b.txt',
+      'c.txt',
+      'new.txt',
+    ]);
     assert.equal(repo.git('show', `${commit}:a.txt`), 'a2\n');
     assert.equal(repo.git('show', `${commit}:b.txt`), 'b2\n');
-    assert.equal(repo.git('rev-parse', `${commit}^`).trim(), repo.git('rev-parse', 'HEAD').trim());
+    assert.equal(
+      repo.git('rev-parse', `${commit}^`).trim(),
+      repo.git('rev-parse', 'HEAD').trim(),
+    );
   });
 
   it('work while the agent holds the index lock', async () => {
     const lock = path.join(repo.dir, '.git', 'index.lock');
     writeFileSync(lock, '');
     const ws = await GitWorkspace.open(repo.dir, repo.dataDir);
-    await ws.createSnapshot(`refs/agent-diff/${ws.id}/snapshots/1`, 'turn snapshot');
+    await ws.createSnapshot(
+      `refs/agent-diff/${ws.id}/snapshots/1`,
+      'turn snapshot',
+    );
     await ws.indexTree();
     assert.equal(readFileSync(lock, 'utf8'), '', 'the lock file is left alone');
   });
@@ -186,8 +252,14 @@ describe('turn snapshots and private trees', () => {
     writeFileSync(path.join(linked, 'a.txt'), 'from sub-agent\n');
     const ws = await GitWorkspace.open(linked, repo.dataDir);
     assert.deepEqual(await filesFor(ws, 'all'), ['modified a.txt']);
-    const { commit } = await ws.createSnapshot(`refs/agent-diff/${ws.id}/snapshots/1`, 'turn snapshot');
+    const { commit } = await ws.createSnapshot(
+      `refs/agent-diff/${ws.id}/snapshots/1`,
+      'turn snapshot',
+    );
     assert.equal(repo.git('show', `${commit}:a.txt`), 'from sub-agent\n');
-    assert.match(repo.git('for-each-ref', `refs/agent-diff/${ws.id}/`), new RegExp(commit));
+    assert.match(
+      repo.git('for-each-ref', `refs/agent-diff/${ws.id}/`),
+      new RegExp(commit),
+    );
   });
 });

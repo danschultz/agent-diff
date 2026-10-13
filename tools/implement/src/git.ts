@@ -22,7 +22,9 @@ const GITHUB_OVER_HTTPS: [string, string][] = [
  * and so Dan's own sessions, keep using SSH.
  */
 export function githubOverHttps(): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { GIT_CONFIG_COUNT: String(GITHUB_OVER_HTTPS.length) };
+  const env: NodeJS.ProcessEnv = {
+    GIT_CONFIG_COUNT: String(GITHUB_OVER_HTTPS.length),
+  };
   GITHUB_OVER_HTTPS.forEach(([key, value], i) => {
     env[`GIT_CONFIG_KEY_${i}`] = key;
     env[`GIT_CONFIG_VALUE_${i}`] = value;
@@ -44,11 +46,20 @@ function gitEnv(): NodeJS.ProcessEnv {
 }
 
 export function cliGit(repoDir: string): Git {
-  const git = (...args: string[]) => run('git', args, { cwd: repoDir, env: gitEnv() });
+  const git = (...args: string[]) =>
+    run('git', args, { cwd: repoDir, env: gitEnv() });
   return {
     addWorktree(dir, branch, baseBranch) {
       git('fetch', '--quiet', 'origin', baseBranch);
-      git('worktree', 'add', '--quiet', '-b', branch, dir, `origin/${baseBranch}`);
+      git(
+        'worktree',
+        'add',
+        '--quiet',
+        '-b',
+        branch,
+        dir,
+        `origin/${baseBranch}`,
+      );
     },
     removeWorktree(dir, branch) {
       const listed = git('worktree', 'list', '--porcelain')
@@ -57,7 +68,10 @@ export function cliGit(repoDir: string): Git {
       // The pull request is merged or closed, or Dan closed the failed brief,
       // so anything left in the worktree is no longer wanted.
       if (listed) git('worktree', 'remove', '--force', dir);
-      else if (existsSync(dir)) throw new Error(`${dir} exists but isn't a worktree of this repo; leaving it alone`);
+      else if (existsSync(dir))
+        throw new Error(
+          `${dir} exists but isn't a worktree of this repo; leaving it alone`,
+        );
       const branches = git('branch', '--list', branch).trim();
       if (branches) git('branch', '-D', branch);
     },

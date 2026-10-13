@@ -8,7 +8,13 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Side } from '../../shared/types.ts';
 import { languageFor } from '../language.ts';
-import { commentCardDom, commentMarks, startLineDrag, type LineSelection, type ViewerProps } from './types.ts';
+import {
+  commentCardDom,
+  commentMarks,
+  startLineDrag,
+  type LineSelection,
+  type ViewerProps,
+} from './types.ts';
 
 // Only the base editor worker is bundled, which is enough for syntax
 // highlighting. Language services would send requests that worker can't
@@ -33,18 +39,37 @@ type Editor = monaco.editor.ICodeEditor;
 const MAX_HEIGHT = 900;
 
 const { MouseTargetType } = monaco.editor;
-const GUTTER_TARGETS = new Set([MouseTargetType.GUTTER_LINE_NUMBERS, MouseTargetType.GUTTER_GLYPH_MARGIN, MouseTargetType.GUTTER_LINE_DECORATIONS]);
-const LINE_TARGETS = new Set([...GUTTER_TARGETS, MouseTargetType.CONTENT_TEXT, MouseTargetType.CONTENT_EMPTY]);
+const GUTTER_TARGETS = new Set([
+  MouseTargetType.GUTTER_LINE_NUMBERS,
+  MouseTargetType.GUTTER_GLYPH_MARGIN,
+  MouseTargetType.GUTTER_LINE_DECORATIONS,
+]);
+const LINE_TARGETS = new Set([
+  ...GUTTER_TARGETS,
+  MouseTargetType.CONTENT_TEXT,
+  MouseTargetType.CONTENT_EMPTY,
+]);
 
 export default function MonacoViewer(props: ViewerProps) {
-  const { path, oldText, newText, layout, wrap, comments, selection, composer, reveal } = props;
+  const {
+    path,
+    oldText,
+    newText,
+    layout,
+    wrap,
+    comments,
+    selection,
+    composer,
+    reveal,
+  } = props;
   const host = useRef<HTMLDivElement>(null);
   const diffRef = useRef<monaco.editor.IStandaloneDiffEditor | null>(null);
   const [composerEl] = useState(() => {
     const el = document.createElement('div');
     el.className = 'monaco-composer';
     // Monaco handles mouse and key events inside its DOM; the composer needs them itself.
-    for (const type of ['mousedown', 'pointerdown', 'keydown', 'wheel']) el.addEventListener(type, (e) => e.stopPropagation());
+    for (const type of ['mousedown', 'pointerdown', 'keydown', 'wheel'])
+      el.addEventListener(type, (e) => e.stopPropagation());
     return el;
   });
   const onSelect = useRef(props.onSelect);
@@ -55,7 +80,9 @@ export default function MonacoViewer(props: ViewerProps) {
   selectionRef.current = selection;
   const [ready, setReady] = useState(0);
   const [height, setHeight] = useState(200);
-  const pickDecorations = useRef<monaco.editor.IEditorDecorationsCollection[]>([]);
+  const pickDecorations = useRef<monaco.editor.IEditorDecorationsCollection[]>(
+    [],
+  );
 
   const editorFor = (side: Side): Editor | null => {
     const diff = diffRef.current;
@@ -72,7 +99,11 @@ export default function MonacoViewer(props: ViewerProps) {
     d.set([
       {
         range: new monaco.Range(range.start, 1, range.end, 1),
-        options: { isWholeLine: true, className: 'monaco-picked-line', lineNumberClassName: 'monaco-picked-number' },
+        options: {
+          isWholeLine: true,
+          className: 'monaco-picked-line',
+          lineNumberClassName: 'monaco-picked-number',
+        },
       },
     ]);
   };
@@ -97,7 +128,11 @@ export default function MonacoViewer(props: ViewerProps) {
       minimap: { enabled: false },
       scrollBeyondLastLine: false,
       scrollbar: { alwaysConsumeMouseWheel: false },
-      hideUnchangedRegions: { enabled: true, contextLineCount: 3, minimumLineCount: 4 },
+      hideUnchangedRegions: {
+        enabled: true,
+        contextLineCount: 3,
+        minimumLineCount: 4,
+      },
       fontSize: 12,
       wordWrap: wrap ? 'on' : 'off',
     });
@@ -109,35 +144,65 @@ export default function MonacoViewer(props: ViewerProps) {
       ['old', diff.getOriginalEditor()],
       ['new', diff.getModifiedEditor()],
     ];
-    pickDecorations.current = editors.map(([, editor]) => editor.createDecorationsCollection());
+    pickDecorations.current = editors.map(([, editor]) =>
+      editor.createDecorationsCollection(),
+    );
 
     const updateHeight = () => {
-      const visible = layout === 'split' ? editors.map(([, e]) => e) : [diff.getModifiedEditor()];
-      setHeight(Math.min(MAX_HEIGHT, Math.max(...visible.map((e) => e.getContentHeight()))));
+      const visible =
+        layout === 'split'
+          ? editors.map(([, e]) => e)
+          : [diff.getModifiedEditor()];
+      setHeight(
+        Math.min(
+          MAX_HEIGHT,
+          Math.max(...visible.map((e) => e.getContentHeight())),
+        ),
+      );
     };
 
     for (const [side, editor] of editors) {
       const hover = editor.createDecorationsCollection();
       const lineAt = (x: number, y: number) => {
         const target = editor.getTargetAtClientPoint(x, y);
-        return target && LINE_TARGETS.has(target.type) && target.position ? target.position.lineNumber : null;
+        return target && LINE_TARGETS.has(target.type) && target.position
+          ? target.position.lineNumber
+          : null;
       };
       disposables.push(
         editor.onDidContentSizeChange(updateHeight),
         editor.onMouseMove((e) => {
-          const line = GUTTER_TARGETS.has(e.target.type) ? e.target.position?.lineNumber : undefined;
-          hover.set(line ? [{ range: new monaco.Range(line, 1, line, 1), options: { lineNumberClassName: 'monaco-add-line' } }] : []);
+          const line = GUTTER_TARGETS.has(e.target.type)
+            ? e.target.position?.lineNumber
+            : undefined;
+          hover.set(
+            line
+              ? [
+                  {
+                    range: new monaco.Range(line, 1, line, 1),
+                    options: { lineNumberClassName: 'monaco-add-line' },
+                  },
+                ]
+              : [],
+          );
         }),
         editor.onMouseLeave(() => hover.clear()),
       );
       const dom = editor.getDomNode()!;
       const onPointerDown = (e: PointerEvent) => {
         const target = editor.getTargetAtClientPoint(e.clientX, e.clientY);
-        if (e.button === 0 && target && GUTTER_TARGETS.has(target.type)) e.stopPropagation();
+        if (e.button === 0 && target && GUTTER_TARGETS.has(target.type))
+          e.stopPropagation();
       };
       const onMouseDown = (e: MouseEvent) => {
         const target = editor.getTargetAtClientPoint(e.clientX, e.clientY);
-        if (e.button !== 0 || !target || !GUTTER_TARGETS.has(target.type) || !target.position) return;
+        if (
+          e.button !== 0 ||
+          !target ||
+          !GUTTER_TARGETS.has(target.type) ||
+          !target.position
+        )
+          return;
         e.preventDefault();
         e.stopPropagation();
         startLineDrag({
@@ -208,15 +273,26 @@ export default function MonacoViewer(props: ViewerProps) {
       );
       const ids: string[] = [];
       editor.changeViewZones((acc) => {
-        for (const [afterLine, group] of Map.groupBy(sideMarks, (m) => m.afterLine)) {
+        for (const [afterLine, group] of Map.groupBy(
+          sideMarks,
+          (m) => m.afterLine,
+        )) {
           const domNode = commentCardDom(group);
-          ids.push(acc.addZone({ afterLineNumber: afterLine, heightInPx: 30 + group.length * 44, domNode }));
+          ids.push(
+            acc.addZone({
+              afterLineNumber: afterLine,
+              heightInPx: 30 + group.length * 44,
+              domNode,
+            }),
+          );
         }
       });
       cleanup.push(() => {
         if (!editor.getModel()) return;
         decorations.clear();
-        editor.changeViewZones((acc) => ids.forEach((id) => acc.removeZone(id)));
+        editor.changeViewZones((acc) =>
+          ids.forEach((id) => acc.removeZone(id)),
+        );
       });
     }
     return () => cleanup.forEach((fn) => fn());
@@ -226,11 +302,16 @@ export default function MonacoViewer(props: ViewerProps) {
     showPick(selection);
     const editor = selection && editorFor(selection.side);
     if (!selection || !editor) return;
-    const zone: monaco.editor.IViewZone = { afterLineNumber: selection.end, heightInPx: 120, domNode: composerEl };
+    const zone: monaco.editor.IViewZone = {
+      afterLineNumber: selection.end,
+      heightInPx: 120,
+      domNode: composerEl,
+    };
     let id = '';
     editor.changeViewZones((acc) => void (id = acc.addZone(zone)));
     const resize = new ResizeObserver(() => {
-      const h = (composerEl.firstElementChild as HTMLElement | null)?.offsetHeight;
+      const h = (composerEl.firstElementChild as HTMLElement | null)
+        ?.offsetHeight;
       if (!h || h + 8 === zone.heightInPx) return;
       zone.heightInPx = h + 8;
       editor.changeViewZones((acc) => acc.layoutZone(id));
@@ -239,7 +320,8 @@ export default function MonacoViewer(props: ViewerProps) {
     editor.revealLineInCenterIfOutsideViewport(selection.end);
     return () => {
       resize.disconnect();
-      if (editor.getModel()) editor.changeViewZones((acc) => acc.removeZone(id));
+      if (editor.getModel())
+        editor.changeViewZones((acc) => acc.removeZone(id));
     };
   }, [selection, ready > 0, layout, composerEl]);
 
@@ -251,7 +333,8 @@ export default function MonacoViewer(props: ViewerProps) {
     host.current?.scrollIntoView({ block: 'nearest' });
   }, [reveal, ready > 0]);
 
-  const hasComposer = selection !== null && (layout === 'split' || selection.side === 'new');
+  const hasComposer =
+    selection !== null && (layout === 'split' || selection.side === 'new');
   return (
     <div className="monaco-viewer" ref={host} style={{ height }}>
       {hasComposer && composer ? createPortal(composer, composerEl) : null}

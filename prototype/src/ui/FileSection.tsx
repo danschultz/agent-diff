@@ -1,4 +1,14 @@
-import { Component, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  Component,
+  memo,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import type { ChangedFile, FileDiffResponse } from '../shared/types.ts';
 import { STATUS_LETTER } from './FileView.tsx';
 import { VIEWERS, type ViewerId } from './viewers/index.ts';
@@ -33,7 +43,20 @@ interface Props {
 }
 
 function FileSectionImpl(props: Props) {
-  const { file, diff, viewer, layout, wrap, collapsed, viewed, active, selection, composer, reveal, scrollRoot } = props;
+  const {
+    file,
+    diff,
+    viewer,
+    layout,
+    wrap,
+    collapsed,
+    viewed,
+    active,
+    selection,
+    composer,
+    reveal,
+    scrollRoot,
+  } = props;
   const { register, onNeed, onNear, onToggleCollapsed, onToggleViewed } = props;
   const section = useRef<HTMLElement>(null);
   const body = useRef<HTMLDivElement>(null);
@@ -50,15 +73,21 @@ function FileSectionImpl(props: Props) {
     const el = section.current;
     if (!el || !scrollRoot) return;
     // A busy main thread can batch several entries for the element; only the last one is current.
-    const mount = new IntersectionObserver((entries) => {
-      const { isIntersecting } = entries[entries.length - 1];
-      setNear(isIntersecting);
-      onNear(file.path, isIntersecting);
-      if (isIntersecting) setMounted(true);
-    }, { root: scrollRoot, rootMargin: MOUNT_MARGIN });
-    const unmount = new IntersectionObserver((entries) => {
-      if (!entries[entries.length - 1].isIntersecting) setMounted(false);
-    }, { root: scrollRoot, rootMargin: UNMOUNT_MARGIN });
+    const mount = new IntersectionObserver(
+      (entries) => {
+        const { isIntersecting } = entries[entries.length - 1];
+        setNear(isIntersecting);
+        onNear(file.path, isIntersecting);
+        if (isIntersecting) setMounted(true);
+      },
+      { root: scrollRoot, rootMargin: MOUNT_MARGIN },
+    );
+    const unmount = new IntersectionObserver(
+      (entries) => {
+        if (!entries[entries.length - 1].isIntersecting) setMounted(false);
+      },
+      { root: scrollRoot, rootMargin: UNMOUNT_MARGIN },
+    );
     mount.observe(el);
     unmount.observe(el);
     return () => {
@@ -87,23 +116,47 @@ function FileSectionImpl(props: Props) {
   const comments = useMemo(() => {
     if (!diff) return [];
     const oldPath = diff.oldPath ?? diff.path;
-    return diff.comments.filter((c) => c.placement?.path && (c.side === 'old' ? c.placement.path === oldPath : c.placement.path === diff.path));
+    return diff.comments.filter(
+      (c) =>
+        c.placement?.path &&
+        (c.side === 'old'
+          ? c.placement.path === oldPath
+          : c.placement.path === diff.path),
+    );
   }, [diff]);
 
-  const onSelect = useCallback((sel: LineSelection) => props.onSelect(file.path, sel), [props.onSelect, file.path]);
-  const onRendered = useCallback((ms: number) => props.onRendered(file.path, ms), [props.onRendered, file.path]);
+  const onSelect = useCallback(
+    (sel: LineSelection) => props.onSelect(file.path, sel),
+    [props.onSelect, file.path],
+  );
+  const onRendered = useCallback(
+    (ms: number) => props.onRendered(file.path, ms),
+    [props.onRendered, file.path],
+  );
 
-  const estimate = lastHeight.current ?? Math.min(2400, 40 + ((file.added ?? 0) + (file.removed ?? 0) + 6) * LINE_HEIGHT);
+  const estimate =
+    lastHeight.current ??
+    Math.min(
+      2400,
+      40 + ((file.added ?? 0) + (file.removed ?? 0) + 6) * LINE_HEIGHT,
+    );
   const Viewer = VIEWERS.find((v) => v.id === viewer)!.component;
 
   let content: ReactNode;
-  if (!showViewer) content = <div className="file-placeholder" style={{ height: estimate }} />;
-  else if (diff.old.binary || diff.new.binary) content = <p className="empty">Binary file.</p>;
-  else if (diff.old.tooLarge || diff.new.tooLarge) content = <p className="empty">File too large to show.</p>;
+  if (!showViewer)
+    content = <div className="file-placeholder" style={{ height: estimate }} />;
+  else if (diff.old.binary || diff.new.binary)
+    content = <p className="empty">Binary file.</p>;
+  else if (diff.old.tooLarge || diff.new.tooLarge)
+    content = <p className="empty">File too large to show.</p>;
   else {
     content = (
       <ViewerBoundary key={`${viewer}:${layout}`}>
-        <Suspense fallback={<div className="file-placeholder" style={{ height: estimate }} />}>
+        <Suspense
+          fallback={
+            <div className="file-placeholder" style={{ height: estimate }} />
+          }
+        >
           <Viewer
             path={diff.path}
             oldText={diff.old.content ?? ''}
@@ -123,15 +176,27 @@ function FileSectionImpl(props: Props) {
   }
 
   return (
-    <section ref={section} className={`file-section${collapsed ? ' collapsed' : ''}${active ? ' active' : ''}`} data-path={file.path}>
+    <section
+      ref={section}
+      className={`file-section${collapsed ? ' collapsed' : ''}${active ? ' active' : ''}`}
+      data-path={file.path}
+    >
       <header className="file-section-head">
-        <button className="icon-button" title={collapsed ? 'Expand' : 'Collapse'} aria-expanded={!collapsed} onClick={() => onToggleCollapsed(file.path)}>
+        <button
+          className="icon-button"
+          title={collapsed ? 'Expand' : 'Collapse'}
+          aria-expanded={!collapsed}
+          onClick={() => onToggleCollapsed(file.path)}
+        >
           {collapsed ? '▸' : '▾'}
         </button>
         <span className={`status status-${file.status}`} title={file.status}>
           {STATUS_LETTER[file.status]}
         </span>
-        <span className="file-path" title={file.oldPath ? `${file.oldPath} → ${file.path}` : file.path}>
+        <span
+          className="file-path"
+          title={file.oldPath ? `${file.oldPath} → ${file.path}` : file.path}
+        >
           {file.oldPath ? `${file.oldPath} → ` : ''}
           {file.path}
         </span>
@@ -141,7 +206,9 @@ function FileSectionImpl(props: Props) {
           ) : (
             <>
               {file.added ? <span className="added">+{file.added}</span> : null}
-              {file.removed ? <span className="removed">−{file.removed}</span> : null}
+              {file.removed ? (
+                <span className="removed">−{file.removed}</span>
+              ) : null}
             </>
           )}
         </span>
@@ -152,12 +219,20 @@ function FileSectionImpl(props: Props) {
         )}
         <span className="spacer" />
         {diff && !collapsed && (
-          <span className="timing" title="Server time: git reads, then re-anchoring comments">
-            {diff.timingMs.git.toFixed(0)} ms git · {diff.timingMs.reanchor.toFixed(0)} ms re-anchor
+          <span
+            className="timing"
+            title="Server time: git reads, then re-anchoring comments"
+          >
+            {diff.timingMs.git.toFixed(0)} ms git ·{' '}
+            {diff.timingMs.reanchor.toFixed(0)} ms re-anchor
           </span>
         )}
         <label className={`viewed-toggle${viewed ? ' on' : ''}`}>
-          <input type="checkbox" checked={viewed} onChange={() => onToggleViewed(file.path)} />
+          <input
+            type="checkbox"
+            checked={viewed}
+            onChange={() => onToggleViewed(file.path)}
+          />
           Viewed
         </label>
       </header>
@@ -173,13 +248,21 @@ function FileSectionImpl(props: Props) {
 export const FileSection = memo(FileSectionImpl);
 
 /** Keeps a viewer that throws from taking the rest of the review UI down with it. */
-class ViewerBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+class ViewerBoundary extends Component<
+  { children: ReactNode },
+  { error: Error | null }
+> {
   state: { error: Error | null } = { error: null };
   static getDerivedStateFromError(error: Error) {
     return { error };
   }
   render() {
-    if (this.state.error) return <p className="error file-error">The viewer failed on this file: {this.state.error.message}</p>;
+    if (this.state.error)
+      return (
+        <p className="error file-error">
+          The viewer failed on this file: {this.state.error.message}
+        </p>
+      );
     return this.props.children;
   }
 }

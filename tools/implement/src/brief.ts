@@ -34,7 +34,9 @@ export function parseBrief(body: string): Map<string, string> {
     const heading = /^###\s+(.+?)\s*$/.exec(line);
     if (heading && known.has(heading[1].toLowerCase())) {
       flush();
-      current = BRIEF_FIELDS.find((f) => f.label.toLowerCase() === heading[1].toLowerCase())!.label;
+      current = BRIEF_FIELDS.find(
+        (f) => f.label.toLowerCase() === heading[1].toLowerCase(),
+      )!.label;
       lines = [];
     } else if (current !== undefined) {
       lines.push(line);
@@ -47,7 +49,9 @@ export function parseBrief(body: string): Map<string, string> {
 /** Labels of required fields that are missing or empty. */
 export function missingFields(body: string): string[] {
   const fields = parseBrief(body);
-  return BRIEF_FIELDS.filter((f) => f.required && !fields.get(f.label)).map((f) => f.label);
+  return BRIEF_FIELDS.filter((f) => f.required && !fields.get(f.label)).map(
+    (f) => f.label,
+  );
 }
 
 /** A short branch-safe slug from an issue title. */
@@ -59,5 +63,8 @@ export function slugify(title: string, maxLength = 40): string {
   if (slug.length <= maxLength) return slug || 'brief';
   const cut = slug.slice(0, maxLength);
   const lastDash = cut.lastIndexOf('-');
-  return (lastDash > maxLength / 2 ? cut.slice(0, lastDash) : cut).replace(/-+$/, '');
+  return (lastDash > maxLength / 2 ? cut.slice(0, lastDash) : cut).replace(
+    /-+$/,
+    '',
+  );
 }

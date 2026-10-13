@@ -31,7 +31,12 @@ interface Props {
   onSettings: (patch: Partial<Settings>) => void;
 }
 
-export function MetricsPanel({ reloads, renders, settings, onSettings }: Props) {
+export function MetricsPanel({
+  reloads,
+  renders,
+  settings,
+  onSettings,
+}: Props) {
   const [open, setOpen] = useState(false);
   const last = reloads[0];
   const lastRender = renders[0];
@@ -41,12 +46,14 @@ export function MetricsPanel({ reloads, renders, settings, onSettings }: Props) 
         <span>{open ? '▾' : '▸'} Live reload and rendering</span>
         {last && (
           <span className="metric-summary">
-            last reload {last.totalMs.toFixed(0)} ms ({last.rawEvents} events, {last.paths} paths)
+            last reload {last.totalMs.toFixed(0)} ms ({last.rawEvents} events,{' '}
+            {last.paths} paths)
           </span>
         )}
         {lastRender && (
           <span className="metric-summary">
-            last render {lastRender.viewer} {lastRender.ms.toFixed(0)} ms ({lastRender.lines} lines)
+            last render {lastRender.viewer} {lastRender.ms.toFixed(0)} ms (
+            {lastRender.lines} lines)
           </span>
         )}
       </div>
@@ -58,12 +65,20 @@ export function MetricsPanel({ reloads, renders, settings, onSettings }: Props) 
                 <tr>
                   <th>time</th>
                   <th title="Raw file system events in the batch">events</th>
-                  <th title="Changed paths after dropping ignored files">paths</th>
+                  <th title="Changed paths after dropping ignored files">
+                    paths
+                  </th>
                   <th>ignored</th>
-                  <th title="First event to debounced flush on the server">detect</th>
-                  <th title="Flush to refetched and painted in the UI">refresh</th>
+                  <th title="First event to debounced flush on the server">
+                    detect
+                  </th>
+                  <th title="Flush to refetched and painted in the UI">
+                    refresh
+                  </th>
                   <th title="First event to painted">total</th>
-                  <th title="Server time to compute the selected file">fetch</th>
+                  <th title="Server time to compute the selected file">
+                    fetch
+                  </th>
                   <th>viewer</th>
                   <th>sample</th>
                 </tr>
@@ -111,24 +126,48 @@ export function MetricsPanel({ reloads, renders, settings, onSettings }: Props) 
           </div>
           {settings && (
             <div className="settings">
-              <NumberSetting label="Debounce (ms)" value={settings.debounceMs} onChange={(v) => onSettings({ debounceMs: v })} />
-              <NumberSetting label="Max wait (ms)" value={settings.maxWaitMs} onChange={(v) => onSettings({ maxWaitMs: v })} />
+              <NumberSetting
+                label="Debounce (ms)"
+                value={settings.debounceMs}
+                onChange={(v) => onSettings({ debounceMs: v })}
+              />
+              <NumberSetting
+                label="Max wait (ms)"
+                value={settings.maxWaitMs}
+                onChange={(v) => onSettings({ maxWaitMs: v })}
+              />
               <NumberSetting
                 label="Match threshold"
                 step={0.05}
                 value={settings.reanchor.minSimilarity}
-                onChange={(v) => onSettings({ reanchor: { ...settings.reanchor, minSimilarity: v } })}
+                onChange={(v) =>
+                  onSettings({
+                    reanchor: { ...settings.reanchor, minSimilarity: v },
+                  })
+                }
               />
               <NumberSetting
                 label="Context lines"
                 value={settings.reanchor.contextLines}
-                onChange={(v) => onSettings({ reanchor: { ...settings.reanchor, contextLines: v } })}
+                onChange={(v) =>
+                  onSettings({
+                    reanchor: { ...settings.reanchor, contextLines: v },
+                  })
+                }
               />
               <label>
-                <input type="checkbox" checked={settings.holdWhileBusy} onChange={(e) => onSettings({ holdWhileBusy: e.target.checked })} />
+                <input
+                  type="checkbox"
+                  checked={settings.holdWhileBusy}
+                  onChange={(e) =>
+                    onSettings({ holdWhileBusy: e.target.checked })
+                  }
+                />
                 Hold notifications while the agent is mid-turn
               </label>
-              <p className="hint">Metrics are also appended to prototype/.data/metrics.jsonl.</p>
+              <p className="hint">
+                Metrics are also appended to prototype/.data/metrics.jsonl.
+              </p>
             </div>
           )}
         </div>
@@ -137,11 +176,26 @@ export function MetricsPanel({ reloads, renders, settings, onSettings }: Props) 
   );
 }
 
-function NumberSetting({ label, value, step = 1, onChange }: { label: string; value: number; step?: number; onChange: (v: number) => void }) {
+function NumberSetting({
+  label,
+  value,
+  step = 1,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  step?: number;
+  onChange: (v: number) => void;
+}) {
   return (
     <label>
       {label}
-      <input type="number" step={step} defaultValue={value} onBlur={(e) => onChange(Number(e.target.value))} />
+      <input
+        type="number"
+        step={step}
+        defaultValue={value}
+        onBlur={(e) => onChange(Number(e.target.value))}
+      />
     </label>
   );
 }

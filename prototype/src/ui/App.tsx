@@ -18,7 +18,11 @@ import { CommentsPanel, lineLabel } from './CommentsPanel.tsx';
 import { Composer } from './Composer.tsx';
 import { FileSection } from './FileSection.tsx';
 import { FileView, treeOrder } from './FileView.tsx';
-import { MetricsPanel, type ReloadMetric, type RenderMetric } from './MetricsPanel.tsx';
+import {
+  MetricsPanel,
+  type ReloadMetric,
+  type RenderMetric,
+} from './MetricsPanel.tsx';
 import { VIEWERS, type ViewerId } from './viewers/index.ts';
 import type { Layout, LineSelection, RevealTarget } from './viewers/types.ts';
 
@@ -40,7 +44,8 @@ function loadFlags(rsId: string | null): FileFlags {
   if (!rsId) return { viewed: {}, collapsed: {} };
   try {
     const stored = JSON.parse(localStorage.getItem(flagsKey(rsId)) ?? 'null');
-    if (stored) return { viewed: stored.viewed ?? {}, collapsed: stored.collapsed ?? {} };
+    if (stored)
+      return { viewed: stored.viewed ?? {}, collapsed: stored.collapsed ?? {} };
   } catch {}
   return { viewed: {}, collapsed: {} };
 }
@@ -49,25 +54,39 @@ export function App() {
   const [state, setState] = useState<AppState | null>(null);
   const [rsId, setRsId] = useState<string | null>(initial.get('rs'));
   const [wsId, setWsId] = useState<string | null>(initial.get('ws'));
-  const [mode, setMode] = useState<DiffMode>((initial.get('mode') as DiffMode) ?? 'all');
+  const [mode, setMode] = useState<DiffMode>(
+    (initial.get('mode') as DiffMode) ?? 'all',
+  );
   const [snapshotId, setSnapshotId] = useState<number | null>(null);
-  const [viewer, setViewer] = useState<ViewerId>((initial.get('viewer') as ViewerId) ?? 'basic');
-  const [layout, setLayout] = useState<Layout>((initial.get('layout') as Layout) ?? 'unified');
+  const [viewer, setViewer] = useState<ViewerId>(
+    (initial.get('viewer') as ViewerId) ?? 'basic',
+  );
+  const [layout, setLayout] = useState<Layout>(
+    (initial.get('layout') as Layout) ?? 'unified',
+  );
   const [wrap, setWrap] = useState(initial.get('wrap') === '1');
   const [policy, setPolicy] = useState<ChangePolicy>('live');
-  const [panelOpen, setPanelOpen] = useState(() => localStorage.getItem(PANEL_KEY) !== 'false');
+  const [panelOpen, setPanelOpen] = useState(
+    () => localStorage.getItem(PANEL_KEY) !== 'false',
+  );
   const [files, setFiles] = useState<FileListResponse | null>(null);
   const [filesError, setFilesError] = useState<string | null>(null);
   const [diffs, setDiffs] = useState<Record<string, FileDiffResponse>>({});
-  const [flags, setFlags] = useState<FileFlags>(() => loadFlags(initial.get('rs')));
+  const [flags, setFlags] = useState<FileFlags>(() =>
+    loadFlags(initial.get('rs')),
+  );
   const [activePath, setActivePath] = useState<string | null>(null);
   const [comments, setComments] = useState<PlacedComment[]>([]);
   const [reviews, setReviews] = useState<ReviewInfo[]>([]);
   const [snapshots, setSnapshots] = useState<SnapshotInfo[]>([]);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [draftBody, setDraftBody] = useState('');
-  const [reveal, setReveal] = useState<(RevealTarget & { file: string }) | null>(null);
-  const [pendingChanges, setPendingChanges] = useState<WorkspaceChangedEvent[]>([]);
+  const [reveal, setReveal] = useState<
+    (RevealTarget & { file: string }) | null
+  >(null);
+  const [pendingChanges, setPendingChanges] = useState<WorkspaceChangedEvent[]>(
+    [],
+  );
   const [reloads, setReloads] = useState<ReloadMetric[]>([]);
   const [renders, setRenders] = useState<RenderMetric[]>([]);
   const [connected, setConnected] = useState(false);
@@ -80,7 +99,9 @@ export function App() {
   useEffect(() => {
     if (!state) return;
     if (!rs) {
-      const first = state.reviewSessions.find((r) => r.status === 'open') ?? state.reviewSessions[0];
+      const first =
+        state.reviewSessions.find((r) => r.status === 'open') ??
+        state.reviewSessions[0];
       if (first) setRsId(first.id);
     } else if (!ws && rs.workspaces[0]) {
       setWsId(rs.workspaces[0].id);
@@ -98,7 +119,10 @@ export function App() {
     history.replaceState(null, '', `?${params}`);
   }, [rsId, wsId, mode, viewer, layout, wrap]);
 
-  useEffect(() => localStorage.setItem(PANEL_KEY, String(panelOpen)), [panelOpen]);
+  useEffect(
+    () => localStorage.setItem(PANEL_KEY, String(panelOpen)),
+    [panelOpen],
+  );
 
   const flagsFor = useRef(rsId);
   useEffect(() => {
@@ -108,11 +132,13 @@ export function App() {
     }
   }, [rsId]);
   useEffect(() => {
-    if (rsId && flagsFor.current === rsId) localStorage.setItem(flagsKey(rsId), JSON.stringify(flags));
+    if (rsId && flagsFor.current === rsId)
+      localStorage.setItem(flagsKey(rsId), JSON.stringify(flags));
   }, [rsId, flags]);
 
   const ordered = useMemo(() => (files ? treeOrder(files.files) : []), [files]);
-  const isCollapsed = (path: string) => flags.collapsed[path] ?? !!flags.viewed[path];
+  const isCollapsed = (path: string) =>
+    flags.collapsed[path] ?? !!flags.viewed[path];
 
   // Loaders. Each ignores responses that arrive after a newer request.
   const seq = useRef({ files: 0, comments: 0 });
@@ -153,9 +179,17 @@ export function App() {
     if (!rsId || !wsId) return null;
     const n = (diffSeq.current.get(path) ?? 0) + 1;
     diffSeq.current.set(path, n);
-    const oldPath = filesRef.current?.files.find((f) => f.path === path)?.oldPath ?? null;
+    const oldPath =
+      filesRef.current?.files.find((f) => f.path === path)?.oldPath ?? null;
     try {
-      const result = await api.file(rsId, wsId, mode, path, oldPath, snapshotId);
+      const result = await api.file(
+        rsId,
+        wsId,
+        mode,
+        path,
+        oldPath,
+        snapshotId,
+      );
       if (diffSeq.current.get(path) !== n) return null;
       setDiffs((prev) => ({ ...prev, [path]: result }));
       return result;
@@ -186,8 +220,15 @@ export function App() {
       requested.current.delete(p);
       diffSeq.current.set(p, (diffSeq.current.get(p) ?? 0) + 1);
     }
-    if (far.length) setDiffs((prev) => Object.fromEntries(Object.entries(prev).filter(([p]) => !far.includes(p))));
-    return Promise.all(loaded.filter((p) => near.current.has(p)).map(fetchDiff));
+    if (far.length)
+      setDiffs((prev) =>
+        Object.fromEntries(
+          Object.entries(prev).filter(([p]) => !far.includes(p)),
+        ),
+      );
+    return Promise.all(
+      loaded.filter((p) => near.current.has(p)).map(fetchDiff),
+    );
   }, [fetchDiff]);
 
   useEffect(() => {
@@ -209,7 +250,8 @@ export function App() {
   }, [rsId]);
 
   const loadSnapshots = useCallback(async () => {
-    if (rsId && wsId) setSnapshots(await api.snapshots(rsId, wsId).catch(() => []));
+    if (rsId && wsId)
+      setSnapshots(await api.snapshots(rsId, wsId).catch(() => []));
   }, [rsId, wsId]);
 
   useEffect(() => void loadState(), [loadState]);
@@ -226,8 +268,14 @@ export function App() {
 
   const refreshAfterChange = useCallback(
     async (events: WorkspaceChangedEvent[]) => {
-      const [, , refreshed] = await Promise.all([loadFiles(), loadComments(), refreshDiffs()]);
-      const fetchTimes = refreshed.flatMap((d) => (d ? [d.timingMs.total] : []));
+      const [, , refreshed] = await Promise.all([
+        loadFiles(),
+        loadComments(),
+        refreshDiffs(),
+      ]);
+      const fetchTimes = refreshed.flatMap((d) =>
+        d ? [d.timingMs.total] : [],
+      );
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
           const painted = Date.now();
@@ -298,7 +346,8 @@ export function App() {
       es = new EventSource('/api/events');
       es.onopen = () => setConnected(true);
       es.onerror = () => setConnected(false);
-      es.onmessage = (msg) => handler.current(JSON.parse(msg.data) as ServerEvent);
+      es.onmessage = (msg) =>
+        handler.current(JSON.parse(msg.data) as ServerEvent);
     };
     const close = () => {
       es?.close();
@@ -320,7 +369,9 @@ export function App() {
   const onRendered = useCallback((path: string, ms: number) => {
     const content = diffsRef.current[path]?.new.content;
     const lines = content ? splitLines(content).length : 0;
-    setRenders((prev) => [{ viewer: viewerRef.current, ms, lines }, ...prev].slice(0, 30));
+    setRenders((prev) =>
+      [{ viewer: viewerRef.current, ms, lines }, ...prev].slice(0, 30),
+    );
   }, []);
 
   const onSelectLines = useCallback((file: string, sel: LineSelection) => {
@@ -328,7 +379,12 @@ export function App() {
     if (!diff) return;
     const hash = sel.side === 'new' ? diff.new.hash : diff.old.hash;
     if (!hash) return;
-    setSelection({ ...sel, file, path: sel.side === 'old' ? (diff.oldPath ?? diff.path) : diff.path, hash });
+    setSelection({
+      ...sel,
+      file,
+      path: sel.side === 'old' ? (diff.oldPath ?? diff.path) : diff.path,
+      hash,
+    });
   }, []);
 
   const sections = useRef(new Map<string, HTMLElement>());
@@ -344,39 +400,65 @@ export function App() {
     });
   }, []);
 
-  const toggleViewed = useCallback((path: string) => {
-    setFlags((prev) => {
-      const viewed = { ...prev.viewed };
-      if (viewed[path]) delete viewed[path];
-      else viewed[path] = true;
-      const collapsed = { ...prev.collapsed };
-      delete collapsed[path];
-      return { viewed, collapsed };
-    });
-    // Keep the next file in place rather than jumping when this one collapses.
-    const el = sections.current.get(path);
-    if (el && scrollRoot && el.getBoundingClientRect().top < scrollRoot.getBoundingClientRect().top) {
-      requestAnimationFrame(() => el.scrollIntoView({ block: 'start' }));
-    }
-  }, [scrollRoot]);
+  const toggleViewed = useCallback(
+    (path: string) => {
+      setFlags((prev) => {
+        const viewed = { ...prev.viewed };
+        if (viewed[path]) delete viewed[path];
+        else viewed[path] = true;
+        const collapsed = { ...prev.collapsed };
+        delete collapsed[path];
+        return { viewed, collapsed };
+      });
+      // Keep the next file in place rather than jumping when this one collapses.
+      const el = sections.current.get(path);
+      if (
+        el &&
+        scrollRoot &&
+        el.getBoundingClientRect().top < scrollRoot.getBoundingClientRect().top
+      ) {
+        requestAnimationFrame(() => el.scrollIntoView({ block: 'start' }));
+      }
+    },
+    [scrollRoot],
+  );
 
   const setAllCollapsed = (collapsed: boolean) =>
-    setFlags((prev) => ({ ...prev, collapsed: Object.fromEntries(ordered.map((f) => [f.path, collapsed])) }));
+    setFlags((prev) => ({
+      ...prev,
+      collapsed: Object.fromEntries(ordered.map((f) => [f.path, collapsed])),
+    }));
 
   const scrollToFile = (path: string) => {
-    setFlags((prev) => (prev.collapsed[path] ?? !!prev.viewed[path] ? { ...prev, collapsed: { ...prev.collapsed, [path]: false } } : prev));
-    requestAnimationFrame(() => sections.current.get(path)?.scrollIntoView({ block: 'start' }));
+    setFlags((prev) =>
+      (prev.collapsed[path] ?? !!prev.viewed[path])
+        ? { ...prev, collapsed: { ...prev.collapsed, [path]: false } }
+        : prev,
+    );
+    requestAnimationFrame(() =>
+      sections.current.get(path)?.scrollIntoView({ block: 'start' }),
+    );
   };
 
   const jumpToComment = (c: PlacedComment) => {
     if (c.workspaceId && c.workspaceId !== wsId) setWsId(c.workspaceId);
-    const file = c.side === 'old' && files ? (files.files.find((f) => f.oldPath === c.path)?.path ?? c.path) : (c.placement?.path ?? c.path);
+    const file =
+      c.side === 'old' && files
+        ? (files.files.find((f) => f.oldPath === c.path)?.path ?? c.path)
+        : (c.placement?.path ?? c.path);
     if (!file || !c.side) return;
     const p = c.placement;
-    const line = p?.range?.end ?? p?.replacement?.end ?? p?.insertAfter ?? c.endLine ?? 1;
+    const line =
+      p?.range?.end ?? p?.replacement?.end ?? p?.insertAfter ?? c.endLine ?? 1;
     scrollToFile(file);
     const key = Date.now();
-    setReveal({ file, commentId: c.id, side: c.side, line: Math.max(1, line), key });
+    setReveal({
+      file,
+      commentId: c.id,
+      side: c.side,
+      line: Math.max(1, line),
+      key,
+    });
     setTimeout(() => setReveal((r) => (r?.key === key ? null : r)), 3000);
   };
 
@@ -450,10 +532,15 @@ export function App() {
       added += f.added ?? 0;
       removed += f.removed ?? 0;
     }
-    return { added, removed, viewed: ordered.filter((f) => flags.viewed[f.path]).length };
+    return {
+      added,
+      removed,
+      viewed: ordered.filter((f) => flags.viewed[f.path]).length,
+    };
   }, [ordered, flags.viewed]);
 
-  if (!state) return <div className="loading">Connecting to the review server…</div>;
+  if (!state)
+    return <div className="loading">Connecting to the review server…</div>;
 
   if (!rs) {
     return (
@@ -471,10 +558,17 @@ export function App() {
     <div className={`app${panelOpen ? ' panel-open' : ''}`}>
       <header>
         <div className="brand">
-          agent-diff <span className={`conn ${connected ? 'on' : 'off'}`} title={connected ? 'Live' : 'Disconnected'} />
+          agent-diff{' '}
+          <span
+            className={`conn ${connected ? 'on' : 'off'}`}
+            title={connected ? 'Live' : 'Disconnected'}
+          />
         </div>
         {state.reviewSessions.length > 1 && (
-          <select value={rsId ?? ''} onChange={(e) => (setRsId(e.target.value), setWsId(null))}>
+          <select
+            value={rsId ?? ''}
+            onChange={(e) => (setRsId(e.target.value), setWsId(null))}
+          >
             {state.reviewSessions.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.id} {r.status === 'ended' ? '(ended)' : ''} {r.title ?? ''}
@@ -485,23 +579,36 @@ export function App() {
         <select value={wsId ?? ''} onChange={(e) => setWsId(e.target.value)}>
           {rs.workspaces.map((w) => (
             <option key={w.id} value={w.id}>
-              {w.root.split('/').pop()} · {w.branch ?? 'detached'} vs {w.baseRef}
+              {w.root.split('/').pop()} · {w.branch ?? 'detached'} vs{' '}
+              {w.baseRef}
             </option>
           ))}
         </select>
         <div className="segmented">
           {DIFF_MODES.map((m) => (
-            <button key={m.mode} className={mode === m.mode ? 'active' : ''} title={m.compares} onClick={() => setMode(m.mode)}>
+            <button
+              key={m.mode}
+              className={mode === m.mode ? 'active' : ''}
+              title={m.compares}
+              onClick={() => setMode(m.mode)}
+            >
               {m.label}
             </button>
           ))}
         </div>
         {mode === 'last-turn' && (
-          <select value={snapshotId ?? ''} onChange={(e) => setSnapshotId(e.target.value ? Number(e.target.value) : null)}>
+          <select
+            value={snapshotId ?? ''}
+            onChange={(e) =>
+              setSnapshotId(e.target.value ? Number(e.target.value) : null)
+            }
+          >
             <option value="">Latest snapshot</option>
             {snapshots.map((s) => (
               <option key={s.id} value={s.id}>
-                #{s.seq} {s.reason} {s.agentId ? `(${s.agentId.slice(0, 8)})` : ''} {new Date(s.createdAt).toLocaleTimeString()}
+                #{s.seq} {s.reason}{' '}
+                {s.agentId ? `(${s.agentId.slice(0, 8)})` : ''}{' '}
+                {new Date(s.createdAt).toLocaleTimeString()}
               </option>
             ))}
           </select>
@@ -509,7 +616,10 @@ export function App() {
         <div className="spacer" />
         <label className="control">
           Viewer
-          <select value={viewer} onChange={(e) => setViewer(e.target.value as ViewerId)}>
+          <select
+            value={viewer}
+            onChange={(e) => setViewer(e.target.value as ViewerId)}
+          >
             {VIEWERS.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.label}
@@ -518,21 +628,38 @@ export function App() {
           </select>
         </label>
         <div className="segmented small">
-          <button className={layout === 'unified' ? 'active' : ''} onClick={() => setLayout('unified')}>
+          <button
+            className={layout === 'unified' ? 'active' : ''}
+            onClick={() => setLayout('unified')}
+          >
             Unified
           </button>
-          <button className={layout === 'split' ? 'active' : ''} onClick={() => setLayout('split')}>
+          <button
+            className={layout === 'split' ? 'active' : ''}
+            onClick={() => setLayout('split')}
+          >
             Split
           </button>
         </div>
         <div className="segmented small">
-          <button className={wrap ? 'active' : ''} aria-pressed={wrap} title="Wrap long lines" onClick={() => setWrap(!wrap)}>
+          <button
+            className={wrap ? 'active' : ''}
+            aria-pressed={wrap}
+            title="Wrap long lines"
+            onClick={() => setWrap(!wrap)}
+          >
             Wrap
           </button>
         </div>
-        <label className="control" title="What happens when code changes while you're reading it">
+        <label
+          className="control"
+          title="What happens when code changes while you're reading it"
+        >
           On change
-          <select value={policy} onChange={(e) => setPolicy(e.target.value as ChangePolicy)}>
+          <select
+            value={policy}
+            onChange={(e) => setPolicy(e.target.value as ChangePolicy)}
+          >
             <option value="live">Update in place</option>
             <option value="notice">Show a notice</option>
           </select>
@@ -553,13 +680,30 @@ export function App() {
         )}
         <button
           className={`icon-button panel-toggle${panelOpen ? ' active' : ''}`}
-          title={panelOpen ? 'Hide files and comments' : 'Show files and comments'}
+          title={
+            panelOpen ? 'Hide files and comments' : 'Show files and comments'
+          }
           aria-pressed={panelOpen}
           onClick={() => setPanelOpen(!panelOpen)}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-            <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" />
-            <rect x="9.5" y="3" width="4.5" height="10" fill="currentColor" opacity={panelOpen ? 0.9 : 0.25} />
+            <rect
+              x="1.5"
+              y="2.5"
+              width="13"
+              height="11"
+              rx="1.5"
+              fill="none"
+              stroke="currentColor"
+            />
+            <rect
+              x="9.5"
+              y="3"
+              width="4.5"
+              height="10"
+              fill="currentColor"
+              opacity={panelOpen ? 0.9 : 0.25}
+            />
           </svg>
         </button>
       </header>
@@ -587,11 +731,15 @@ export function App() {
             </span>
           )}
           <span>
-            {ordered.length} file{ordered.length === 1 ? '' : 's'} · <span className="added">+{totals.added}</span>{' '}
-            <span className="removed">−{totals.removed}</span> · {totals.viewed} of {ordered.length} viewed
+            {ordered.length} file{ordered.length === 1 ? '' : 's'} ·{' '}
+            <span className="added">+{totals.added}</span>{' '}
+            <span className="removed">−{totals.removed}</span> · {totals.viewed}{' '}
+            of {ordered.length} viewed
           </span>
           <span className="spacer" />
-          <span className="viewer-notes">{VIEWERS.find((v) => v.id === viewer)!.notes}</span>
+          <span className="viewer-notes">
+            {VIEWERS.find((v) => v.id === viewer)!.notes}
+          </span>
           <button onClick={() => setAllCollapsed(false)}>Expand all</button>
           <button onClick={() => setAllCollapsed(true)}>Collapse all</button>
         </div>
@@ -634,16 +782,29 @@ export function App() {
       {panelOpen && (
         <aside className="side-panel">
           <div className="side-files">
-            {files ? <FileView files={ordered} active={activePath} viewed={flags.viewed} onSelect={(f: ChangedFile) => scrollToFile(f.path)} /> : null}
+            {files ? (
+              <FileView
+                files={ordered}
+                active={activePath}
+                viewed={flags.viewed}
+                onSelect={(f: ChangedFile) => scrollToFile(f.path)}
+              />
+            ) : null}
           </div>
           <CommentsPanel
             comments={comments}
             reviews={reviews}
-            agents={state.agents.filter((a) => rs.workspaces.some((w) => a.workspaceIds.includes(w.id)))}
+            agents={state.agents.filter((a) =>
+              rs.workspaces.some((w) => a.workspaceIds.includes(w.id)),
+            )}
             workspaces={rs.workspaces}
             canComment={canComment}
-            onCreateOverall={async (body) => void (await api.createComment(rs.id, { body }))}
-            onUpdate={async (id, body) => void (await api.updateComment(id, body))}
+            onCreateOverall={async (body) =>
+              void (await api.createComment(rs.id, { body }))
+            }
+            onUpdate={async (id, body) =>
+              void (await api.updateComment(id, body))
+            }
             onDelete={async (id) => void (await api.deleteComment(id))}
             onSubmit={async () => {
               await api.submitReview(rs.id);
@@ -658,7 +819,12 @@ export function App() {
         </aside>
       )}
 
-      <MetricsPanel reloads={reloads} renders={renders} settings={state.settings} onSettings={updateSettings} />
+      <MetricsPanel
+        reloads={reloads}
+        renders={renders}
+        settings={state.settings}
+        onSettings={updateSettings}
+      />
     </div>
   );
 }
