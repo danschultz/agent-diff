@@ -8,7 +8,7 @@ import { cliClaude, type Claude } from './claude.ts';
 import { defaultStateDir, LABELS, loadConfig, mainScript } from './config.ts';
 import { run } from './exec.ts';
 import { cliGit, type Git } from './git.ts';
-import { ghGitHub, type GitHub } from './github.ts';
+import { clearLabels, ghGitHub, type GitHub } from './github.ts';
 import { onNotification, onPromptSubmit, type HookInput } from './hook.ts';
 import { writeSettingsFile } from './settings.ts';
 import { acquireLock, fileStateStore } from './state.ts';
@@ -21,6 +21,9 @@ const USAGE = `implement
   implement status             List tracked briefs and running agent sessions.
   implement setup              Create the agent:* labels on GitHub.
   implement install            Install and start the systemd user timer.
+  implement clear-labels <issue>
+                               Remove the agent:* labels from an issue. Run by
+                               the clear-agent-labels workflow when an issue closes.
   implement hook <notification|prompt>
                                Claude Code hooks, loaded only in agent sessions
                                started by implement.
@@ -45,6 +48,9 @@ try {
       break;
     case 'install':
       install();
+      break;
+    case 'clear-labels':
+      clearAgentLabels(args[0]);
       break;
     case 'hook':
       hook(args[0]);
@@ -193,6 +199,15 @@ WantedBy=timers.target
   run('systemctl', ['--user', 'enable', '--now', 'implement.timer']);
   log(`installed implement.service and implement.timer in ${unitDir}`);
   log(`logs: journalctl --user -u implement.service. Run "loginctl enable-linger ${os.userInfo().username}" so the timer runs while you're logged out.`);
+}
+
+/** Needs only the repo, so it runs in a GitHub Actions workflow with IMPLEMENT_REPO set. */
+function clearAgentLabels(arg: string | undefined): void {
+  const number = Number(arg);
+  if (!Number.isInteger(number) || number < 1) throw new Error('usage: implement clear-labels <issue>');
+  const github = ghGitHub(process.env.IMPLEMENT_REPO ?? loadConfig().repo);
+  const removed = clearLabels(github, github.issue(number), Object.values(LABELS));
+  log(removed.length > 0 ? `#${number}: removed ${removed.join(', ')}` : `#${number}: no agent labels to remove`);
 }
 
 function hook(event: string | undefined): void {

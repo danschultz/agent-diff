@@ -1,7 +1,11 @@
 # 0014: Briefs on GitHub are implemented by headless agent sessions
 
-- Status: Accepted
+- Status: Accepted, amended by [0015](0015-closing-a-brief-clears-its-labels.md)
 - Date: 2026-10-12
+
+> Amended by [0015](0015-closing-a-brief-clears-its-labels.md): a GitHub
+> Actions workflow removes a brief's `agent:*` labels when its issue is
+> closed, and closing a pull request without merging leaves its issue open.
 
 ## Problem
 

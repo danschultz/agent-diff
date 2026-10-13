@@ -39,6 +39,17 @@ and adds the `agent:queued` label. A systemd user timer runs
 
 4. **Prunes** worktrees deleted by hand, with `git worktree prune`.
 
+`implement` doesn't clear labels when it finishes with a brief. The
+workflow [`clear-agent-labels.yml`](../../.github/workflows/clear-agent-labels.yml)
+runs `implement clear-labels <issue>` when an issue is closed, whether by a
+merged pull request or by hand. That removes every `agent:*` label from the
+issue and leaves other labels alone. It needs only `gh` and the repo, so it
+runs in the workflow with `IMPLEMENT_REPO` set and `GH_TOKEN` from the
+workflow's token. A pull request
+closed without merging leaves its issue open with its labels, until Dan
+closes the issue or queues it again
+([decision 0015](../../docs/decisions/0015-closing-a-brief-clears-its-labels.md)).
+
 `claude` runs from `~/.local/bin/claude` with a clean environment, so
 wrappers and variables from whatever ran `implement` don't change its
 options.
@@ -125,6 +136,7 @@ into the service:
 ```sh
 node src/main.ts tick [--dry-run]   # one tick; --dry-run only logs what it would change
 node src/main.ts status             # tracked briefs and their agent sessions
+node src/main.ts clear-labels <n>   # remove the agent:* labels from issue n
 npm test
 npm run typecheck
 ```

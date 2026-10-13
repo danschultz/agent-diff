@@ -90,3 +90,12 @@ export function moveTo(github: GitHub, issue: Issue | { number: number; labels: 
   github.setLabels(issue.number, add, remove);
   issue.labels = [...issue.labels.filter((l) => !remove.includes(l)), ...add];
 }
+
+/** Removes every label in `all` from an issue, leaving its other labels. Returns the labels removed. */
+export function clearLabels(github: GitHub, issue: Issue | { number: number; labels: string[] }, all: readonly string[]): string[] {
+  const remove = issue.labels.filter((l) => all.includes(l));
+  if (remove.length === 0) return [];
+  github.setLabels(issue.number, [], remove);
+  issue.labels = issue.labels.filter((l) => !remove.includes(l));
+  return remove;
+}
