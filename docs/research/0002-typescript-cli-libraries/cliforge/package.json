@@ -1,0 +1,8 @@
+{
+  "name": "agent-diff-cliforge",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "cli-forge": "1.10.0"
+  }
+}
