@@ -928,7 +928,7 @@ Benefits:
 
 Costs:
 
-- The largest measured at 13.6 KB.
+- The largest for the example's imports, at 13.6 KB (Redux Toolkit is larger as a whole package).
 - The most hidden behavior: proxies, implicit tracking, and `observer`.
   A component that isn't wrapped in `observer` doesn't update.
 - Mutation outside actions only warns when the state is observed.
