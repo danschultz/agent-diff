@@ -1,0 +1,9 @@
+{
+  "name": "agent-diff-effect",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@effect/platform-node": "4.0.3",
+    "effect": "4.0.3"
+  }
+}

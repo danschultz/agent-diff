@@ -1,0 +1,9 @@
+{
+  "name": "agent-diff-yargs",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@types/yargs": "17.0.35",
+    "yargs": "18.2.0"
+  }
+}

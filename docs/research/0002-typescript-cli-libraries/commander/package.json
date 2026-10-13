@@ -1,0 +1,9 @@
+{
+  "name": "agent-diff-commander",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@commander-js/extra-typings": "15.0.0",
+    "commander": "15.0.0"
+  }
+}

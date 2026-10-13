@@ -1,0 +1,9 @@
+{
+  "name": "agent-diff-optique",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@optique/core": "1.3.5",
+    "@optique/run": "1.3.5"
+  }
+}

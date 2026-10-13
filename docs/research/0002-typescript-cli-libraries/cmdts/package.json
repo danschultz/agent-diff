@@ -1,0 +1,8 @@
+{
+  "name": "agent-diff-cmdts",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "cmd-ts": "0.15.0"
+  }
+}
