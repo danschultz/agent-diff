@@ -31,7 +31,8 @@ const USAGE = `implement
 Configuration comes from IMPLEMENT_* environment variables; see README.md.
 `;
 
-const log = (message: string) => console.log(`${new Date().toISOString()} ${message}`);
+const log = (message: string) =>
+  console.log(`${new Date().toISOString()} ${message}`);
 
 const [command = 'help', ...args] = process.argv.slice(2);
 
@@ -89,9 +90,14 @@ function runTick(dryRun: boolean): void {
       git,
       claude,
       state,
-      settingsFile: dryRun ? path.join(config.stateDir, 'settings.json') : writeSettingsFile(config.stateDir),
+      settingsFile: dryRun
+        ? path.join(config.stateDir, 'settings.json')
+        : writeSettingsFile(config.stateDir),
       now: Date.now,
-      sleep: dryRun ? () => {} : (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms),
+      sleep: dryRun
+        ? () => {}
+        : (ms) =>
+            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms),
       log: dryRun ? (m) => log(`[dry run] ${m}`) : log,
     });
     if (!dryRun) store.save(state);
@@ -101,23 +107,36 @@ function runTick(dryRun: boolean): void {
 }
 
 /** Passes reads through and logs writes instead of making them. */
-function dryRunDeps(github: GitHub, git: Git, claude: Claude): { github: GitHub; git: Git; claude: Claude } {
+function dryRunDeps(
+  github: GitHub,
+  git: Git,
+  claude: Claude,
+): { github: GitHub; git: Git; claude: Claude } {
   const would = (what: string) => log(`[dry run] would ${what}`);
   return {
     github: {
       ...github,
-      setLabels: (issue, add, remove) => would(`label #${issue} +[${add.join(', ')}] -[${remove.join(', ')}]`),
+      setLabels: (issue, add, remove) =>
+        would(`label #${issue} +[${add.join(', ')}] -[${remove.join(', ')}]`),
       comment: (issue, body) => would(`comment on #${issue}:\n${body}`),
     },
     git: {
-      addWorktree: (dir, branch, base) => would(`create worktree ${dir} on ${branch} from origin/${base}`),
-      removeWorktree: (dir, branch) => would(`remove worktree ${dir} and branch ${branch}`),
+      addWorktree: (dir, branch, base) =>
+        would(`create worktree ${dir} on ${branch} from origin/${base}`),
+      removeWorktree: (dir, branch) =>
+        would(`remove worktree ${dir} and branch ${branch}`),
       prune: () => would('run git worktree prune'),
     },
     claude: {
       ...claude,
-      start: (o) => would(`run in its own systemd scope: claude --bg --remote-control ${o.name} --name ${o.name} --permission-mode auto --settings ${o.settingsFile} <prompt> in ${o.cwd}, with prompt:\n${o.prompt}`),
-      resume: (cwd, id, prompt) => would(`run in its own systemd scope: claude --bg --resume ${id} <prompt> in ${cwd}, with prompt:\n${prompt}`),
+      start: (o) =>
+        would(
+          `run in its own systemd scope: claude --bg --remote-control ${o.name} --name ${o.name} --permission-mode auto --settings ${o.settingsFile} <prompt> in ${o.cwd}, with prompt:\n${o.prompt}`,
+        ),
+      resume: (cwd, id, prompt) =>
+        would(
+          `run in its own systemd scope: claude --bg --resume ${id} <prompt> in ${cwd}, with prompt:\n${prompt}`,
+        ),
       stop: (id) => would(`run claude stop ${id}`),
     },
   };
@@ -134,7 +153,9 @@ function status(): void {
     console.log(`#${b.issue} ${b.title}`);
     console.log(`  branch:        ${b.branch}`);
     console.log(`  worktree:      ${b.worktree}`);
-    console.log(`  agent session: ${b.sessionName} ${b.sessionId ?? '(id not known yet)'} ${session ? session.state : 'not running'}`);
+    console.log(
+      `  agent session: ${b.sessionName} ${b.sessionId ?? '(id not known yet)'} ${session ? session.state : 'not running'}`,
+    );
   }
 }
 
@@ -145,26 +166,66 @@ function setup(): void {
     [LABELS.working]: ['1d76db', 'An agent session is working on the brief'],
     [LABELS.needsInput]: ['950108', 'Agent needs human input'],
     [LABELS.review]: ['5319e7', "The brief's pull request is ready for review"],
-    [LABELS.failed]: ['b60205', 'The agent session exited without a pull request'],
+    [LABELS.failed]: [
+      'b60205',
+      'The agent session exited without a pull request',
+    ],
   };
   const existing = new Set(
-    (JSON.parse(run('gh', ['label', 'list', '-R', config.repo, '--limit', '200', '--json', 'name'])) as { name: string }[]).map((l) => l.name),
+    (
+      JSON.parse(
+        run('gh', [
+          'label',
+          'list',
+          '-R',
+          config.repo,
+          '--limit',
+          '200',
+          '--json',
+          'name',
+        ]),
+      ) as { name: string }[]
+    ).map((l) => l.name),
   );
   for (const [name, [color, description]] of Object.entries(descriptions)) {
     if (existing.has(name)) continue;
-    run('gh', ['label', 'create', name, '-R', config.repo, '--color', color, '--description', description]);
+    run('gh', [
+      'label',
+      'create',
+      name,
+      '-R',
+      config.repo,
+      '--color',
+      color,
+      '--description',
+      description,
+    ]);
     log(`created label ${name}`);
   }
-  const deletes = run('gh', ['repo', 'view', config.repo, '--json', 'deleteBranchOnMerge', '-q', '.deleteBranchOnMerge']).trim();
+  const deletes = run('gh', [
+    'repo',
+    'view',
+    config.repo,
+    '--json',
+    'deleteBranchOnMerge',
+    '-q',
+    '.deleteBranchOnMerge',
+  ]).trim();
   if (deletes !== 'true') {
-    log(`${config.repo} doesn't delete head branches after merge. implement relies on it; turn it on with:`);
+    log(
+      `${config.repo} doesn't delete head branches after merge. implement relies on it; turn it on with:`,
+    );
     log(`  gh repo edit ${config.repo} --delete-branch-on-merge`);
   }
 }
 
 function install(): void {
   const config = loadConfig();
-  const unitDir = path.join(process.env.XDG_CONFIG_HOME ?? path.join(os.homedir(), '.config'), 'systemd', 'user');
+  const unitDir = path.join(
+    process.env.XDG_CONFIG_HOME ?? path.join(os.homedir(), '.config'),
+    'systemd',
+    'user',
+  );
   mkdirSync(unitDir, { recursive: true });
   const env = Object.entries(process.env)
     .filter(([key]) => key.startsWith('IMPLEMENT_'))
@@ -198,16 +259,27 @@ WantedBy=timers.target
   run('systemctl', ['--user', 'daemon-reload']);
   run('systemctl', ['--user', 'enable', '--now', 'implement.timer']);
   log(`installed implement.service and implement.timer in ${unitDir}`);
-  log(`logs: journalctl --user -u implement.service. Run "loginctl enable-linger ${os.userInfo().username}" so the timer runs while you're logged out.`);
+  log(
+    `logs: journalctl --user -u implement.service. Run "loginctl enable-linger ${os.userInfo().username}" so the timer runs while you're logged out.`,
+  );
 }
 
 /** Needs only the repo, so it runs in a GitHub Actions workflow with IMPLEMENT_REPO set. */
 function clearAgentLabels(arg: string | undefined): void {
   const number = Number(arg);
-  if (!Number.isInteger(number) || number < 1) throw new Error('usage: implement clear-labels <issue>');
+  if (!Number.isInteger(number) || number < 1)
+    throw new Error('usage: implement clear-labels <issue>');
   const github = ghGitHub(process.env.IMPLEMENT_REPO ?? loadConfig().repo);
-  const removed = clearLabels(github, github.issue(number), Object.values(LABELS));
-  log(removed.length > 0 ? `#${number}: removed ${removed.join(', ')}` : `#${number}: no agent labels to remove`);
+  const removed = clearLabels(
+    github,
+    github.issue(number),
+    Object.values(LABELS),
+  );
+  log(
+    removed.length > 0
+      ? `#${number}: removed ${removed.join(', ')}`
+      : `#${number}: no agent labels to remove`,
+  );
 }
 
 function hook(event: string | undefined): void {

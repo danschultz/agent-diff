@@ -49,26 +49,67 @@ interface RawIssue {
 }
 
 function toIssue(raw: RawIssue): Issue {
-  return { ...raw, author: raw.author.login, labels: raw.labels.map((l) => l.name) };
+  return {
+    ...raw,
+    author: raw.author.login,
+    labels: raw.labels.map((l) => l.name),
+  };
 }
 
 export function ghGitHub(repo: string): GitHub {
-  const gh = (args: string[], input?: string) => run('gh', [...args, '-R', repo], { input });
+  const gh = (args: string[], input?: string) =>
+    run('gh', [...args, '-R', repo], { input });
   return {
     queuedIssues(label) {
-      const raw = JSON.parse(gh(['issue', 'list', '--state', 'open', '--label', label, '--limit', '100', '--json', ISSUE_FIELDS])) as RawIssue[];
+      const raw = JSON.parse(
+        gh([
+          'issue',
+          'list',
+          '--state',
+          'open',
+          '--label',
+          label,
+          '--limit',
+          '100',
+          '--json',
+          ISSUE_FIELDS,
+        ]),
+      ) as RawIssue[];
       return raw.map(toIssue).sort((a, b) => a.number - b.number);
     },
     issue(number) {
-      return toIssue(JSON.parse(gh(['issue', 'view', String(number), '--json', ISSUE_FIELDS])) as RawIssue);
+      return toIssue(
+        JSON.parse(
+          gh(['issue', 'view', String(number), '--json', ISSUE_FIELDS]),
+        ) as RawIssue,
+      );
     },
     pullRequestForBranch(branch) {
       const raw = JSON.parse(
-        gh(['pr', 'list', '--state', 'all', '--head', branch, '--limit', '1', '--json', 'number,url,state,reviews']),
-      ) as { number: number; url: string; state: PullRequest['state']; reviews: (Omit<Review, 'author'> & { author: { login: string } })[] }[];
+        gh([
+          'pr',
+          'list',
+          '--state',
+          'all',
+          '--head',
+          branch,
+          '--limit',
+          '1',
+          '--json',
+          'number,url,state,reviews',
+        ]),
+      ) as {
+        number: number;
+        url: string;
+        state: PullRequest['state'];
+        reviews: (Omit<Review, 'author'> & { author: { login: string } })[];
+      }[];
       const pr = raw[0];
       if (!pr) return undefined;
-      return { ...pr, reviews: pr.reviews.map((r) => ({ ...r, author: r.author.login })) };
+      return {
+        ...pr,
+        reviews: pr.reviews.map((r) => ({ ...r, author: r.author.login })),
+      };
     },
     setLabels(issue, add, remove) {
       if (add.length === 0 && remove.length === 0) return;
@@ -84,7 +125,12 @@ export function ghGitHub(repo: string): GitHub {
 }
 
 /** Moves an issue to `label`, dropping whichever other agent:* labels it has. */
-export function moveTo(github: GitHub, issue: Issue | { number: number; labels: string[] }, label: string, all: readonly string[]): void {
+export function moveTo(
+  github: GitHub,
+  issue: Issue | { number: number; labels: string[] },
+  label: string,
+  all: readonly string[],
+): void {
   const remove = issue.labels.filter((l) => l !== label && all.includes(l));
   const add = issue.labels.includes(label) ? [] : [label];
   github.setLabels(issue.number, add, remove);
@@ -92,7 +138,11 @@ export function moveTo(github: GitHub, issue: Issue | { number: number; labels: 
 }
 
 /** Removes every label in `all` from an issue, leaving its other labels. Returns the labels removed. */
-export function clearLabels(github: GitHub, issue: Issue | { number: number; labels: string[] }, all: readonly string[]): string[] {
+export function clearLabels(
+  github: GitHub,
+  issue: Issue | { number: number; labels: string[] },
+  all: readonly string[],
+): string[] {
   const remove = issue.labels.filter((l) => all.includes(l));
   if (remove.length === 0) return [];
   github.setLabels(issue.number, [], remove);

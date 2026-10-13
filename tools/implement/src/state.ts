@@ -1,4 +1,12 @@
-import { closeSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  closeSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
 
 /** What `implement` remembers about a brief it started. GitHub labels hold the rest. */
@@ -34,7 +42,8 @@ export function fileStateStore(stateDir: string): StateStore {
       try {
         return JSON.parse(readFileSync(file, 'utf8')) as State;
       } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { briefs: {} };
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT')
+          return { briefs: {} };
         throw error;
       }
     },
@@ -48,11 +57,18 @@ export function fileStateStore(stateDir: string): StateStore {
 }
 
 /** Finds the brief an agent session belongs to, by session id or by its working directory. */
-export function findBrief(state: State, sessionId: string | undefined, cwd: string | undefined): BriefState | undefined {
+export function findBrief(
+  state: State,
+  sessionId: string | undefined,
+  cwd: string | undefined,
+): BriefState | undefined {
   const briefs = Object.values(state.briefs);
   return (
     briefs.find((b) => sessionId && b.sessionId === sessionId) ??
-    briefs.find((b) => cwd && (cwd === b.worktree || cwd.startsWith(b.worktree + path.sep)))
+    briefs.find(
+      (b) =>
+        cwd && (cwd === b.worktree || cwd.startsWith(b.worktree + path.sep)),
+    )
   );
 }
 

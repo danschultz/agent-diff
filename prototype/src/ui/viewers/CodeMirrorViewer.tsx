@@ -7,16 +7,35 @@
 import { LanguageDescription } from '@codemirror/language';
 import { languages } from '@codemirror/language-data';
 import { MergeView, unifiedMergeView } from '@codemirror/merge';
-import { Compartment, EditorState, RangeSetBuilder, StateEffect, StateField, type Extension } from '@codemirror/state';
+import {
+  Compartment,
+  EditorState,
+  RangeSetBuilder,
+  StateEffect,
+  StateField,
+  type Extension,
+} from '@codemirror/state';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
+import {
+  Decoration,
+  EditorView,
+  WidgetType,
+  type DecorationSet,
+} from '@codemirror/view';
 import { basicSetup } from 'codemirror';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Side } from '../../shared/types.ts';
 import { languageFor } from '../language.ts';
 import { lineDiff } from './lineDiff.ts';
-import { commentCardDom, commentMarks, startLineDrag, type CommentMark, type LineSelection, type ViewerProps } from './types.ts';
+import {
+  commentCardDom,
+  commentMarks,
+  startLineDrag,
+  type CommentMark,
+  type LineSelection,
+  type ViewerProps,
+} from './types.ts';
 
 const setMarks = StateEffect.define<CommentMark[]>();
 const setPick = StateEffect.define<Pick | null>();
@@ -34,7 +53,10 @@ class CardsWidget extends WidgetType {
     this.marks = marks;
   }
   eq(other: CardsWidget) {
-    return other.marks.map((m) => m.comment.id + m.state + m.comment.body).join() === this.marks.map((m) => m.comment.id + m.state + m.comment.body).join();
+    return (
+      other.marks.map((m) => m.comment.id + m.state + m.comment.body).join() ===
+      this.marks.map((m) => m.comment.id + m.state + m.comment.body).join()
+    );
   }
   toDOM() {
     return commentCardDom(this.marks);
@@ -60,7 +82,8 @@ class ComposerWidget extends WidgetType {
 const commentField = StateField.define<DecorationSet>({
   create: () => Decoration.none,
   update(value, tr) {
-    for (const effect of tr.effects) if (effect.is(setMarks)) return buildComments(tr.state, effect.value);
+    for (const effect of tr.effects)
+      if (effect.is(setMarks)) return buildComments(tr.state, effect.value);
     return value.map(tr.changes);
   },
   provide: (f) => EditorView.decorations.from(f),
@@ -69,25 +92,40 @@ const commentField = StateField.define<DecorationSet>({
 const pickField = StateField.define<DecorationSet>({
   create: () => Decoration.none,
   update(value, tr) {
-    for (const effect of tr.effects) if (effect.is(setPick)) return buildPick(tr.state, effect.value);
+    for (const effect of tr.effects)
+      if (effect.is(setPick)) return buildPick(tr.state, effect.value);
     return value.map(tr.changes);
   },
   provide: (f) => EditorView.decorations.from(f),
 });
 
-function buildComments(state: EditorState, marks: CommentMark[]): DecorationSet {
+function buildComments(
+  state: EditorState,
+  marks: CommentMark[],
+): DecorationSet {
   const doc = state.doc;
   const ranges: { from: number; deco: Decoration }[] = [];
   for (const m of marks) {
     if (!m.lines) continue;
     for (let n = m.lines.start; n <= Math.min(m.lines.end, doc.lines); n++) {
-      ranges.push({ from: doc.line(n).from, deco: Decoration.line({ class: `cm-comment-line state-${m.state}` }) });
+      ranges.push({
+        from: doc.line(n).from,
+        deco: Decoration.line({ class: `cm-comment-line state-${m.state}` }),
+      });
     }
   }
   for (const [afterLine, group] of Map.groupBy(marks, (m) => m.afterLine)) {
-    const line = afterLine === 0 ? null : doc.line(Math.min(afterLine, doc.lines));
+    const line =
+      afterLine === 0 ? null : doc.line(Math.min(afterLine, doc.lines));
     const pos = line ? line.to : 0;
-    ranges.push({ from: pos, deco: Decoration.widget({ widget: new CardsWidget(group), block: true, side: line ? 1 : -1 }) });
+    ranges.push({
+      from: pos,
+      deco: Decoration.widget({
+        widget: new CardsWidget(group),
+        block: true,
+        side: line ? 1 : -1,
+      }),
+    });
   }
   ranges.sort((a, b) => a.from - b.from || a.deco.startSide - b.deco.startSide);
   const builder = new RangeSetBuilder<Decoration>();
@@ -100,22 +138,46 @@ function buildPick(state: EditorState, pick: Pick | null): DecorationSet {
   const doc = state.doc;
   const builder = new RangeSetBuilder<Decoration>();
   const end = Math.min(pick.range.end, doc.lines);
-  for (let n = pick.range.start; n <= end; n++) builder.add(doc.line(n).from, doc.line(n).from, Decoration.line({ class: 'cm-picked-line' }));
+  for (let n = pick.range.start; n <= end; n++)
+    builder.add(
+      doc.line(n).from,
+      doc.line(n).from,
+      Decoration.line({ class: 'cm-picked-line' }),
+    );
   if (pick.composer) {
     // Sorts after the comment cards at the same position.
     const pos = doc.line(end).to;
-    builder.add(pos, pos, Decoration.widget({ widget: new ComposerWidget(pick.composer), block: true, side: 2 }));
+    builder.add(
+      pos,
+      pos,
+      Decoration.widget({
+        widget: new ComposerWidget(pick.composer),
+        block: true,
+        side: 2,
+      }),
+    );
   }
   return builder.finish();
 }
 
 function lineAtY(view: EditorView, y: number): number {
   const block = view.lineBlockAtHeight(y - view.documentTop);
-  return view.state.doc.lineAt(Math.min(block.from, view.state.doc.length)).number;
+  return view.state.doc.lineAt(Math.min(block.from, view.state.doc.length))
+    .number;
 }
 
 export default function CodeMirrorViewer(props: ViewerProps) {
-  const { path, oldText, newText, layout, wrap, comments, selection, composer, reveal } = props;
+  const {
+    path,
+    oldText,
+    newText,
+    layout,
+    wrap,
+    comments,
+    selection,
+    composer,
+    reveal,
+  } = props;
   const host = useRef<HTMLDivElement>(null);
   const views = useRef<{ side: Side; view: EditorView }[]>([]);
   const [composerEl] = useState(() => {
@@ -137,9 +199,16 @@ export default function CodeMirrorViewer(props: ViewerProps) {
     const language = new Compartment();
     const diffConfig = { override: lineDiff };
 
-    const showPick = (side: Side, range: LineSelection | null, withComposer: boolean) => {
+    const showPick = (
+      side: Side,
+      range: LineSelection | null,
+      withComposer: boolean,
+    ) => {
       for (const v of views.current) {
-        const pick = range && v.side === side ? { range, composer: withComposer ? composerEl : null } : null;
+        const pick =
+          range && v.side === side
+            ? { range, composer: withComposer ? composerEl : null }
+            : null;
         v.view.dispatch({ effects: setPick.of(pick) });
       }
     };
@@ -156,23 +225,26 @@ export default function CodeMirrorViewer(props: ViewerProps) {
     ];
 
     // EditorView.domEventHandlers only sees events on the content element, not the gutters.
-    const onGutterDown = (side: Side, view: EditorView) => (event: MouseEvent) => {
-      const el = (event.target as HTMLElement).closest('.cm-lineNumbers .cm-gutterElement');
-      if (!el || event.button !== 0) return;
-      event.preventDefault();
-      event.stopPropagation();
-      startLineDrag({
-        side,
-        line: lineAtY(view, event.clientY),
-        lineAt: (_x, y) => lineAtY(view, y),
-        onChange: (range) => showPick(side, range, false),
-        onEnd: (range) => {
-          const committed = selectionRef.current;
-          showPick(committed?.side ?? side, committed, !!committed);
-          if (range) onSelect.current(range);
-        },
-      });
-    };
+    const onGutterDown =
+      (side: Side, view: EditorView) => (event: MouseEvent) => {
+        const el = (event.target as HTMLElement).closest(
+          '.cm-lineNumbers .cm-gutterElement',
+        );
+        if (!el || event.button !== 0) return;
+        event.preventDefault();
+        event.stopPropagation();
+        startLineDrag({
+          side,
+          line: lineAtY(view, event.clientY),
+          lineAt: (_x, y) => lineAtY(view, y),
+          onChange: (range) => showPick(side, range, false),
+          onEnd: (range) => {
+            const committed = selectionRef.current;
+            showPick(committed?.side ?? side, committed, !!committed);
+            if (range) onSelect.current(range);
+          },
+        });
+      };
 
     let destroy: () => void;
     if (layout === 'split') {
@@ -195,16 +267,35 @@ export default function CodeMirrorViewer(props: ViewerProps) {
         parent,
         state: EditorState.create({
           doc: newText,
-          extensions: [...common('new'), unifiedMergeView({ original: oldText, mergeControls: false, collapseUnchanged: { margin: 3, minSize: 4 }, diffConfig })],
+          extensions: [
+            ...common('new'),
+            unifiedMergeView({
+              original: oldText,
+              mergeControls: false,
+              collapseUnchanged: { margin: 3, minSize: 4 },
+              diffConfig,
+            }),
+          ],
         }),
       });
       views.current = [{ side: 'new', view }];
       destroy = () => view.destroy();
     }
 
-    (LanguageDescription.matchFilename(languages, path) ?? LanguageDescription.matchLanguageName(languages, languageFor(path).hljs, false))
+    (
+      LanguageDescription.matchFilename(languages, path) ??
+      LanguageDescription.matchLanguageName(
+        languages,
+        languageFor(path).hljs,
+        false,
+      )
+    )
       ?.load()
-      .then((support) => views.current.forEach(({ view }) => view.dispatch({ effects: language.reconfigure(support) })))
+      .then((support) =>
+        views.current.forEach(({ view }) =>
+          view.dispatch({ effects: language.reconfigure(support) }),
+        ),
+      )
       .catch(() => undefined);
 
     const listeners = views.current.map(({ side, view }) => {
@@ -213,7 +304,9 @@ export default function CodeMirrorViewer(props: ViewerProps) {
       return () => view.dom.removeEventListener('mousedown', listener, true);
     });
 
-    const resize = new ResizeObserver(() => views.current.forEach(({ view }) => view.requestMeasure()));
+    const resize = new ResizeObserver(() =>
+      views.current.forEach(({ view }) => view.requestMeasure()),
+    );
     resize.observe(composerEl);
     setReady((n) => n + 1);
     requestAnimationFrame(() => onRendered.current(performance.now() - start));
@@ -227,26 +320,36 @@ export default function CodeMirrorViewer(props: ViewerProps) {
 
   useEffect(() => {
     const marks = commentMarks(comments);
-    for (const { side, view } of views.current) view.dispatch({ effects: setMarks.of(marks.filter((m) => m.side === side)) });
+    for (const { side, view } of views.current)
+      view.dispatch({
+        effects: setMarks.of(marks.filter((m) => m.side === side)),
+      });
   }, [comments, ready]);
 
   useEffect(() => {
     for (const { side, view } of views.current) {
-      const pick = selection && selection.side === side ? { range: selection, composer: composerEl } : null;
+      const pick =
+        selection && selection.side === side
+          ? { range: selection, composer: composerEl }
+          : null;
       view.dispatch({ effects: setPick.of(pick) });
     }
   }, [selection, ready, composerEl]);
 
   useEffect(() => {
     if (!reveal) return;
-    const target = views.current.find((v) => v.side === reveal.side) ?? views.current[0];
+    const target =
+      views.current.find((v) => v.side === reveal.side) ?? views.current[0];
     if (!target) return;
     const doc = target.view.state.doc;
     const line = doc.line(Math.max(1, Math.min(reveal.line, doc.lines)));
-    target.view.dispatch({ effects: EditorView.scrollIntoView(line.from, { y: 'center' }) });
+    target.view.dispatch({
+      effects: EditorView.scrollIntoView(line.from, { y: 'center' }),
+    });
   }, [reveal, ready]);
 
-  const hasComposer = selection !== null && views.current.some((v) => v.side === selection.side);
+  const hasComposer =
+    selection !== null && views.current.some((v) => v.side === selection.side);
   return (
     <div className="cm-viewer" ref={host}>
       {hasComposer && composer ? createPortal(composer, composerEl) : null}

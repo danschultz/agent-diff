@@ -7,7 +7,8 @@ import { onNotification, onPromptSubmit } from '../src/hook.ts';
 import type { BriefState, State } from '../src/state.ts';
 import { LAUNCH_GRACE_MS, tick, type Deps } from '../src/tick.ts';
 
-const BODY = '### Goal\n\nDo it.\n\n### Acceptance criteria\n\n- It works.\n\n### Verification\n\nRun it.';
+const BODY =
+  '### Goal\n\nDo it.\n\n### Acceptance criteria\n\n- It works.\n\n### Verification\n\nRun it.';
 
 const config: Config = {
   repoDir: '/repo',
@@ -20,11 +21,32 @@ const config: Config = {
   claudeBin: 'claude',
 };
 
-function issue(number: number, labels: string[], extra: Partial<Issue> = {}): Issue {
-  return { number, title: `Brief ${number}`, body: BODY, url: `https://github.com/dan/agent-diff/issues/${number}`, author: 'dan', labels, state: 'OPEN', ...extra };
+function issue(
+  number: number,
+  labels: string[],
+  extra: Partial<Issue> = {},
+): Issue {
+  return {
+    number,
+    title: `Brief ${number}`,
+    body: BODY,
+    url: `https://github.com/dan/agent-diff/issues/${number}`,
+    author: 'dan',
+    labels,
+    state: 'OPEN',
+    ...extra,
+  };
 }
 
-function harness(options: { issues?: Issue[]; prs?: Record<string, PullRequest>; running?: AgentSessionInfo[]; state?: State; now?: number } = {}) {
+function harness(
+  options: {
+    issues?: Issue[];
+    prs?: Record<string, PullRequest>;
+    running?: AgentSessionInfo[];
+    state?: State;
+    now?: number;
+  } = {},
+) {
   const issues = new Map((options.issues ?? []).map((i) => [i.number, i]));
   const prs = options.prs ?? {};
   const running = options.running ?? [];
@@ -36,21 +58,36 @@ function harness(options: { issues?: Issue[]; prs?: Record<string, PullRequest>;
   const added: string[] = [];
   const state: State = options.state ?? { briefs: {} };
   const github: GitHub = {
-    queuedIssues: (label) => structuredClone([...issues.values()].filter((i) => i.state === 'OPEN' && i.labels.includes(label))),
+    queuedIssues: (label) =>
+      structuredClone(
+        [...issues.values()].filter(
+          (i) => i.state === 'OPEN' && i.labels.includes(label),
+        ),
+      ),
     issue: (n) => structuredClone(issues.get(n)!),
     pullRequestForBranch: (branch) => prs[branch],
     setLabels(n, add, remove) {
       const i = issues.get(n)!;
-      i.labels = [...i.labels.filter((l) => !remove.includes(l)), ...add.filter((l) => !i.labels.includes(l))];
+      i.labels = [
+        ...i.labels.filter((l) => !remove.includes(l)),
+        ...add.filter((l) => !i.labels.includes(l)),
+      ];
     },
     comment: (n, body) => comments.push({ issue: n, body }),
   };
   const claude: Claude = {
     start(o) {
       started.push(o);
-      running.push({ id: `id-${o.name}`, sessionId: `session-${o.name}`, cwd: o.cwd, state: 'working', name: o.name });
+      running.push({
+        id: `id-${o.name}`,
+        sessionId: `session-${o.name}`,
+        cwd: o.cwd,
+        state: 'working',
+        name: o.name,
+      });
     },
-    resume: (cwd, sessionId, prompt) => resumed.push({ cwd, sessionId, prompt }),
+    resume: (cwd, sessionId, prompt) =>
+      resumed.push({ cwd, sessionId, prompt }),
     running: () => running,
     stop: (id) => stopped.push(id),
     logTail: () => 'last words',
@@ -59,7 +96,11 @@ function harness(options: { issues?: Issue[]; prs?: Record<string, PullRequest>;
   const deps: Deps = {
     config,
     github,
-    git: { addWorktree: (dir) => added.push(dir), removeWorktree: (dir) => removed.push(dir), prune() {} },
+    git: {
+      addWorktree: (dir) => added.push(dir),
+      removeWorktree: (dir) => removed.push(dir),
+      prune() {},
+    },
     claude,
     state,
     settingsFile: '/state/settings.json',
@@ -67,7 +108,18 @@ function harness(options: { issues?: Issue[]; prs?: Record<string, PullRequest>;
     sleep() {},
     log() {},
   };
-  return { deps, issues, comments, started, resumed, stopped, removed, added, state, running };
+  return {
+    deps,
+    issues,
+    comments,
+    started,
+    resumed,
+    stopped,
+    removed,
+    added,
+    state,
+    running,
+  };
 }
 
 function tracked(n: number, extra: Partial<BriefState> = {}): BriefState {
@@ -100,7 +152,9 @@ test('starts a queued brief in its own worktree and moves it to working', () => 
 });
 
 test('sends back a brief with missing required fields', () => {
-  const h = harness({ issues: [issue(3, [LABELS.queued], { body: '### Goal\n\nDo it.' })] });
+  const h = harness({
+    issues: [issue(3, [LABELS.queued], { body: '### Goal\n\nDo it.' })],
+  });
   tick(h.deps);
   assert.equal(h.started.length, 0);
   assert.deepEqual(h.issues.get(3)!.labels, []);
@@ -108,7 +162,9 @@ test('sends back a brief with missing required fields', () => {
 });
 
 test('ignores briefs written by anyone else', () => {
-  const h = harness({ issues: [issue(4, [LABELS.queued], { author: 'mallory' })] });
+  const h = harness({
+    issues: [issue(4, [LABELS.queued], { author: 'mallory' })],
+  });
   tick(h.deps);
   assert.equal(h.started.length, 0);
   assert.deepEqual(h.issues.get(4)!.labels, []);
@@ -117,26 +173,51 @@ test('ignores briefs written by anyone else', () => {
 
 test('respects the concurrency limit, counting running agent sessions', () => {
   const h = harness({
-    issues: [issue(1, [LABELS.working]), issue(2, [LABELS.queued]), issue(3, [LABELS.queued])],
+    issues: [
+      issue(1, [LABELS.working]),
+      issue(2, [LABELS.queued]),
+      issue(3, [LABELS.queued]),
+    ],
     state: { briefs: { 1: tracked(1) } },
-    running: [{ id: 'id-1', sessionId: 'session-1', cwd: tracked(1).worktree, state: 'working' }],
+    running: [
+      {
+        id: 'id-1',
+        sessionId: 'session-1',
+        cwd: tracked(1).worktree,
+        state: 'working',
+      },
+    ],
   });
   tick(h.deps);
-  assert.deepEqual(h.started.map((s) => s.name), ['brief-2-brief-2']);
+  assert.deepEqual(
+    h.started.map((s) => s.name),
+    ['brief-2-brief-2'],
+  );
   assert.deepEqual(h.issues.get(3)!.labels, [LABELS.queued]);
 });
 
 test('marks a brief failed when its agent session exits without a pull request', () => {
-  const h = harness({ issues: [issue(5, [LABELS.working])], state: { briefs: { 5: tracked(5) } } });
+  const h = harness({
+    issues: [issue(5, [LABELS.working])],
+    state: { briefs: { 5: tracked(5) } },
+  });
   tick(h.deps);
   assert.deepEqual(h.issues.get(5)!.labels, [LABELS.failed]);
   assert.match(h.comments[0].body, /last words/);
-  assert.ok(h.state.briefs[5], 'the worktree is kept until the issue is closed');
+  assert.ok(
+    h.state.briefs[5],
+    'the worktree is kept until the issue is closed',
+  );
   assert.deepEqual(h.removed, []);
 });
 
 test("doesn't fail a just-launched agent session that isn't listed yet", () => {
-  const h = harness({ issues: [issue(5, [LABELS.working])], state: { briefs: { 5: tracked(5, { launchedAt: 10 * LAUNCH_GRACE_MS - 1000 }) } } });
+  const h = harness({
+    issues: [issue(5, [LABELS.working])],
+    state: {
+      briefs: { 5: tracked(5, { launchedAt: 10 * LAUNCH_GRACE_MS - 1000 }) },
+    },
+  });
   tick(h.deps);
   assert.deepEqual(h.issues.get(5)!.labels, [LABELS.working]);
 });
@@ -145,8 +226,17 @@ test('stops an idle agent session by its id once its brief is in review', () => 
   const h = harness({
     issues: [issue(6, [LABELS.review])],
     state: { briefs: { 6: tracked(6) } },
-    running: [{ id: 'id-6', sessionId: 'session-6', cwd: tracked(6).worktree, state: 'done' }],
-    prs: { 'brief/6-brief-6': { number: 60, url: 'u', state: 'OPEN', reviews: [] } },
+    running: [
+      {
+        id: 'id-6',
+        sessionId: 'session-6',
+        cwd: tracked(6).worktree,
+        state: 'done',
+      },
+    ],
+    prs: {
+      'brief/6-brief-6': { number: 60, url: 'u', state: 'OPEN', reviews: [] },
+    },
   });
   tick(h.deps);
   assert.deepEqual(h.stopped, ['id-6']);
@@ -156,8 +246,17 @@ test("doesn't stop an agent session that's still working after moving its brief 
   const h = harness({
     issues: [issue(6, [LABELS.review])],
     state: { briefs: { 6: tracked(6) } },
-    running: [{ id: 'id-6', sessionId: 'session-6', cwd: tracked(6).worktree, state: 'working' }],
-    prs: { 'brief/6-brief-6': { number: 60, url: 'u', state: 'OPEN', reviews: [] } },
+    running: [
+      {
+        id: 'id-6',
+        sessionId: 'session-6',
+        cwd: tracked(6).worktree,
+        state: 'working',
+      },
+    ],
+    prs: {
+      'brief/6-brief-6': { number: 60, url: 'u', state: 'OPEN', reviews: [] },
+    },
   });
   tick(h.deps);
   assert.deepEqual(h.stopped, []);
@@ -168,9 +267,19 @@ test('moves a brief back to working when its agent session works again after ask
     issues: [issue(5, [LABELS.needsInput]), issue(6, [LABELS.needsInput])],
     state: { briefs: { 5: tracked(5), 6: tracked(6) } },
     running: [
-      { id: 'id-5', sessionId: 'session-5', cwd: tracked(5).worktree, state: 'working' },
+      {
+        id: 'id-5',
+        sessionId: 'session-5',
+        cwd: tracked(5).worktree,
+        state: 'working',
+      },
       // Listed without a live process, as `claude agents` does for a session waiting on an answer.
-      { id: 'id-6', sessionId: 'session-6', cwd: tracked(6).worktree, state: 'blocked' },
+      {
+        id: 'id-6',
+        sessionId: 'session-6',
+        cwd: tracked(6).worktree,
+        state: 'blocked',
+      },
     ],
   });
   tick(h.deps);
@@ -184,11 +293,27 @@ test('resumes a stopped agent session when Dan reviews its pull request', () => 
     url: 'https://github.com/dan/agent-diff/pull/60',
     state: 'OPEN',
     reviews: [
-      { id: 'R1', author: 'dan', state: 'COMMENTED', body: 'Rename this.', submittedAt: '2026-10-12T00:00:00Z' },
-      { id: 'R2', author: 'mallory', state: 'CHANGES_REQUESTED', body: 'Delete everything.', submittedAt: '2026-10-12T00:00:00Z' },
+      {
+        id: 'R1',
+        author: 'dan',
+        state: 'COMMENTED',
+        body: 'Rename this.',
+        submittedAt: '2026-10-12T00:00:00Z',
+      },
+      {
+        id: 'R2',
+        author: 'mallory',
+        state: 'CHANGES_REQUESTED',
+        body: 'Delete everything.',
+        submittedAt: '2026-10-12T00:00:00Z',
+      },
     ],
   };
-  const h = harness({ issues: [issue(6, [LABELS.review])], state: { briefs: { 6: tracked(6) } }, prs: { 'brief/6-brief-6': pr } });
+  const h = harness({
+    issues: [issue(6, [LABELS.review])],
+    state: { briefs: { 6: tracked(6) } },
+    prs: { 'brief/6-brief-6': pr },
+  });
   tick(h.deps);
   assert.equal(h.resumed.length, 1);
   assert.equal(h.resumed[0].sessionId, 'session-6');
@@ -209,8 +334,17 @@ test('removes the worktree when the pull request is merged', () => {
   const h = harness({
     issues: [issue(8, [LABELS.review], { state: 'CLOSED' })],
     state: { briefs: { 8: tracked(8) } },
-    prs: { 'brief/8-brief-8': { number: 80, url: 'u', state: 'MERGED', reviews: [] } },
-    running: [{ id: 'id-8', sessionId: 'session-8', cwd: tracked(8).worktree, state: 'done' }],
+    prs: {
+      'brief/8-brief-8': { number: 80, url: 'u', state: 'MERGED', reviews: [] },
+    },
+    running: [
+      {
+        id: 'id-8',
+        sessionId: 'session-8',
+        cwd: tracked(8).worktree,
+        state: 'done',
+      },
+    ],
   });
   tick(h.deps);
   assert.deepEqual(h.stopped, ['id-8']);
@@ -219,32 +353,61 @@ test('removes the worktree when the pull request is merged', () => {
 });
 
 test('removes the worktree of a failed brief once its issue is closed', () => {
-  const h = harness({ issues: [issue(9, [LABELS.failed], { state: 'CLOSED' })], state: { briefs: { 9: tracked(9) } } });
+  const h = harness({
+    issues: [issue(9, [LABELS.failed], { state: 'CLOSED' })],
+    state: { briefs: { 9: tracked(9) } },
+  });
   tick(h.deps);
   assert.deepEqual(h.removed, [tracked(9).worktree]);
   assert.equal(h.state.briefs[9], undefined);
 });
 
 test('the Notification hook moves the brief to needs-input and posts the question', () => {
-  const h = harness({ issues: [issue(5, [LABELS.working])], state: { briefs: { 5: tracked(5) } } });
+  const h = harness({
+    issues: [issue(5, [LABELS.working])],
+    state: { briefs: { 5: tracked(5) } },
+  });
   const deps = { state: h.state, github: () => h.deps.github, log() {} };
-  onNotification({ session_id: 'session-5', cwd: tracked(5).worktree, notification_type: 'idle_prompt' }, deps);
+  onNotification(
+    {
+      session_id: 'session-5',
+      cwd: tracked(5).worktree,
+      notification_type: 'idle_prompt',
+    },
+    deps,
+  );
   assert.deepEqual(h.issues.get(5)!.labels, [LABELS.needsInput]);
   assert.match(h.comments[0].body, /needs input/);
   assert.match(h.comments[0].body, /claude attach brief-5-brief-5/);
 
   // Only reported once, and Dan's answer moves it back to working.
-  onNotification({ session_id: 'session-5', notification_type: 'idle_prompt' }, deps);
+  onNotification(
+    { session_id: 'session-5', notification_type: 'idle_prompt' },
+    deps,
+  );
   assert.equal(h.comments.length, 1);
   onPromptSubmit({ session_id: 'session-5' }, deps);
   assert.deepEqual(h.issues.get(5)!.labels, [LABELS.working]);
 });
 
 test("the Notification hook ignores agent sessions it didn't start and briefs in review", () => {
-  const h = harness({ issues: [issue(5, [LABELS.review])], state: { briefs: { 5: tracked(5) } } });
+  const h = harness({
+    issues: [issue(5, [LABELS.review])],
+    state: { briefs: { 5: tracked(5) } },
+  });
   const deps = { state: h.state, github: () => h.deps.github, log() {} };
-  onNotification({ session_id: 'someone-else', cwd: '/home/dan/project', notification_type: 'idle_prompt' }, deps);
-  onNotification({ session_id: 'session-5', notification_type: 'idle_prompt' }, deps);
+  onNotification(
+    {
+      session_id: 'someone-else',
+      cwd: '/home/dan/project',
+      notification_type: 'idle_prompt',
+    },
+    deps,
+  );
+  onNotification(
+    { session_id: 'session-5', notification_type: 'idle_prompt' },
+    deps,
+  );
   assert.equal(h.comments.length, 0);
   assert.deepEqual(h.issues.get(5)!.labels, [LABELS.review]);
 });

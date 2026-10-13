@@ -5,7 +5,13 @@ import { missingFields, slugify } from './brief.ts';
 import { isWorking, type AgentSessionInfo, type Claude } from './claude.ts';
 import { LABELS, type Config } from './config.ts';
 import type { Git } from './git.ts';
-import { moveTo, type GitHub, type Issue, type PullRequest, type Review } from './github.ts';
+import {
+  moveTo,
+  type GitHub,
+  type Issue,
+  type PullRequest,
+  type Review,
+} from './github.ts';
 import { resumePrompt, startPrompt } from './prompts.ts';
 import type { BriefState, State } from './state.ts';
 
@@ -45,7 +51,8 @@ export function tick(deps: Deps): void {
     const result = guard(deps, brief.issue, () => reap(deps, brief, running));
     if (result) tracked.push(result);
   }
-  let slots = deps.config.concurrency - tracked.filter((t) => t.occupiesSlot).length;
+  let slots =
+    deps.config.concurrency - tracked.filter((t) => t.occupiesSlot).length;
   for (const t of tracked) {
     if (slots <= 0) break;
     if (guard(deps, t.brief.issue, () => resume(deps, t))) slots--;
@@ -64,7 +71,10 @@ function guard<T>(deps: Deps, issue: number, step: () => T): T | undefined {
   }
 }
 
-function findSession(running: AgentSessionInfo[], brief: BriefState): AgentSessionInfo | undefined {
+function findSession(
+  running: AgentSessionInfo[],
+  brief: BriefState,
+): AgentSessionInfo | undefined {
   return brief.sessionId
     ? running.find((s) => s.sessionId === brief.sessionId)
     : running.find((s) => s.cwd === brief.worktree);
@@ -75,7 +85,11 @@ function findSession(running: AgentSessionInfo[], brief: BriefState): AgentSessi
  * sessions that exited without a pull request, and stops agent sessions whose
  * brief is in review. Returns undefined once the brief is no longer tracked.
  */
-function reap(deps: Deps, brief: BriefState, running: AgentSessionInfo[]): Tracked | undefined {
+function reap(
+  deps: Deps,
+  brief: BriefState,
+  running: AgentSessionInfo[],
+): Tracked | undefined {
   const { github, claude, state } = deps;
   const issue = github.issue(brief.issue);
   const pr = github.pullRequestForBranch(brief.branch);
@@ -88,7 +102,9 @@ function reap(deps: Deps, brief: BriefState, running: AgentSessionInfo[]): Track
     if (session) claude.stop(session.id);
     deps.git.removeWorktree(brief.worktree, brief.branch);
     delete state.briefs[brief.issue];
-    deps.log(`#${brief.issue}: ${pr ? `pull request #${pr.number} ${pr.state.toLowerCase()}` : 'issue closed'}, removed ${brief.worktree}`);
+    deps.log(
+      `#${brief.issue}: ${pr ? `pull request #${pr.number} ${pr.state.toLowerCase()}` : 'issue closed'}, removed ${brief.worktree}`,
+    );
     return undefined;
   }
 
@@ -96,11 +112,15 @@ function reap(deps: Deps, brief: BriefState, running: AgentSessionInfo[]): Track
   const launchedRecently = deps.now() - brief.launchedAt < LAUNCH_GRACE_MS;
 
   if (!session) {
-    if (launchedRecently) return { brief, issue, pr, session, occupiesSlot: true };
+    if (launchedRecently)
+      return { brief, issue, pr, session, occupiesSlot: true };
     if (has(LABELS.working) || has(LABELS.needsInput)) {
       if (pr) {
         moveTo(github, issue, LABELS.review, ALL_LABELS);
-        github.comment(issue.number, `The agent session exited while working, after opening #${pr.number}. Moved to \`${LABELS.review}\`.`);
+        github.comment(
+          issue.number,
+          `The agent session exited while working, after opening #${pr.number}. Moved to \`${LABELS.review}\`.`,
+        );
         deps.log(`#${brief.issue}: agent session exited, moved to review`);
       } else {
         const tail = claude.logTail(brief.sessionName, brief.sessionId);
@@ -109,7 +129,9 @@ function reap(deps: Deps, brief: BriefState, running: AgentSessionInfo[]): Track
           issue.number,
           `The agent session exited without opening a pull request. The worktree \`${brief.worktree}\` is kept until this issue is closed.\n\nEnd of the agent session's output:\n\n\`\`\`\`\n${tail}\n\`\`\`\``,
         );
-        deps.log(`#${brief.issue}: agent session exited without a pull request, marked failed`);
+        deps.log(
+          `#${brief.issue}: agent session exited without a pull request, marked failed`,
+        );
       }
     }
     return { brief, issue, pr, session, occupiesSlot: false };
@@ -117,8 +139,17 @@ function reap(deps: Deps, brief: BriefState, running: AgentSessionInfo[]): Track
 
   if (has(LABELS.review) && !isWorking(session)) {
     claude.stop(session.id);
-    deps.log(`#${brief.issue}: in review, stopped agent session ${brief.sessionName}`);
-    return { brief, issue, pr, session: undefined, occupiesSlot: false, stopped: true };
+    deps.log(
+      `#${brief.issue}: in review, stopped agent session ${brief.sessionName}`,
+    );
+    return {
+      brief,
+      issue,
+      pr,
+      session: undefined,
+      occupiesSlot: false,
+      stopped: true,
+    };
   }
   if (has(LABELS.needsInput) && isWorking(session)) {
     // Dan answered through Remote Control and the agent session is working again.
@@ -128,38 +159,71 @@ function reap(deps: Deps, brief: BriefState, running: AgentSessionInfo[]): Track
 }
 
 /** Reviews from Dan that haven't been handed to the agent session yet. */
-export function newReviews(reviews: Review[], author: string, handled: string[]): Review[] {
+export function newReviews(
+  reviews: Review[],
+  author: string,
+  handled: string[],
+): Review[] {
   // A pull request opened from Dan's account can't get a "changes requested"
   // review from Dan, since GitHub doesn't let authors request changes on their
   // own pull requests, so Dan's comment reviews count too.
   return reviews.filter(
-    (r) => r.author === author && !handled.includes(r.id) && (r.state === 'CHANGES_REQUESTED' || r.state === 'COMMENTED'),
+    (r) =>
+      r.author === author &&
+      !handled.includes(r.id) &&
+      (r.state === 'CHANGES_REQUESTED' || r.state === 'COMMENTED'),
   );
 }
 
 /** Resumes a stopped agent session when its pull request has new reviews. Returns whether it resumed. */
 function resume(deps: Deps, t: Tracked): boolean {
   const { brief, issue, pr, session } = t;
-  if (session || t.occupiesSlot || t.stopped || !pr || pr.state !== 'OPEN' || !issue.labels.includes(LABELS.review)) return false;
-  const reviews = newReviews(pr.reviews, deps.config.author, brief.handledReviewIds);
+  if (
+    session ||
+    t.occupiesSlot ||
+    t.stopped ||
+    !pr ||
+    pr.state !== 'OPEN' ||
+    !issue.labels.includes(LABELS.review)
+  )
+    return false;
+  const reviews = newReviews(
+    pr.reviews,
+    deps.config.author,
+    brief.handledReviewIds,
+  );
   if (reviews.length === 0) return false;
-  if (!brief.sessionId) throw new Error('has new reviews but no session id to resume');
+  if (!brief.sessionId)
+    throw new Error('has new reviews but no session id to resume');
   moveTo(deps.github, issue, LABELS.working, ALL_LABELS);
-  deps.claude.resume(brief.worktree, brief.sessionId, resumePrompt(brief, pr, reviews));
+  deps.claude.resume(
+    brief.worktree,
+    brief.sessionId,
+    resumePrompt(brief, pr, reviews),
+  );
   brief.handledReviewIds.push(...reviews.map((r) => r.id));
   brief.launchedAt = deps.now();
-  deps.log(`#${brief.issue}: resumed ${brief.sessionName} for ${reviews.length} review(s) on #${pr.number}`);
+  deps.log(
+    `#${brief.issue}: resumed ${brief.sessionName} for ${reviews.length} review(s) on #${pr.number}`,
+  );
   return true;
 }
 
 /** Starts agent sessions for queued briefs, up to `slots`. Returns how many it started. */
-function startQueued(deps: Deps, slots: number, running: AgentSessionInfo[]): number {
+function startQueued(
+  deps: Deps,
+  slots: number,
+  running: AgentSessionInfo[],
+): number {
   const { config, github } = deps;
   let started = 0;
   for (const issue of github.queuedIssues(LABELS.queued)) {
     if (issue.author !== config.author) {
       github.setLabels(issue.number, [], [LABELS.queued]);
-      github.comment(issue.number, `Only briefs written by @${config.author} are accepted, so this one won't be started.`);
+      github.comment(
+        issue.number,
+        `Only briefs written by @${config.author} are accepted, so this one won't be started.`,
+      );
       deps.log(`#${issue.number}: written by @${issue.author}, not accepted`);
       continue;
     }
@@ -176,7 +240,9 @@ function startQueued(deps: Deps, slots: number, running: AgentSessionInfo[]): nu
     if (started >= slots) break;
     const previous = deps.state.briefs[issue.number];
     if (previous && findSession(running, previous)) {
-      deps.log(`#${issue.number}: queued again while its agent session is running; waiting for it to exit`);
+      deps.log(
+        `#${issue.number}: queued again while its agent session is running; waiting for it to exit`,
+      );
       continue;
     }
     guard(deps, issue.number, () => {
@@ -184,7 +250,9 @@ function startQueued(deps: Deps, slots: number, running: AgentSessionInfo[]): nu
         // Queued again after failing: start over from a fresh worktree.
         deps.git.removeWorktree(previous.worktree, previous.branch);
         delete deps.state.briefs[issue.number];
-        deps.log(`#${issue.number}: queued again, removed the previous worktree ${previous.worktree}`);
+        deps.log(
+          `#${issue.number}: queued again, removed the previous worktree ${previous.worktree}`,
+        );
       }
       start(deps, issue);
     });
@@ -210,14 +278,24 @@ function start(deps: Deps, issue: Issue): void {
   try {
     deps.git.addWorktree(brief.worktree, brief.branch, config.baseBranch);
     deps.state.briefs[issue.number] = brief;
-    claude.start({ cwd: brief.worktree, name: brief.sessionName, settingsFile: deps.settingsFile, prompt: startPrompt(brief, issue, config.baseBranch) });
+    claude.start({
+      cwd: brief.worktree,
+      name: brief.sessionName,
+      settingsFile: deps.settingsFile,
+      prompt: startPrompt(brief, issue, config.baseBranch),
+    });
     brief.launchedAt = deps.now();
   } catch (error) {
     moveTo(github, issue, LABELS.failed, ALL_LABELS);
-    github.comment(issue.number, `Couldn't start an agent session for this brief:\n\n\`\`\`\n${(error as Error).message}\n\`\`\``);
+    github.comment(
+      issue.number,
+      `Couldn't start an agent session for this brief:\n\n\`\`\`\n${(error as Error).message}\n\`\`\``,
+    );
     throw error;
   }
-  deps.log(`#${issue.number}: started ${brief.sessionName} in ${brief.worktree}`);
+  deps.log(
+    `#${issue.number}: started ${brief.sessionName} in ${brief.worktree}`,
+  );
   brief.sessionId = waitForSessionId(deps, brief.worktree);
 }
 
@@ -228,6 +306,8 @@ function waitForSessionId(deps: Deps, worktree: string): string | undefined {
     if (session) return session.sessionId;
     deps.sleep(2000);
   }
-  deps.log(`${worktree}: agent session not listed yet; its id will be looked up next tick`);
+  deps.log(
+    `${worktree}: agent session not listed yet; its id will be looked up next tick`,
+  );
   return undefined;
 }

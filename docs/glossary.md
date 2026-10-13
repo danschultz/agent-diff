@@ -1,8 +1,8 @@
 # Glossary
 
 Terms agreed on for `agent-diff`, in alphabetical order. Use these terms as
-defined here in all docs. See [`.rules/glossary.md`](../.rules/glossary.md)
-for how to add, change, or remove terms.
+defined here in all docs. See [`.rules/glossary.md`](../.rules/glossary.md) for
+how to add, change, or remove terms.
 
 ### Actor
 
@@ -18,21 +18,21 @@ An AI coding agent that makes changes in one or more
 
 One running instance of an [agent](#agent), usually managed by a
 [harness](#harness). When an agent restarts, it runs in a new agent session.
-Always write "agent session" or "[review session](#review-session)", never
-just "session".
+Always write "agent session" or "[review session](#review-session)", never just
+"session".
 
 ### Agent tree
 
 A [main agent](#main-agent) and the [sub-agents](#sub-agent) it started, as
-reported by the agents or their [harness](#harness). It's never inferred
-from git. The agent tree is used to show who changed what and to filter the
+reported by the agents or their [harness](#harness). It's never inferred from
+git. The agent tree is used to show who changed what and to filter the
 [review UI](#review-ui) by agent. It doesn't define what a review session
 covers. See [0004](decisions/0004-agent-tree-is-an-input.md).
 
 ### Anchor
 
-The part of a [comment](#comment) that records exactly what it was written
-on: the file path, the diff side, the line range, and the
+The part of a [comment](#comment) that records exactly what it was written on:
+the file path, the diff side, the line range, and the
 [file version](#file-version). An anchor never changes. See
 [0008](decisions/0008-comment-reanchoring.md).
 
@@ -44,9 +44,9 @@ Where a [comment](#comment) is shown relative to the current code:
   with lines added or removed above it.
 - **Moved:** the commented lines changed or disappeared, but a strict content
   match found them elsewhere in the file.
-- **Outdated:** the commented lines changed and no confident match was
-  found. The comment is shown next to the replacement code, along with the
-  original code.
+- **Outdated:** the commented lines changed and no confident match was found.
+  The comment is shown next to the replacement code, along with the original
+  code.
 
 This is about where the comment sits, not whether its feedback has been
 addressed. See [0008](decisions/0008-comment-reanchoring.md).
@@ -58,8 +58,8 @@ changes are compared against.
 
 ### Claim
 
-An agent's lease on a [working directory](#working-directory) in a [review
-session](#review-session), taken so the agent can address that working
+An agent's lease on a [working directory](#working-directory) in a
+[review session](#review-session), taken so the agent can address that working
 directory's unaddressed [feedback](#feedback). A working directory has at most
 one active claim at a time. The agent renews the claim while working, and it
 expires if the agent stops renewing it. The agent can also release a claim, or
@@ -69,16 +69,16 @@ agents coordinate but don't stop other processes from editing files. See
 
 ### Comment
 
-A note the [reviewer](#reviewer) writes on a single line, a range of lines,
-or the [review](#review) as a whole (an overall comment). A comment is a
-[draft](#draft) until its review is submitted. Each line or range comment
-has an [anchor](#anchor) and an [anchor state](#anchor-state).
+A note the [reviewer](#reviewer) writes on a single line, a range of lines, or
+the [review](#review) as a whole (an overall comment). A comment is a
+[draft](#draft) until its review is submitted. Each line or range comment has an
+[anchor](#anchor) and an [anchor state](#anchor-state).
 
 ### Current directory
 
-The directory a process, such as an agent or the `agent-diff` CLI, is
-running in. The CLI finds the [working directory](#working-directory) that
-contains it. See [0013](decisions/0013-working-directories.md).
+The directory a process, such as an agent or the `agent-diff` CLI, is running
+in. The CLI finds the [working directory](#working-directory) that contains it.
+See [0013](decisions/0013-working-directories.md).
 
 ### Diff mode
 
@@ -100,27 +100,25 @@ A [comment](#comment) that hasn't been submitted yet as part of a
 
 ### Feedback
 
-The [comments](#comment) in submitted [reviews](#review), from the point of
-view of the agent addressing them.
+The [comments](#comment) in submitted [reviews](#review), from the point of view
+of the agent addressing them.
 
 ### File version
 
-The full contents of a file at the point a [comment](#comment) was written
-on it. Each file version is stored once and shared by every comment written
-on it. See [0008](decisions/0008-comment-reanchoring.md).
+The full contents of a file at the point a [comment](#comment) was written on
+it. Each file version is stored once and shared by every comment written on it.
+See [0008](decisions/0008-comment-reanchoring.md).
 
 ### File view
 
-The tree or list of files shown next to the diff in the
-[review UI](#review-ui). It's filtered by the [diff mode](#diff-mode) and
-shows each file's git status. For a working directory that doesn't use git,
-it lists all files.
+The tree or list of files shown next to the diff in the [review UI](#review-ui).
+It's filtered by the [diff mode](#diff-mode) and shows each file's git status.
+For a working directory that doesn't use git, it lists all files.
 
 ### Harness
 
 A tool that runs and manages [agent sessions](#agent-session), such as cmux,
-herdr, or otty.
-Harnesses can register agents.
+herdr, or otty. Harnesses can register agents.
 
 ### Main agent
 
@@ -134,32 +132,32 @@ An agent, or its [harness](#harness), reporting the agent to the
 
 ### Review
 
-A batch of [comments](#comment) the [reviewer](#reviewer) submits to a [review
-session](#review-session). A review can span several [working
-directories](#working-directory), and a review session can receive many reviews
-over time.
+A batch of [comments](#comment) the [reviewer](#reviewer) submits to a
+[review session](#review-session). A review can span several
+[working directories](#working-directory), and a review session can receive many
+reviews over time.
 
 ### Review server
 
-The local server that stores review state in SQLite, watches [working
-directories](#working-directory) for changes, serves the [review
-UI](#review-ui), and provides the API that the review UI and the `agent-diff`
-CLI call. See [0011](decisions/0011-api-core-with-cli-client.md).
+The local server that stores review state in SQLite, watches
+[working directories](#working-directory) for changes, serves the
+[review UI](#review-ui), and provides the API that the review UI and the
+`agent-diff` CLI call. See [0011](decisions/0011-api-core-with-cli-client.md).
 
 ### Review session
 
 A set of [working directories](#working-directory) under review. An
-[actor](#actor) starts a review session through an API call, working
-directories can be added after it starts,
-and [reviews](#review) are submitted to it. A review session ends through an
-API call from the reviewer in the review UI, an agent, or other automation.
-See [0009](decisions/0009-review-sessions-and-claims.md).
+[actor](#actor) starts a review session through an API call, working directories
+can be added after it starts, and [reviews](#review) are submitted to it. A
+review session ends through an API call from the reviewer in the review UI, an
+agent, or other automation. See
+[0009](decisions/0009-review-sessions-and-claims.md).
 
 ### Review UI
 
 The local web app where the [reviewer](#reviewer) views a
-[review session](#review-session)'s diffs and writes
-[comments](#comment). See [0001](decisions/0001-local-web-app.md).
+[review session](#review-session)'s diffs and writes [comments](#comment). See
+[0001](decisions/0001-local-web-app.md).
 
 ### Reviewer
 
@@ -182,11 +180,11 @@ The state of a [working directory](#working-directory) recorded at a
 ### Working directory
 
 A directory on disk that agents make changes in and that
-[review sessions](#review-session) cover. It may be a git repo, a git
-worktree, or a directory inside a repo, or it may not use git at all. The
-diff and the [file view](#file-view) only include files under it, even when
-git runs against the whole repo. In a git working directory, the branch is
-whatever `HEAD` points to, and isn't part of the working directory. A
-working directory that doesn't use git has no diffs. Not to be confused with
-a process's [current directory](#current-directory). See
+[review sessions](#review-session) cover. It may be a git repo, a git worktree,
+or a directory inside a repo, or it may not use git at all. The diff and the
+[file view](#file-view) only include files under it, even when git runs against
+the whole repo. In a git working directory, the branch is whatever `HEAD` points
+to, and isn't part of the working directory. A working directory that doesn't
+use git has no diffs. Not to be confused with a process's
+[current directory](#current-directory). See
 [0013](decisions/0013-working-directories.md).

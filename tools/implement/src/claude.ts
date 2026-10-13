@@ -44,9 +44,21 @@ export interface Claude {
 
 /** Environment variables passed through to `claude`. Everything else is dropped. */
 const KEEP_ENV = [
-  'HOME', 'USER', 'LOGNAME', 'SHELL', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TZ',
-  'XDG_RUNTIME_DIR', 'XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'XDG_STATE_HOME', 'XDG_CACHE_HOME',
-  'SSH_AUTH_SOCK', 'DBUS_SESSION_BUS_ADDRESS',
+  'HOME',
+  'USER',
+  'LOGNAME',
+  'SHELL',
+  'LANG',
+  'LC_ALL',
+  'LC_CTYPE',
+  'TZ',
+  'XDG_RUNTIME_DIR',
+  'XDG_CONFIG_HOME',
+  'XDG_DATA_HOME',
+  'XDG_STATE_HOME',
+  'XDG_CACHE_HOME',
+  'SSH_AUTH_SOCK',
+  'DBUS_SESSION_BUS_ADDRESS',
 ];
 
 /**
@@ -54,13 +66,22 @@ const KEEP_ENV = [
  * (another Claude Code session, cmux, a shell profile) don't leak into the
  * agent session. Node, Claude Code, and gh stay on the PATH.
  */
-export function cleanEnv(source: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+export function cleanEnv(
+  source: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
-  for (const key of KEEP_ENV) if (source[key] !== undefined) env[key] = source[key];
+  for (const key of KEEP_ENV)
+    if (source[key] !== undefined) env[key] = source[key];
   const home = source.HOME ?? os.homedir();
   env.HOME = home;
   env.TERM = 'xterm-256color';
-  env.PATH = [path.dirname(process.execPath), path.join(home, '.local', 'bin'), '/usr/local/bin', '/usr/bin', '/bin'].join(':');
+  env.PATH = [
+    path.dirname(process.execPath),
+    path.join(home, '.local', 'bin'),
+    '/usr/local/bin',
+    '/usr/bin',
+    '/bin',
+  ].join(':');
   return { ...env, ...githubOverHttps() };
 }
 
@@ -73,19 +94,49 @@ export function cleanEnv(source: NodeJS.ProcessEnv = process.env): NodeJS.Proces
  * tick exits. In its own scope, the daemon outlives the tick, and the scope
  * goes away when the daemon exits.
  */
-export function inOwnScope(claudeBin: string, args: string[]): [string, string[]] {
+export function inOwnScope(
+  claudeBin: string,
+  args: string[],
+): [string, string[]] {
   const unit = `implement-claude-${randomUUID().slice(0, 8)}`;
-  return ['systemd-run', ['--user', '--scope', '--quiet', '--collect', `--unit=${unit}`, '--', claudeBin, ...args]];
+  return [
+    'systemd-run',
+    [
+      '--user',
+      '--scope',
+      '--quiet',
+      '--collect',
+      `--unit=${unit}`,
+      '--',
+      claudeBin,
+      ...args,
+    ],
+  ];
 }
 
 export function cliClaude(claudeBin: string): Claude {
-  const claude = (args: string[], cwd?: string) => run(claudeBin, args, { cwd, env: cleanEnv() });
-  const claudeBg = (args: string[], cwd: string) => run(...inOwnScope(claudeBin, ['--bg', ...args]), { cwd, env: cleanEnv() });
+  const claude = (args: string[], cwd?: string) =>
+    run(claudeBin, args, { cwd, env: cleanEnv() });
+  const claudeBg = (args: string[], cwd: string) =>
+    run(...inOwnScope(claudeBin, ['--bg', ...args]), { cwd, env: cleanEnv() });
   return {
     start({ cwd, name, settingsFile, prompt }) {
       // --remote-control takes an optional name, so it's always given one;
       // otherwise the prompt would be read as the name.
-      claudeBg(['--remote-control', name, '--name', name, '--permission-mode', 'auto', '--settings', settingsFile, prompt], cwd);
+      claudeBg(
+        [
+          '--remote-control',
+          name,
+          '--name',
+          name,
+          '--permission-mode',
+          'auto',
+          '--settings',
+          settingsFile,
+          prompt,
+        ],
+        cwd,
+      );
     },
     resume(cwd, sessionId, prompt) {
       // No other options: the agent session keeps the ones it was started
@@ -93,7 +144,9 @@ export function cliClaude(claudeBin: string): Claude {
       claudeBg(['--resume', sessionId, prompt], cwd);
     },
     running() {
-      const sessions = JSON.parse(claude(['agents', '--json'])) as AgentSessionInfo[];
+      const sessions = JSON.parse(
+        claude(['agents', '--json']),
+      ) as AgentSessionInfo[];
       return sessions.map((s) => ({ ...s, cwd: s.cwd && path.resolve(s.cwd) }));
     },
     stop(id) {
@@ -128,7 +181,9 @@ export function transcriptPath(sessionId: string): string | undefined {
 
 /** The text of the last assistant message in a transcript. */
 export function lastAssistantText(sessionIdOrPath: string): string | undefined {
-  const file = sessionIdOrPath.endsWith('.jsonl') ? sessionIdOrPath : transcriptPath(sessionIdOrPath);
+  const file = sessionIdOrPath.endsWith('.jsonl')
+    ? sessionIdOrPath
+    : transcriptPath(sessionIdOrPath);
   if (!file || !existsSync(file)) return undefined;
   const lines = readFileSync(file, 'utf8').trimEnd().split('\n');
   for (let i = lines.length - 1; i >= 0; i--) {
@@ -140,11 +195,15 @@ export function lastAssistantText(sessionIdOrPath: string): string | undefined {
     }
     if (entry.type !== 'assistant') continue;
     const content = entry.message?.content;
-    const text = typeof content === 'string'
-      ? content
-      : Array.isArray(content)
-        ? content.filter((c) => c?.type === 'text').map((c) => c.text as string).join('\n')
-        : '';
+    const text =
+      typeof content === 'string'
+        ? content
+        : Array.isArray(content)
+          ? content
+              .filter((c) => c?.type === 'text')
+              .map((c) => c.text as string)
+              .join('\n')
+          : '';
     if (text.trim()) return text.trim();
   }
   return undefined;

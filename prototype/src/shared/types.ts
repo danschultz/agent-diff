@@ -2,17 +2,38 @@
 
 import type { AnchorState, LineRange, ReanchorOptions } from './reanchor.ts';
 
-export type DiffMode = 'all' | 'committed' | 'staged' | 'unstaged' | 'last-turn';
+export type DiffMode =
+  'all' | 'committed' | 'staged' | 'unstaged' | 'last-turn';
 
-export const DIFF_MODES: { mode: DiffMode; label: string; compares: string }[] = [
-  { mode: 'all', label: 'All changes', compares: 'Base ref to the working tree' },
-  { mode: 'committed', label: 'Committed', compares: 'Base ref to HEAD' },
-  { mode: 'staged', label: 'Staged', compares: 'HEAD to the index' },
-  { mode: 'unstaged', label: 'Unstaged', compares: 'The index to the working tree' },
-  { mode: 'last-turn', label: 'Last turn', compares: 'A turn snapshot to the working tree' },
-];
+export const DIFF_MODES: { mode: DiffMode; label: string; compares: string }[] =
+  [
+    {
+      mode: 'all',
+      label: 'All changes',
+      compares: 'Base ref to the working tree',
+    },
+    { mode: 'committed', label: 'Committed', compares: 'Base ref to HEAD' },
+    { mode: 'staged', label: 'Staged', compares: 'HEAD to the index' },
+    {
+      mode: 'unstaged',
+      label: 'Unstaged',
+      compares: 'The index to the working tree',
+    },
+    {
+      mode: 'last-turn',
+      label: 'Last turn',
+      compares: 'A turn snapshot to the working tree',
+    },
+  ];
 
-export type FileStatus = 'added' | 'modified' | 'deleted' | 'renamed' | 'copied' | 'type-changed' | 'untracked';
+export type FileStatus =
+  | 'added'
+  | 'modified'
+  | 'deleted'
+  | 'renamed'
+  | 'copied'
+  | 'type-changed'
+  | 'untracked';
 
 export type Side = 'old' | 'new';
 
@@ -120,7 +141,8 @@ export interface AgentInfo {
   workspaceIds: string[];
 }
 
-export type NotificationStatus = 'held' | 'sent' | 'failed' | 'pull' | 'manual' | 'fetched';
+export type NotificationStatus =
+  'held' | 'sent' | 'failed' | 'pull' | 'manual' | 'fetched';
 
 export interface NotificationInfo {
   id: string;
@@ -194,7 +216,13 @@ export interface FeedbackComment {
   path: string | null;
   side: Side | null;
   original: { startLine: number; endLine: number; code: string[] } | null;
-  current: { state: AnchorState; startLine: number | null; endLine: number | null; code: string[]; reason: string } | null;
+  current: {
+    state: AnchorState;
+    startLine: number | null;
+    endLine: number | null;
+    code: string[];
+    reason: string;
+  } | null;
   body: string;
 }
 

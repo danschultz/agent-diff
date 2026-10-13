@@ -15,7 +15,9 @@ export function Composer({ label, body, onChange, onSave, onCancel }: Props) {
   const input = useRef<HTMLTextAreaElement>(null);
   // Monaco and CodeMirror attach the composer's element after React mounts it, so autoFocus would miss.
   useEffect(() => {
-    const id = requestAnimationFrame(() => input.current?.focus({ preventScroll: true }));
+    const id = requestAnimationFrame(() =>
+      input.current?.focus({ preventScroll: true }),
+    );
     return () => cancelAnimationFrame(id);
   }, []);
   const save = async () => {
@@ -45,7 +47,11 @@ export function Composer({ label, body, onChange, onSave, onCancel }: Props) {
       />
       {error && <div className="error">{error}</div>}
       <div className="row-actions">
-        <button className="primary" disabled={busy || !body.trim()} onClick={() => void save()}>
+        <button
+          className="primary"
+          disabled={busy || !body.trim()}
+          onClick={() => void save()}
+        >
           Save draft
         </button>
         <button onClick={onCancel}>Cancel</button>

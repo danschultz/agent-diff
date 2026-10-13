@@ -16,7 +16,11 @@
   --outdated: #f0883e;
   --overall: #a371f7;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font: 13px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font:
+    13px/1.45 -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
   background: var(--bg);
   color: var(--text);
 }
@@ -521,7 +525,11 @@ code {
 }
 
 .file-placeholder {
-  background: repeating-linear-gradient(to bottom, transparent 0 17px, rgba(255, 255, 255, 0.025) 17px 18px);
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 17px,
+    rgba(255, 255, 255, 0.025) 17px 18px
+  );
 }
 
 .viewed-toggle {
@@ -670,7 +678,10 @@ body.line-dragging .add-line {
 }
 
 .basic-viewer td.code.selected {
-  background-image: linear-gradient(rgba(106, 167, 255, 0.16), rgba(106, 167, 255, 0.16));
+  background-image: linear-gradient(
+    rgba(106, 167, 255, 0.16),
+    rgba(106, 167, 255, 0.16)
+  );
 }
 
 .basic-viewer .sign {
@@ -935,7 +946,10 @@ body.line-dragging .cm-viewer .cm-lineNumbers .cm-gutterElement::before {
 }
 
 .cm-viewer .cm-picked-line {
-  background-image: linear-gradient(rgba(106, 167, 255, 0.18), rgba(106, 167, 255, 0.18));
+  background-image: linear-gradient(
+    rgba(106, 167, 255, 0.18),
+    rgba(106, 167, 255, 0.18)
+  );
 }
 
 .cm-composer {

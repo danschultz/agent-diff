@@ -11,16 +11,23 @@ const unreadInput = 'x'.repeat(4 * 1024 * 1024);
 
 describe('runGit', () => {
   it('resolves when git exits without reading its stdin', async () => {
-    const result = await runGit(prototypeDir, ['--version'], { input: unreadInput });
+    const result = await runGit(prototypeDir, ['--version'], {
+      input: unreadInput,
+    });
     assert.equal(result.code, 0);
     assert.match(result.stdout.toString('utf8'), /^git version /);
   });
 
   it('rejects with the exit code when git fails without reading its stdin', async () => {
-    await assert.rejects(runGit(prototypeDir, ['rev-parse', '--verify', 'no-such-ref'], { input: unreadInput }), (error) => {
-      assert.ok(error instanceof GitError);
-      assert.equal(error.code, 128);
-      return true;
-    });
+    await assert.rejects(
+      runGit(prototypeDir, ['rev-parse', '--verify', 'no-such-ref'], {
+        input: unreadInput,
+      }),
+      (error) => {
+        assert.ok(error instanceof GitError);
+        assert.equal(error.code, 128);
+        return true;
+      },
+    );
   });
 });

@@ -13,10 +13,15 @@ export function writeSettingsFile(stateDir: string): string {
   const command = `IMPLEMENT_STATE_DIR=${shellQuote(stateDir)} ${shellQuote(process.execPath)} ${shellQuote(mainScript)}`;
   const file = path.join(stateDir, 'settings.json');
   mkdirSync(stateDir, { recursive: true });
-  writeFileSync(file, template.replaceAll('{{implement}}', JSON.stringify(command).slice(1, -1)));
+  writeFileSync(
+    file,
+    template.replaceAll('{{implement}}', JSON.stringify(command).slice(1, -1)),
+  );
   return file;
 }
 
 function shellQuote(value: string): string {
-  return /^[\w@%+=:,./-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`;
+  return /^[\w@%+=:,./-]+$/.test(value)
+    ? value
+    : `'${value.replaceAll("'", "'\\''")}'`;
 }

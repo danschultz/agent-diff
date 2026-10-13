@@ -2,7 +2,14 @@
 // unstaged, untracked, renamed, deleted, binary, ignored, and one large file.
 // Usage: npm run demo-repo [-- --large-lines 6000] [--force]
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, renameSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  renameSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { dataDir } from '../src/shared/paths.ts';
@@ -33,7 +40,8 @@ const env = {
   GIT_COMMITTER_NAME: 'Demo',
   GIT_COMMITTER_EMAIL: 'demo@example.com',
 };
-const git = (...args: string[]) => execFileSync('git', args, { cwd: dir, encoding: 'utf8', env });
+const git = (...args: string[]) =>
+  execFileSync('git', args, { cwd: dir, encoding: 'utf8', env });
 const write = (file: string, content: string | Buffer) => {
   mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
   writeFileSync(path.join(dir, file), content);
@@ -124,11 +132,19 @@ export function applyDiscount(total: number, percent: number): number {
 }
 `,
 );
-write('src/helpers.ts', `export function formatMoney(cents: number): string {\n  return '$' + (cents / 100).toFixed(2);\n}\n`);
+write(
+  'src/helpers.ts',
+  `export function formatMoney(cents: number): string {\n  return '$' + (cents / 100).toFixed(2);\n}\n`,
+);
 write('src/generated/catalog.ts', largeFile(Number(values['large-lines']), 0));
 write('jvm/build.sbt', scalaBuild(false));
 write('jvm/src/main/scala/orders/OrderTotals.scala', scalaSource(false));
-write('assets/logo.png', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 1, 2, 3]));
+write(
+  'assets/logo.png',
+  Buffer.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 1, 2, 3,
+  ]),
+);
 git('add', '-A');
 git('commit', '-q', '-m', 'Initial order service');
 
@@ -189,7 +205,12 @@ write('src/generated/catalog.ts', largeFile(Number(values['large-lines']), 1));
 write('jvm/build.sbt', scalaBuild(true));
 write('jvm/src/main/scala/orders/OrderTotals.scala', scalaSource(true));
 git('add', '-A');
-git('commit', '-q', '-m', 'Validate order items and soft-delete cancelled orders');
+git(
+  'commit',
+  '-q',
+  '-m',
+  'Validate order items and soft-delete cancelled orders',
+);
 
 // --- uncommitted work ---------------------------------------------------
 
@@ -230,7 +251,12 @@ validateItems([{ sku: 'A', quantity: 1, price: 100 }]);
 `,
 );
 write('debug.log', 'ignored by .gitignore\n');
-write('assets/logo.png', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 4, 5, 6, 7]));
+write(
+  'assets/logo.png',
+  Buffer.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 4, 5, 6, 7,
+  ]),
+);
 
 console.log(`Demo repo ready at ${dir}
 
@@ -303,11 +329,16 @@ object OrderTotals {
 
 /** A long generated file where every 40th entry differs between variants. */
 function largeFile(lines: number, variant: number): string {
-  const out = ['// Generated catalog. Do not edit by hand.', 'export const catalog = ['];
+  const out = [
+    '// Generated catalog. Do not edit by hand.',
+    'export const catalog = [',
+  ];
   for (let i = 0; out.length < lines - 1; i++) {
     const price = variant && i % 40 === 7 ? 100 + i * 3 : 100 + i * 2;
     const name = variant && i % 97 === 11 ? `Item ${i} (renamed)` : `Item ${i}`;
-    out.push(`  { sku: 'SKU-${String(i).padStart(5, '0')}', name: '${name}', price: ${price} },`);
+    out.push(
+      `  { sku: 'SKU-${String(i).padStart(5, '0')}', name: '${name}', price: ${price} },`,
+    );
   }
   out.push('];');
   return out.join('\n') + '\n';
