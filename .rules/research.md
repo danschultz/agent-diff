@@ -13,7 +13,10 @@ research it builds on.
 
 1. Create `docs/research/NNNN-short-title.md`, where `NNNN` is the next number
    in sequence, zero-padded to four digits. Research has its own sequence,
-   separate from decisions.
+   separate from decisions. `npm run check` fails when two research docs have
+   the same number. When the number is already taken on `main`, such as after a
+   rebase, move the newer research doc to the next free number, and update the
+   links to it and its row in `docs/research/README.md`.
 2. Use the template below. Every section is required. Write "None" in a section
    that has nothing to say.
 3. Add a row to the table in `docs/research/README.md` with a link and a

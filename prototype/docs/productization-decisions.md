@@ -67,7 +67,7 @@ goes into polishing features a built-in tool already has.
 
 - **Harness-agnostic reviewer for agent fleets (the current design).**
   Differentiators: [review sessions](../../docs/glossary.md#review-session)
-  spanning many [workspaces](../../docs/glossary.md#workspace) and repos
+  spanning many [workspaces](../../docs/glossary.md#working-directory) and repos
   ([0009](../../docs/decisions/0009-review-sessions-and-claims.md)), review
   state that survives restarts
   ([0006](../../docs/decisions/0006-sqlite-review-state.md)), comments that
@@ -402,7 +402,8 @@ most one active claim" is per review session or overall at the same time.
 refs.
 
 **Record.** New decision record, plus the glossary change for
-[workspace](../../docs/glossary.md#workspace) from the README to-do list.
+[workspace](../../docs/glossary.md#working-directory) from the README to-do
+list.
 
 ### 3.4 Git access strategy
 
@@ -551,10 +552,10 @@ depend on it, changing it is a breaking change.
   JSON with `--json` (`FeedbackResponse` in `types.ts`).
 - Fetching feedback marks it as fetched for the workspace as a side effect, so
   the first caller consumes it, whichever agent that is.
-- The [notification](../../docs/glossary.md#notification) text names an absolute
-  CLI path and the workspace root (`notificationMessage` in `service.ts`), and
-  `SessionStart` injects a paragraph telling the model what to do. That text is
-  effectively an API with the model.
+- The notification text names an absolute CLI path and the workspace root
+  (`notificationMessage` in `service.ts`), and `SessionStart` injects a
+  paragraph telling the model what to do. That text is effectively an API with
+  the model.
 - [Registration](../../docs/glossary.md#registration) uses a string notify
   method (`cmux:<surface>`, `tmux:<target>`, `command:<shell>`, `hook`, `none`).
 

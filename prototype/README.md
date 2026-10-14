@@ -8,8 +8,7 @@ It checks five things:
 
 1. **The agent feedback loop**
    ([0005](../docs/decisions/0005-notify-then-pull-feedback.md)): a submitted
-   [review](../docs/glossary.md#review) sends a one-line
-   [notification](../docs/glossary.md#notification) to the
+   [review](../docs/glossary.md#review) sends a one-line notification to the
    [agent session](../docs/glossary.md#agent-session), and the agent pulls the
    [feedback](../docs/glossary.md#feedback) with the CLI.
 2. **Comment re-anchoring**
@@ -70,7 +69,7 @@ Delete it to start over.
 What's verified:
 
 - Submitting a review creates one notification per registered agent session on
-  each [workspace](../docs/glossary.md#workspace) in the review.
+  each [workspace](../docs/glossary.md#working-directory) in the review.
 - A notification is only the one-line message. The agent runs
   `agent-diff feedback --workspace <path>` to get the comments, with their
   current line numbers and the code they were written on.

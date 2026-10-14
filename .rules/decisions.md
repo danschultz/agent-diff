@@ -6,7 +6,10 @@ answering an open question in `README.md`.
 ## Steps
 
 1. Create `docs/decisions/NNNN-short-title.md`, where `NNNN` is the next number
-   in sequence, zero-padded to four digits.
+   in sequence, zero-padded to four digits. `npm run check` fails when two
+   decisions have the same number. When the number is already taken on `main`,
+   such as after a rebase, move the newer decision to the next free number, and
+   update the links to it and its row in `docs/decisions/README.md`.
 2. Use the template below. Every section is required.
 3. Add a row to the table in `docs/decisions/README.md` with a link, the status,
    and a one-sentence summary.
