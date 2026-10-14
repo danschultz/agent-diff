@@ -1,8 +1,0 @@
-{
-  "name": "agent-diff-stricli",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "@stricli/core": "1.3.0"
-  }
-}

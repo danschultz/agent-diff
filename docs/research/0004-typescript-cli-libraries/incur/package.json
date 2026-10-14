@@ -1,8 +1,0 @@
-{
-  "name": "agent-diff-incur",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "incur": "0.7.0"
-  }
-}

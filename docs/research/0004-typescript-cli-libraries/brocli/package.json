@@ -1,8 +1,0 @@
-{
-  "name": "agent-diff-brocli",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "@drizzle-team/brocli": "0.12.1"
-  }
-}

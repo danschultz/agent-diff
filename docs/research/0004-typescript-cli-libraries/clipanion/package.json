@@ -1,9 +1,0 @@
-{
-  "name": "agent-diff-clipanion",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "clipanion": "4.0.0-rc.4",
-    "typanion": "3.14.0"
-  }
-}

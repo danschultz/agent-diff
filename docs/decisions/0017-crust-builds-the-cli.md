@@ -24,7 +24,7 @@ wrote the same example CLI with 17 of them.
 The CLI is built with [Crust](https://crustjs.com): `@crustjs/core` for
 commands, arguments, and flags, and `@crustjs/extensions` for help and "did you
 mean" suggestions. From
-[0004's example](../research/0004-typescript-cli-libraries/crust/cli.ts):
+[0004's example](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/crust/cli.ts):
 
 ```ts
 const hookClaudeCommand = defineCommand(

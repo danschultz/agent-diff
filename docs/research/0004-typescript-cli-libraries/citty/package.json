@@ -1,8 +1,0 @@
-{
-  "name": "agent-diff-citty",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "citty": "0.2.2"
-  }
-}

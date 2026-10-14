@@ -1,8 +1,0 @@
-{
-  "name": "agent-diff-clerc",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "clerc": "1.3.1"
-  }
-}

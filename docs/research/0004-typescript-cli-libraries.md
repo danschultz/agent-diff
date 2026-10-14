@@ -49,23 +49,27 @@ agent-diff review [--json]
 agent-diff hook claude <SessionStart|UserPromptSubmit|Stop>
 ```
 
-The examples are in
-[`0004-typescript-cli-libraries/`](0004-typescript-cli-libraries/), one
+The examples were in `docs/research/0004-typescript-cli-libraries/`, one
 directory per library, each with a `package.json` pinning the version checked.
 Every example calls the same stubs in
-[`shared.ts`](0004-typescript-cli-libraries/shared.ts), which print the parsed
-values as JSON, so only the parsing and help code differs. The event argument
-for `hook claude` is checked against the allowed values, by the library where it
-can, by hand where it can't.
+[`shared.ts`](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/shared.ts),
+which print the parsed values as JSON, so only the parsing and help code
+differs. The event argument for `hook claude` is checked against the allowed
+values, by the library where it can, by hand where it can't.
+
+The examples were removed from the repo after this research. Links to them point
+to commit
+[`15df1d4`](https://github.com/danschultz/agent-diff/tree/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b),
+where they can still be read and run.
 
 - **Machine:** Intel Atom C3858 (12 cores, 2.0 GHz), 8 GB RAM, Debian 13.7,
   Linux 6.12. Node 24.21.0 and npm 11.19.0. The repo pins Node 24.20.0, which
   wasn't installed.
 - **Running:** each example ran directly with `node cli.ts`, using Node's type
   stripping and no build step. Output was captured with
-  [`capture.sh`](0004-typescript-cli-libraries/capture.sh), which sends stdout
-  and stderr to files, so neither is a TTY. The environment had
-  `TERM=xterm-256color` and `COLORTERM=truecolor`, with `NO_COLOR`,
+  [`capture.sh`](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/capture.sh),
+  which sends stdout and stderr to files, so neither is a TTY. The environment
+  had `TERM=xterm-256color` and `COLORTERM=truecolor`, with `NO_COLOR`,
   `FORCE_COLOR`, and `CI` unset. Commands below are shown as `agent-diff …`;
   they ran as `node cli.ts …` in the example's directory.
 - **Type-checking:** in a scratch directory outside the repo, each example was
@@ -78,8 +82,9 @@ can, by hand where it can't.
 - **`any` probe:** `shared.ts` was temporarily changed so that a call fails to
   compile when any value passed to it is typed `any`. This finds parsed values
   that only type-check because the library returns `any`.
-- **Startup:** [`bench.mjs`](0004-typescript-cli-libraries/bench.mjs) runs
-  `node cli.ts start --help` 5 times to warm up, then 40 times per example,
+- **Startup:**
+  [`bench.mjs`](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/bench.mjs)
+  runs `node cli.ts start --help` 5 times to warm up, then 40 times per example,
   interleaved across examples, with output sent to `/dev/null`, and reports the
   median wall-clock time. An empty `cli.ts` measures Node's own startup. A
   second pass of 20 runs enabled Node's on-disk compile cache
@@ -377,10 +382,10 @@ the blocks, not of the writes. Long output is cut where noted.
 
 #### `node:util` `parseArgs` (baseline)
 
-[Source](0004-typescript-cli-libraries/parseargs/cli.ts). 64 lines (59
-non-blank). `start --help` started in 238 ms. Hand-written usage string and
-dispatch, with the event checked by hand. Exit code 2 for usage errors is the
-example's choice.
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/parseargs/cli.ts).
+64 lines (59 non-blank). `start --help` started in 238 ms. Hand-written usage
+string and dispatch, with the event checked by hand. Exit code 2 for usage
+errors is the example's choice.
 
 <details>
 <summary>Output</summary>
@@ -454,9 +459,9 @@ agent-diff: Unknown command "strat". Run `agent-diff --help`.
 
 #### Commander with extra-typings
 
-[Source](0004-typescript-cli-libraries/commander/cli.ts). 32 lines (26
-non-blank). `start --help` started in 303 ms, against 238 ms for `parseArgs` in
-the same run. Default settings.
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/commander/cli.ts).
+32 lines (26 non-blank). `start --help` started in 303 ms, against 238 ms for
+`parseArgs` in the same run. Default settings.
 
 <details>
 <summary>Output</summary>
@@ -526,9 +531,10 @@ error: unknown command 'strat'
 
 #### yargs
 
-[Source](0004-typescript-cli-libraries/yargs/cli.ts). 46 lines (44 non-blank).
-`start --help` started in 515 ms, against 238 ms for `parseArgs` in the same
-run. Uses `.strict()`, `.demandCommand(1)`, and `.recommendCommands()`.
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/yargs/cli.ts).
+46 lines (44 non-blank). `start --help` started in 515 ms, against 238 ms for
+`parseArgs` in the same run. Uses `.strict()`, `.demandCommand(1)`, and
+`.recommendCommands()`.
 
 <details>
 <summary>Output</summary>
@@ -643,12 +649,13 @@ Did you mean start?
 
 44 lines (39 non-blank). `start --help` started in 621 ms, against 238 ms for
 `parseArgs` in the same run. Two files,
-[`cli.ts`](0004-typescript-cli-libraries/oclif/cli.ts) and
-[`commands.ts`](0004-typescript-cli-libraries/oclif/commands.ts), plus the
-`oclif` block in
-[`package.json`](0004-typescript-cli-libraries/oclif/package.json). `start` sets
-`strict = false` to allow several paths. The version line shows the example's
-package name.
+[`cli.ts`](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/oclif/cli.ts)
+and
+[`commands.ts`](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/oclif/commands.ts),
+plus the `oclif` block in
+[`package.json`](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/oclif/package.json).
+`start` sets `strict = false` to allow several paths. The version line shows the
+example's package name.
 
 <details>
 <summary>Output</summary>
@@ -732,9 +739,9 @@ $ agent-diff strat
 
 #### Clipanion
 
-[Source](0004-typescript-cli-libraries/clipanion/cli.ts). 47 lines (42
-non-blank). `start --help` started in 322 ms, against 238 ms for `parseArgs` in
-the same run. Registers `Builtins.HelpCommand` and
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/clipanion/cli.ts).
+47 lines (42 non-blank). `start --help` started in 322 ms, against 238 ms for
+`parseArgs` in the same run. Registers `Builtins.HelpCommand` and
 `Builtins.DefinitionsCommand`.
 
 <details>
@@ -888,10 +895,10 @@ $ agent-diff --clipanion=definitions
 
 #### citty
 
-[Source](0004-typescript-cli-libraries/citty/cli.ts). 47 lines (42 non-blank).
-`start --help` started in 245 ms, against 238 ms for `parseArgs` in the same
-run. The event is checked by hand, so its error is the example's own, thrown
-from `run`.
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/citty/cli.ts).
+47 lines (42 non-blank). `start --help` started in 245 ms, against 238 ms for
+`parseArgs` in the same run. The event is checked by hand, so its error is the
+example's own, thrown from `run`.
 
 <details>
 <summary>Output</summary>
@@ -977,10 +984,11 @@ Unknown command strat
 
 #### gunshi
 
-[Source](0004-typescript-cli-libraries/gunshi/cli.ts). 61 lines (54 non-blank).
-`start --help` started in 290 ms, against 238 ms for `parseArgs` in the same
-run. Sets `strict: true` and `renderHeader: null`, and catches the promise
-`cli()` rejects with after printing a usage error. The event is checked by hand.
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/gunshi/cli.ts).
+61 lines (54 non-blank). `start --help` started in 290 ms, against 238 ms for
+`parseArgs` in the same run. Sets `strict: true` and `renderHeader: null`, and
+catches the promise `cli()` rejects with after printing a usage error. The event
+is checked by hand.
 
 <details>
 <summary>Output</summary>
@@ -1054,9 +1062,9 @@ Command not found: strat
 
 #### cmd-ts
 
-[Source](0004-typescript-cli-libraries/cmdts/cli.ts). 40 lines (35 non-blank).
-`start --help` started in 334 ms, against 238 ms for `parseArgs` in the same
-run. Default settings.
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/cmdts/cli.ts).
+40 lines (35 non-blank). `start --help` started in 334 ms, against 238 ms for
+`parseArgs` in the same run. Default settings.
 
 <details>
 <summary>Output</summary>
@@ -1139,11 +1147,11 @@ hint: for more information, try 'agent-diff --help'
 
 #### Stricli
 
-[Source](0004-typescript-cli-libraries/stricli/cli.ts). 48 lines (41 non-blank).
-`start --help` started in 253 ms, against 238 ms for `parseArgs` in the same
-run. Default settings.
-[`dump.ts`](0004-typescript-cli-libraries/stricli/dump.ts) prints
-`generateHelpTextForAllCommands()`.
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/stricli/cli.ts).
+48 lines (41 non-blank). `start --help` started in 253 ms, against 238 ms for
+`parseArgs` in the same run. Default settings.
+[`dump.ts`](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/stricli/dump.ts)
+prints `generateHelpTextForAllCommands()`.
 
 <details>
 <summary>Output</summary>
@@ -1282,9 +1290,9 @@ ARGUMENTS
 
 #### Effect (`effect/cli`)
 
-[Source](0004-typescript-cli-libraries/effect/cli.ts). 45 lines (39 non-blank).
-`start --help` started in 2752 ms, against 238 ms for `parseArgs` in the same
-run. Uses `@effect/platform-node` for the runtime.
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/effect/cli.ts).
+45 lines (39 non-blank). `start --help` started in 2752 ms, against 238 ms for
+`parseArgs` in the same run. Uses `@effect/platform-node` for the runtime.
 
 <details>
 <summary>Output</summary>
@@ -1470,10 +1478,10 @@ if ! type _init_completion &>/dev/null; then
 
 #### Optique
 
-[Source](0004-typescript-cli-libraries/optique/cli.ts). 57 lines (51 non-blank).
-`start --help` started in 555 ms, against 238 ms for `parseArgs` in the same
-run. Turns on the `help` command and option, the `completion` command, and
-`showChoices`.
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/optique/cli.ts).
+57 lines (51 non-blank). `start --help` started in 555 ms, against 238 ms for
+`parseArgs` in the same run. Turns on the `help` command and option, the
+`completion` command, and `showChoices`.
 
 <details>
 <summary>Output</summary>
@@ -1605,11 +1613,11 @@ function _agent-diff () {
 
 #### Brocli
 
-[Source](0004-typescript-cli-libraries/brocli/cli.ts). 39 lines (34 non-blank).
-`start --help` started in 252 ms, against 238 ms for `parseArgs` in the same
-run. Takes at most one path.
-[`dump.ts`](0004-typescript-cli-libraries/brocli/dump.ts) prints
-`commandsInfo()`.
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/brocli/cli.ts).
+39 lines (34 non-blank). `start --help` started in 252 ms, against 238 ms for
+`parseArgs` in the same run. Takes at most one path.
+[`dump.ts`](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/brocli/dump.ts)
+prints `commandsInfo()`.
 
 <details>
 <summary>Output</summary>
@@ -1753,11 +1761,12 @@ $ node dump.ts
 
 #### trpc-cli
 
-[Source](0004-typescript-cli-libraries/trpccli/cli.ts). 33 lines (30 non-blank).
-`start --help` started in 673 ms, against 238 ms for `parseArgs` in the same
-run. Uses trpc-cli's standalone `t` router with Zod, without `@trpc/server`.
-[`dump.ts`](0004-typescript-cli-libraries/trpccli/dump.ts) prints `deepHelp()`
-and `toJSON()`.
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/trpccli/cli.ts).
+33 lines (30 non-blank). `start --help` started in 673 ms, against 238 ms for
+`parseArgs` in the same run. Uses trpc-cli's standalone `t` router with Zod,
+without `@trpc/server`.
+[`dump.ts`](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/trpccli/dump.ts)
+prints `deepHelp()` and `toJSON()`.
 
 <details>
 <summary>Output</summary>
@@ -1958,10 +1967,10 @@ Options:
 
 #### incur
 
-[Source](0004-typescript-cli-libraries/incur/cli.ts). 30 lines (27 non-blank).
-`start --help` started in 658 ms, against 238 ms for `parseArgs` in the same
-run. `review` doesn't declare `--json`, because incur reserves it as a global
-option, and reads the chosen format instead.
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/incur/cli.ts).
+30 lines (27 non-blank). `start --help` started in 658 ms, against 238 ms for
+`parseArgs` in the same run. `review` doesn't declare `--json`, because incur
+reserves it as a global option, and reads the chosen format instead.
 
 <details>
 <summary>Output</summary>
@@ -2219,9 +2228,10 @@ $ agent-diff hook claude Stopp --json
 
 #### Clerc
 
-[Source](0004-typescript-cli-libraries/clerc/cli.ts). 28 lines (26 non-blank).
-`start --help` started in 541 ms, against 238 ms for `parseArgs` in the same
-run. Adds `notFoundPlugin`, `strictFlagsPlugin`, and `friendlyErrorPlugin`.
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/clerc/cli.ts).
+28 lines (26 non-blank). `start --help` started in 541 ms, against 238 ms for
+`parseArgs` in the same run. Adds `notFoundPlugin`, `strictFlagsPlugin`, and
+`friendlyErrorPlugin`.
 
 <details>
 <summary>Output</summary>
@@ -2296,9 +2306,9 @@ $ agent-diff strat
 
 #### Padrone
 
-[Source](0004-typescript-cli-libraries/padrone/cli.ts). 36 lines (34 non-blank).
-`start --help` started in 807 ms, against 236 ms for `parseArgs` in the same
-run. Default settings.
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/padrone/cli.ts).
+36 lines (34 non-blank). `start --help` started in 807 ms, against 236 ms for
+`parseArgs` in the same run. Default settings.
 
 <details>
 <summary>Output</summary>
@@ -2514,9 +2524,10 @@ $ agent-diff start --help --format json
 
 #### cli-forge
 
-[Source](0004-typescript-cli-libraries/cliforge/cli.ts). 41 lines (39
-non-blank). `start --help` started in 329 ms, against 236 ms for `parseArgs` in
-the same run. Turns on `.strict()`. The `llms.txt` below was generated by
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/cliforge/cli.ts).
+41 lines (39 non-blank). `start --help` started in 329 ms, against 236 ms for
+`parseArgs` in the same run. Turns on `.strict()`. The `llms.txt` below was
+generated by
 `cli-forge generate-documentation ./cli.ts --export app --format md` with
 `markdown-factory` installed alongside, which the example's `package.json`
 doesn't include.
@@ -2707,9 +2718,10 @@ Subcommands:
 
 #### Crust
 
-[Source](0004-typescript-cli-libraries/crust/cli.ts). 40 lines (34 non-blank).
-`start --help` started in 374 ms, against 236 ms for `parseArgs` in the same
-run. Adds the `help()` and `didYouMean()` extensions from `@crustjs/extensions`.
+[Source](https://raw.githubusercontent.com/danschultz/agent-diff/15df1d4c21be5b5880dc1dc9ad697a1b0a4c8d4b/docs/research/0004-typescript-cli-libraries/crust/cli.ts).
+40 lines (34 non-blank). `start --help` started in 374 ms, against 236 ms for
+`parseArgs` in the same run. Adds the `help()` and `didYouMean()` extensions
+from `@crustjs/extensions`.
 
 <details>
 <summary>Output</summary>

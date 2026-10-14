@@ -1,9 +1,0 @@
-{
-  "name": "agent-diff-padrone",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "padrone": "3.0.0",
-    "zod": "4.6.7"
-  }
-}

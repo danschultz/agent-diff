@@ -1,8 +1,0 @@
-{
-  "name": "agent-diff-gunshi",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "gunshi": "0.37.3"
-  }
-}

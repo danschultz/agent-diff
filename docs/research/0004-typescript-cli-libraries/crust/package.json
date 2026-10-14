@@ -1,9 +1,0 @@
-{
-  "name": "agent-diff-crust",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "@crustjs/core": "0.5.5",
-    "@crustjs/extensions": "0.5.5"
-  }
-}
