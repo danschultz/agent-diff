@@ -13,8 +13,21 @@ import { createHash } from 'node:crypto';
 import { copyFile, mkdir, rm, stat, utimes } from 'node:fs/promises';
 import { realpathSync } from 'node:fs';
 import path from 'node:path';
-import type { ChangedFile, DiffMode, FileSideContent, FileStatus, TreeSideInfo } from '../shared/types.ts';
-import { EMPTY_TREE, git, gitMaybe, ObjectReader, runGit, type ObjectInfo } from './git.ts';
+import type {
+  ChangedFile,
+  DiffMode,
+  FileSideContent,
+  FileStatus,
+  TreeSideInfo,
+} from '../shared/types.ts';
+import {
+  EMPTY_TREE,
+  git,
+  gitMaybe,
+  ObjectReader,
+  runGit,
+  type ObjectInfo,
+} from './git.ts';
 
 const MAX_BLOB_BYTES = 2 * 1024 * 1024;
 const SNAPSHOT_IDENTITY = {
@@ -54,7 +67,13 @@ export class GitWorkspace {
   private queue: Promise<unknown> = Promise.resolve();
   private readonly blobCache = new Map<string, FileSideContent>();
 
-  private constructor(root: string, gitDir: string, commonDir: string, indexFile: string, dataDir: string) {
+  private constructor(
+    root: string,
+    gitDir: string,
+    commonDir: string,
+    indexFile: string,
+    dataDir: string,
+  ) {
     this.root = root;
     this.id = workspaceId(root);
     this.gitDir = gitDir;
@@ -71,7 +90,13 @@ export class GitWorkspace {
   static async open(dir: string, dataDir: string): Promise<GitWorkspace> {
     const root = await resolveWorkspaceRoot(dir);
     const [gitDir, commonDir, indexFile] = (
-      await git(root, ['rev-parse', '--absolute-git-dir', '--git-common-dir', '--git-path', 'index'])
+      await git(root, [
+        'rev-parse',
+        '--absolute-git-dir',
+        '--git-common-dir',
+        '--git-path',
+        'index',
+      ])
     )
       .trim()
       .split('\n');
@@ -108,19 +133,37 @@ export class GitWorkspace {
   }
 
   branch(): Promise<string | null> {
-    return this.memo('branch', () => gitMaybe(this.root, ['symbolic-ref', '-q', '--short', 'HEAD']));
+    return this.memo('branch', () =>
+      gitMaybe(this.root, ['symbolic-ref', '-q', '--short', 'HEAD']),
+    );
   }
 
   headCommit(): Promise<string | null> {
-    return this.memo('head', () => gitMaybe(this.root, ['rev-parse', '--verify', '-q', 'HEAD^{commit}']));
+    return this.memo('head', () =>
+      gitMaybe(this.root, ['rev-parse', '--verify', '-q', 'HEAD^{commit}']),
+    );
   }
 
   async defaultBaseRef(): Promise<string> {
-    const remoteHead = await gitMaybe(this.root, ['symbolic-ref', '-q', '--short', 'refs/remotes/origin/HEAD']);
+    const remoteHead = await gitMaybe(this.root, [
+      'symbolic-ref',
+      '-q',
+      '--short',
+      'refs/remotes/origin/HEAD',
+    ]);
     if (remoteHead) return remoteHead;
     const current = await this.branch();
     for (const name of ['main', 'master']) {
-      if (name !== current && (await gitMaybe(this.root, ['rev-parse', '--verify', '-q', `refs/heads/${name}`]))) return name;
+      if (
+        name !== current &&
+        (await gitMaybe(this.root, [
+          'rev-parse',
+          '--verify',
+          '-q',
+          `refs/heads/${name}`,
+        ]))
+      )
+        return name;
     }
     return 'HEAD';
   }
@@ -130,26 +173,47 @@ export class GitWorkspace {
     return this.memo(`base:${baseRef}`, async () => {
       const [head, base] = await Promise.all([
         this.headCommit(),
-        gitMaybe(this.root, ['rev-parse', '--verify', '-q', `${baseRef}^{commit}`]),
+        gitMaybe(this.root, [
+          'rev-parse',
+          '--verify',
+          '-q',
+          `${baseRef}^{commit}`,
+        ]),
       ]);
-      if (!base) throw new Error(`Base ref "${baseRef}" doesn't resolve to a commit in ${this.root}`);
-      const mergeBase = head ? await gitMaybe(this.root, ['merge-base', base, head]) : null;
+      if (!base)
+        throw new Error(
+          `Base ref "${baseRef}" doesn't resolve to a commit in ${this.root}`,
+        );
+      const mergeBase = head
+        ? await gitMaybe(this.root, ['merge-base', base, head])
+        : null;
       const commit = mergeBase ?? base;
-      return { kind: 'base', label: `${baseRef} (${commit.slice(0, 8)})`, tree: await this.commitTree(commit) };
+      return {
+        kind: 'base',
+        label: `${baseRef} (${commit.slice(0, 8)})`,
+        tree: await this.commitTree(commit),
+      };
     });
   }
 
   headSide(): Promise<TreeSideInfo> {
     return this.memo('head-side', async () => {
       const head = await this.headCommit();
-      if (!head) return { kind: 'head', label: 'HEAD (no commits)', tree: EMPTY_TREE };
-      return { kind: 'head', label: `HEAD (${head.slice(0, 8)})`, tree: await this.commitTree(head) };
+      if (!head)
+        return { kind: 'head', label: 'HEAD (no commits)', tree: EMPTY_TREE };
+      return {
+        kind: 'head',
+        label: `HEAD (${head.slice(0, 8)})`,
+        tree: await this.commitTree(head),
+      };
     });
   }
 
   /** A commit's tree never changes, so this is cached for good. */
   commitTree(commit: string): Promise<string> {
-    return this.bounded(this.entryCache, `commit:${commit}`, async () => (await git(this.root, ['rev-parse', `${commit}^{tree}`])).trim());
+    return this.bounded(this.entryCache, `commit:${commit}`, async () =>
+      (await git(this.root, ['rev-parse', `${commit}^{tree}`])).trim(),
+    );
   }
 
   indexTree(): Promise<string> {
@@ -159,9 +223,15 @@ export class GitWorkspace {
         const scratch = path.join(this.scratchDir, 'staged.index');
         await copyIndex(this.indexFile, scratch);
         try {
-          return (await git(this.root, ['write-tree'], { env: { GIT_INDEX_FILE: scratch } })).trim();
+          return (
+            await git(this.root, ['write-tree'], {
+              env: { GIT_INDEX_FILE: scratch },
+            })
+          ).trim();
         } catch (error) {
-          throw new Error(`The index can't be written as a tree (it may have merge conflicts): ${(error as Error).message}`);
+          throw new Error(
+            `The index can't be written as a tree (it may have merge conflicts): ${(error as Error).message}`,
+          );
         }
       }),
     );
@@ -179,44 +249,98 @@ export class GitWorkspace {
   private writeWorktreeTree(): Promise<string> {
     return this.serialize(async () => {
       const scratch = path.join(this.scratchDir, 'worktree.index');
-      if (!(await exists(scratch)) && (await exists(this.indexFile))) await copyIndex(this.indexFile, scratch);
+      if (!(await exists(scratch)) && (await exists(this.indexFile)))
+        await copyIndex(this.indexFile, scratch);
       const env = { GIT_INDEX_FILE: scratch };
-      await runGit(this.root, ['add', '-A', '--ignore-errors'], { env, okCodes: [0, 1] });
+      await runGit(this.root, ['add', '-A', '--ignore-errors'], {
+        env,
+        okCodes: [0, 1],
+      });
       return (await git(this.root, ['write-tree'], { env })).trim();
     });
   }
 
-  async sides(mode: DiffMode, baseRef: string, snapshotCommit: string | null): Promise<{ from: TreeSideInfo; to: TreeSideInfo }> {
-    const worktree = async (): Promise<TreeSideInfo> => ({ kind: 'worktree', label: 'Working tree', tree: await this.worktreeTree() });
-    const index = async (): Promise<TreeSideInfo> => ({ kind: 'index', label: 'Index', tree: await this.indexTree() });
+  async sides(
+    mode: DiffMode,
+    baseRef: string,
+    snapshotCommit: string | null,
+  ): Promise<{ from: TreeSideInfo; to: TreeSideInfo }> {
+    const worktree = async (): Promise<TreeSideInfo> => ({
+      kind: 'worktree',
+      label: 'Working tree',
+      tree: await this.worktreeTree(),
+    });
+    const index = async (): Promise<TreeSideInfo> => ({
+      kind: 'index',
+      label: 'Index',
+      tree: await this.indexTree(),
+    });
     switch (mode) {
       case 'all':
         return { from: await this.baseSide(baseRef), to: await worktree() };
       case 'committed':
-        return { from: await this.baseSide(baseRef), to: await this.headSide() };
+        return {
+          from: await this.baseSide(baseRef),
+          to: await this.headSide(),
+        };
       case 'staged':
         return { from: await this.headSide(), to: await index() };
       case 'unstaged':
         return { from: await index(), to: await worktree() };
       case 'last-turn': {
-        if (!snapshotCommit) throw new Error('No turn snapshot has been recorded for this workspace yet.');
+        if (!snapshotCommit)
+          throw new Error(
+            'No turn snapshot has been recorded for this workspace yet.',
+          );
         const tree = await this.commitTree(snapshotCommit);
-        return { from: { kind: 'snapshot', label: `Turn snapshot (${snapshotCommit.slice(0, 8)})`, tree }, to: await worktree() };
+        return {
+          from: {
+            kind: 'snapshot',
+            label: `Turn snapshot (${snapshotCommit.slice(0, 8)})`,
+            tree,
+          },
+          to: await worktree(),
+        };
       }
     }
   }
 
-  async changedFiles(from: TreeSideInfo, to: TreeSideInfo): Promise<Omit<ChangedFile, 'commentCount'>[]> {
-    const [nameStatus, numstat] = await this.bounded(this.treeDiffCache, `${from.tree}:${to.tree}`, () =>
-      Promise.all([
-        git(this.root, ['diff-tree', '-r', '-z', '-M', '--name-status', from.tree, to.tree]),
-        git(this.root, ['diff-tree', '-r', '-z', '-M', '--numstat', from.tree, to.tree]),
-      ]),
+  async changedFiles(
+    from: TreeSideInfo,
+    to: TreeSideInfo,
+  ): Promise<Omit<ChangedFile, 'commentCount'>[]> {
+    const [nameStatus, numstat] = await this.bounded(
+      this.treeDiffCache,
+      `${from.tree}:${to.tree}`,
+      () =>
+        Promise.all([
+          git(this.root, [
+            'diff-tree',
+            '-r',
+            '-z',
+            '-M',
+            '--name-status',
+            from.tree,
+            to.tree,
+          ]),
+          git(this.root, [
+            'diff-tree',
+            '-r',
+            '-z',
+            '-M',
+            '--numstat',
+            from.tree,
+            to.tree,
+          ]),
+        ]),
     );
 
-    const counts = new Map<string, { added: number | null; removed: number | null; binary: boolean }>();
+    const counts = new Map<
+      string,
+      { added: number | null; removed: number | null; binary: boolean }
+    >();
     const nf = numstat.split('\0');
-    for (let i = 0; i < nf.length; ) {
+    for (let i = 0; i < nf.length;) {
       const head = nf[i++];
       if (!head) continue;
       const [a, r, inlinePath] = head.split('\t');
@@ -226,13 +350,18 @@ export class GitWorkspace {
         file = nf[i++];
       }
       const binary = a === '-';
-      counts.set(file, { added: binary ? null : Number(a), removed: binary ? null : Number(r), binary });
+      counts.set(file, {
+        added: binary ? null : Number(a),
+        removed: binary ? null : Number(r),
+        binary,
+      });
     }
 
-    const untrackedCheck = to.kind === 'worktree' ? await this.indexPaths() : null;
+    const untrackedCheck =
+      to.kind === 'worktree' ? await this.indexPaths() : null;
     const files: Omit<ChangedFile, 'commentCount'>[] = [];
     const fields = nameStatus.split('\0');
-    for (let i = 0; i < fields.length; ) {
+    for (let i = 0; i < fields.length;) {
       const code = fields[i++];
       if (!code) continue;
       let oldPath: string | null = null;
@@ -244,23 +373,41 @@ export class GitWorkspace {
         file = fields[i++];
       }
       let status = statusFromCode(code[0]);
-      if (status === 'added' && untrackedCheck && !untrackedCheck.has(file)) status = 'untracked';
-      const c = counts.get(file) ?? { added: null, removed: null, binary: false };
+      if (status === 'added' && untrackedCheck && !untrackedCheck.has(file))
+        status = 'untracked';
+      const c = counts.get(file) ?? {
+        added: null,
+        removed: null,
+        binary: false,
+      };
       files.push({ path: file, oldPath, status, ...c });
     }
     return files.sort((a, b) => a.path.localeCompare(b.path));
   }
 
   private indexPaths(): Promise<Set<string>> {
-    return this.memo('index-paths', async () => new Set((await git(this.root, ['ls-files', '-z'])).split('\0').filter(Boolean)));
+    return this.memo(
+      'index-paths',
+      async () =>
+        new Set(
+          (await git(this.root, ['ls-files', '-z']))
+            .split('\0')
+            .filter(Boolean),
+        ),
+    );
   }
 
   /** Reads a file from a tree. Returns null if the path isn't in the tree. */
   async readFile(tree: string, file: string): Promise<FileSideContent | null> {
-    const info = await this.bounded(this.entryCache, `${tree}:${file}`, async () => JSON.stringify(await this.objects.info(`${tree}:${file}`)));
+    const info = await this.bounded(
+      this.entryCache,
+      `${tree}:${file}`,
+      async () => JSON.stringify(await this.objects.info(`${tree}:${file}`)),
+    );
     const entry = JSON.parse(info) as ObjectInfo | null;
     if (!entry) return null;
-    if (entry.type !== 'blob') return { hash: entry.oid, content: null, binary: true, tooLarge: false };
+    if (entry.type !== 'blob')
+      return { hash: entry.oid, content: null, binary: true, tooLarge: false };
     return this.readBlob(entry.oid, entry.size);
   }
 
@@ -276,20 +423,42 @@ export class GitWorkspace {
       const stdout = await this.objects.contents(hash);
       if (!stdout) throw new Error(`Object ${hash} not found`);
       const binary = stdout.subarray(0, 8000).includes(0);
-      result = { hash, content: binary ? null : stdout.toString('utf8'), binary, tooLarge: false };
+      result = {
+        hash,
+        content: binary ? null : stdout.toString('utf8'),
+        binary,
+        tooLarge: false,
+      };
     }
-    if (this.blobCache.size > 500) this.blobCache.delete(this.blobCache.keys().next().value!);
+    if (this.blobCache.size > 500)
+      this.blobCache.delete(this.blobCache.keys().next().value!);
     this.blobCache.set(hash, result);
     return result;
   }
 
   /** Records the current working tree as a turn snapshot commit under a hidden ref. */
-  async createSnapshot(ref: string, message: string): Promise<{ commit: string; tree: string }> {
+  async createSnapshot(
+    ref: string,
+    message: string,
+  ): Promise<{ commit: string; tree: string }> {
     // Not from the cache: a write the watcher hasn't flushed yet still belongs before the turn.
     const tree = await this.writeWorktreeTree();
-    const head = await gitMaybe(this.root, ['rev-parse', '--verify', '-q', 'HEAD^{commit}']);
-    const args = ['commit-tree', tree, ...(head ? ['-p', head] : []), '-m', message];
-    const commit = (await git(this.root, args, { env: SNAPSHOT_IDENTITY })).trim();
+    const head = await gitMaybe(this.root, [
+      'rev-parse',
+      '--verify',
+      '-q',
+      'HEAD^{commit}',
+    ]);
+    const args = [
+      'commit-tree',
+      tree,
+      ...(head ? ['-p', head] : []),
+      '-m',
+      message,
+    ];
+    const commit = (
+      await git(this.root, args, { env: SNAPSHOT_IDENTITY })
+    ).trim();
     await git(this.root, ['update-ref', ref, commit]);
     return { commit, tree };
   }
@@ -299,7 +468,11 @@ export class GitWorkspace {
   }
 
   /** For results keyed by object hashes, which never go stale. */
-  private bounded<T>(cache: Map<string, Promise<T>>, key: string, fn: () => Promise<T>): Promise<T> {
+  private bounded<T>(
+    cache: Map<string, Promise<T>>,
+    key: string,
+    fn: () => Promise<T>,
+  ): Promise<T> {
     const cached = cache.get(key);
     if (cached) return cached;
     const promise = fn();

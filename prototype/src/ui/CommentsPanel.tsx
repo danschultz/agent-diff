@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import type { AgentInfo, PlacedComment, ReviewInfo, WorkspaceInfo } from '../shared/types.ts';
+import type {
+  AgentInfo,
+  PlacedComment,
+  ReviewInfo,
+  WorkspaceInfo,
+} from '../shared/types.ts';
 import { stateLabel } from './viewers/types.ts';
 
 interface Props {
@@ -35,8 +40,15 @@ export function CommentsPanel(props: Props) {
     }
   };
 
-  const agentLabel = (id: string | null) => (id ? (agents.find((a) => a.id === id)?.label ?? id) : 'No agent registered');
-  const wsLabel = (id: string | null) => workspaces.find((w) => w.id === id)?.root.split('/').pop() ?? id ?? '';
+  const agentLabel = (id: string | null) =>
+    id ? (agents.find((a) => a.id === id)?.label ?? id) : 'No agent registered';
+  const wsLabel = (id: string | null) =>
+    workspaces
+      .find((w) => w.id === id)
+      ?.root.split('/')
+      .pop() ??
+    id ??
+    '';
 
   return (
     <div className="comments-panel">
@@ -44,9 +56,16 @@ export function CommentsPanel(props: Props) {
 
       <section>
         <h3>Comments</h3>
-        <p className="hint">Hover a line number and click its +, or drag the + across line numbers, to comment on lines.</p>
+        <p className="hint">
+          Hover a line number and click its +, or drag the + across line
+          numbers, to comment on lines.
+        </p>
         <div className="composer overall">
-          <textarea value={overallBody} placeholder="Overall comment on the review" onChange={(e) => setOverallBody(e.target.value)} />
+          <textarea
+            value={overallBody}
+            placeholder="Overall comment on the review"
+            onChange={(e) => setOverallBody(e.target.value)}
+          />
           <button
             disabled={busy || !canComment || !overallBody.trim()}
             onClick={() =>
@@ -64,13 +83,28 @@ export function CommentsPanel(props: Props) {
       <section>
         <div className="section-head">
           <h3>Drafts ({drafts.length})</h3>
-          <button className="primary" disabled={busy || drafts.length === 0} onClick={() => act(props.onSubmit)}>
+          <button
+            className="primary"
+            disabled={busy || drafts.length === 0}
+            onClick={() => act(props.onSubmit)}
+          >
             Submit review
           </button>
         </div>
-        {drafts.length === 0 && <p className="hint">Comments stay drafts until you submit them as a review.</p>}
+        {drafts.length === 0 && (
+          <p className="hint">
+            Comments stay drafts until you submit them as a review.
+          </p>
+        )}
         {drafts.map((c) => (
-          <CommentItem key={c.id} comment={c} wsLabel={wsLabel(c.workspaceId)} onJump={props.onJump} onUpdate={props.onUpdate} onDelete={props.onDelete} />
+          <CommentItem
+            key={c.id}
+            comment={c}
+            wsLabel={wsLabel(c.workspaceId)}
+            onJump={props.onJump}
+            onUpdate={props.onUpdate}
+            onDelete={props.onDelete}
+          />
         ))}
       </section>
 
@@ -79,39 +113,62 @@ export function CommentsPanel(props: Props) {
         {[...reviews].reverse().map((r) => (
           <div key={r.id} className="review">
             <div className="review-head">
-              {r.id} · {new Date(r.submittedAt).toLocaleTimeString()} · {r.commentCount} comment{r.commentCount === 1 ? '' : 's'}
+              {r.id} · {new Date(r.submittedAt).toLocaleTimeString()} ·{' '}
+              {r.commentCount} comment{r.commentCount === 1 ? '' : 's'}
             </div>
             {r.notifications.map((n) => (
               <div key={n.id} className="notification">
                 <span className={`badge n-${n.status}`}>{n.status}</span>
                 <span className="notification-target">
-                  {agentLabel(n.agentId)} via {n.method.length > 40 ? n.method.slice(0, 40) + '…' : n.method} ({wsLabel(n.workspaceId)})
+                  {agentLabel(n.agentId)} via{' '}
+                  {n.method.length > 40
+                    ? n.method.slice(0, 40) + '…'
+                    : n.method}{' '}
+                  ({wsLabel(n.workspaceId)})
                 </span>
                 {n.error && <div className="notification-error">{n.error}</div>}
-                {(n.status === 'manual' || n.status === 'pull' || n.status === 'failed') && (
+                {(n.status === 'manual' ||
+                  n.status === 'pull' ||
+                  n.status === 'failed') && (
                   <div className="paste">
                     {n.status === 'pull'
                       ? "The agent's hooks deliver this when its current turn ends. If it's idle, paste this to it:"
                       : 'Paste this to the agent:'}
                     <code>{n.message}</code>
-                    <button onClick={() => navigator.clipboard.writeText(n.message)}>Copy</button>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(n.message)}
+                    >
+                      Copy
+                    </button>
                   </div>
                 )}
-                {n.status === 'failed' && <button onClick={() => act(() => props.onResend(n.id))}>Resend</button>}
+                {n.status === 'failed' && (
+                  <button onClick={() => act(() => props.onResend(n.id))}>
+                    Resend
+                  </button>
+                )}
               </div>
             ))}
             {r.fetches.length > 0 && (
               <div className="fetches">
                 Fetched by{' '}
                 {r.fetches
-                  .map((f) => `${f.agentId ? agentLabel(f.agentId) : 'an unregistered agent'} (${wsLabel(f.workspaceId)}) at ${new Date(f.fetchedAt).toLocaleTimeString()}`)
+                  .map(
+                    (f) =>
+                      `${f.agentId ? agentLabel(f.agentId) : 'an unregistered agent'} (${wsLabel(f.workspaceId)}) at ${new Date(f.fetchedAt).toLocaleTimeString()}`,
+                  )
                   .join(', ')}
               </div>
             )}
             {comments
               .filter((c) => c.reviewId === r.id)
               .map((c) => (
-                <CommentItem key={c.id} comment={c} wsLabel={wsLabel(c.workspaceId)} onJump={props.onJump} />
+                <CommentItem
+                  key={c.id}
+                  comment={c}
+                  wsLabel={wsLabel(c.workspaceId)}
+                  onJump={props.onJump}
+                />
               ))}
           </div>
         ))}
@@ -119,7 +176,11 @@ export function CommentsPanel(props: Props) {
 
       <section>
         <h3>Agents ({agents.length})</h3>
-        {agents.length === 0 && <p className="hint">No agents registered. Feedback can still be pasted by hand.</p>}
+        {agents.length === 0 && (
+          <p className="hint">
+            No agents registered. Feedback can still be pasted by hand.
+          </p>
+        )}
         {agents.map((a) => (
           <div key={a.id} className="agent">
             <span className={`dot ${a.busy ? 'busy' : 'idle'}`} />
@@ -154,11 +215,17 @@ function CommentItem({
   const draftChanged = !comment.reviewId && p && p.state !== 'current';
   return (
     <div className={`comment-item state-${p?.state ?? 'overall'}`}>
-      <div className="comment-item-head" onClick={() => comment.path && onJump(comment)}>
+      <div
+        className="comment-item-head"
+        onClick={() => comment.path && onJump(comment)}
+      >
         {comment.path ? (
           <>
             <span className="loc">
-              {wsLabel} · {p?.path ?? comment.path}:{at ? lineLabel(at.start, at.end, true) : `${lineLabel(comment.startLine!, comment.endLine!, true)} (gone)`}
+              {wsLabel} · {p?.path ?? comment.path}:
+              {at
+                ? lineLabel(at.start, at.end, true)
+                : `${lineLabel(comment.startLine!, comment.endLine!, true)} (gone)`}
             </span>
             {p && (
               <span className={`badge s-${p.state}`} title={p.reason}>
@@ -170,7 +237,12 @@ function CommentItem({
           <span className="loc">Overall comment</span>
         )}
       </div>
-      {draftChanged && <div className="warning">The code you commented on changed. Check that this comment still applies. {p!.reason}</div>}
+      {draftChanged && (
+        <div className="warning">
+          The code you commented on changed. Check that this comment still
+          applies. {p!.reason}
+        </div>
+      )}
       {editing ? (
         <>
           <textarea value={body} onChange={(e) => setBody(e.target.value)} />

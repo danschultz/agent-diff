@@ -6,10 +6,10 @@
 ## Problem
 
 The reviewer needs a rich UI: syntax-highlighted diffs, a file tree, inline
-comment threads, and live updates as agents change code. Agents need to be
-able to open it on demand, and it should sit comfortably next to the
-terminals the agents run in. Choices were a local web app, a native desktop
-app, or a terminal UI.
+comment threads, and live updates as agents change code. Agents need to be able
+to open it on demand, and it should sit comfortably next to the terminals the
+agents run in. Choices were a local web app, a native desktop app, or a terminal
+UI.
 
 ## Solution
 
@@ -25,13 +25,13 @@ Benefits:
   exist for diffs, syntax highlighting, and virtualized lists.
 - It opens anywhere a browser does, including cmux browser surfaces, with no
   per-platform builds.
-- The server has direct access to the file system and git, so the browser
-  never needs repo access of its own.
+- The server has direct access to the file system and git, so the browser never
+  needs repo access of its own.
 
 Costs:
 
-- The tool has to manage a server process: picking a port, letting agents
-  find a running server, and shutting it down.
+- The tool has to manage a server process: picking a port, letting agents find a
+  running server, and shutting it down.
 - A local server that can send feedback to agents and launch editors is an
   attack surface. Other web pages or local processes must not be able to drive
   it, so it needs to bind to localhost and require a token.
@@ -40,8 +40,8 @@ Costs:
 
 ## Follow-up design choices
 
-- One server per machine serving every review session, or one server per
-  review session?
+- One server per machine serving every review session, or one server per review
+  session?
 - How agents discover a running server and its port.
 - How the browser authenticates to the server.
 - Which frontend and backend stack to use.

@@ -41,18 +41,29 @@ export function FileView({ files, active, viewed, onSelect }: Props) {
       onClick={() => onSelect(file)}
       title={file.oldPath ? `${file.oldPath} → ${file.path}` : file.path}
     >
-      <span className={`status status-${file.status}`}>{STATUS_LETTER[file.status]}</span>
+      <span className={`status status-${file.status}`}>
+        {STATUS_LETTER[file.status]}
+      </span>
       <span className="file-name">{label}</span>
-      {file.commentCount > 0 && <span className="comment-count">{file.commentCount}</span>}
+      {file.commentCount > 0 && (
+        <span className="comment-count">{file.commentCount}</span>
+      )}
       <span className="counts">
-        {file.binary ? 'bin' : (
+        {file.binary ? (
+          'bin'
+        ) : (
           <>
             {file.added ? <span className="added">+{file.added}</span> : null}
-            {file.removed ? <span className="removed">−{file.removed}</span> : null}
+            {file.removed ? (
+              <span className="removed">−{file.removed}</span>
+            ) : null}
           </>
         )}
       </span>
-      <span className="viewed-mark" title={viewed[file.path] ? 'Viewed' : 'Not viewed'}>
+      <span
+        className="viewed-mark"
+        title={viewed[file.path] ? 'Viewed' : 'Not viewed'}
+      >
         {viewed[file.path] ? '✓' : ''}
       </span>
     </li>
@@ -63,15 +74,23 @@ export function FileView({ files, active, viewed, onSelect }: Props) {
     for (const child of dir.dirs) {
       const isCollapsed = collapsed.has(child.path);
       out.push(
-        <li key={`d:${child.path}`} className="dir" style={{ paddingLeft: 8 + depth * 14 }} onClick={() => toggle(child.path)}>
+        <li
+          key={`d:${child.path}`}
+          className="dir"
+          style={{ paddingLeft: 8 + depth * 14 }}
+          onClick={() => toggle(child.path)}
+        >
           <span className="chevron">{isCollapsed ? '▸' : '▾'}</span>
           <span className="file-name">{child.name}</span>
-          {isCollapsed && <span className="dir-changes">{child.fileCount} changed</span>}
+          {isCollapsed && (
+            <span className="dir-changes">{child.fileCount} changed</span>
+          )}
         </li>,
       );
       if (!isCollapsed) out.push(...renderDir(child, depth + 1));
     }
-    for (const file of dir.files) out.push(renderFile(file, file.path.split('/').pop()!, depth));
+    for (const file of dir.files)
+      out.push(renderFile(file, file.path.split('/').pop()!, depth));
     return out;
   };
 
@@ -79,19 +98,32 @@ export function FileView({ files, active, viewed, onSelect }: Props) {
     <div className="file-view">
       <div className="file-view-head">
         <span>
-          {files.length} changed file{files.length === 1 ? '' : 's'} · {viewedCount} viewed
+          {files.length} changed file{files.length === 1 ? '' : 's'} ·{' '}
+          {viewedCount} viewed
         </span>
         <div className="segmented small">
-          <button className={view === 'tree' ? 'active' : ''} onClick={() => setView('tree')}>
+          <button
+            className={view === 'tree' ? 'active' : ''}
+            onClick={() => setView('tree')}
+          >
             Tree
           </button>
-          <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}>
+          <button
+            className={view === 'list' ? 'active' : ''}
+            onClick={() => setView('list')}
+          >
             List
           </button>
         </div>
       </div>
-      <ul className="files">{view === 'tree' ? renderDir(tree, 0) : files.map((f) => renderFile(f, f.path, 0))}</ul>
-      {files.length === 0 && <p className="empty">No changes in this diff mode.</p>}
+      <ul className="files">
+        {view === 'tree'
+          ? renderDir(tree, 0)
+          : files.map((f) => renderFile(f, f.path, 0))}
+      </ul>
+      {files.length === 0 && (
+        <p className="empty">No changes in this diff mode.</p>
+      )}
     </div>
   );
 }
@@ -105,7 +137,13 @@ interface TreeDir {
 }
 
 function buildTree(files: ChangedFile[]): TreeDir {
-  const root: TreeDir = { name: '', path: '', dirs: [], files: [], fileCount: 0 };
+  const root: TreeDir = {
+    name: '',
+    path: '',
+    dirs: [],
+    files: [],
+    fileCount: 0,
+  };
   for (const file of files) {
     const parts = file.path.split('/');
     let dir = root;
@@ -114,7 +152,13 @@ function buildTree(files: ChangedFile[]): TreeDir {
       const childPath = dir.path ? `${dir.path}/${part}` : part;
       let child = dir.dirs.find((d) => d.name === part);
       if (!child) {
-        child = { name: part, path: childPath, dirs: [], files: [], fileCount: 0 };
+        child = {
+          name: part,
+          path: childPath,
+          dirs: [],
+          files: [],
+          fileCount: 0,
+        };
         dir.dirs.push(child);
       }
       child.fileCount++;

@@ -1,16 +1,29 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 import { cliGit } from '../src/git.ts';
 
 test('creates a brief worktree from origin, then removes it and its branch', (t) => {
-  const base = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'implement-git-')));
+  const base = realpathSync(
+    mkdtempSync(path.join(os.tmpdir(), 'implement-git-')),
+  );
   t.after(() => rmSync(base, { recursive: true, force: true }));
-  const env = { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_SYSTEM: '/dev/null' };
-  const git = (cwd: string, ...args: string[]) => execFileSync('git', args, { cwd, env, encoding: 'utf8' });
+  const env = {
+    ...process.env,
+    GIT_CONFIG_GLOBAL: '/dev/null',
+    GIT_CONFIG_SYSTEM: '/dev/null',
+  };
+  const git = (cwd: string, ...args: string[]) =>
+    execFileSync('git', args, { cwd, env, encoding: 'utf8' });
   const origin = path.join(base, 'origin.git');
   const repo = path.join(base, 'repo');
   git(base, 'init', '-q', '--bare', '-b', 'main', origin);

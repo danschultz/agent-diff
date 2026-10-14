@@ -17,7 +17,12 @@ const execFileAsync = promisify(execFile);
 export type DeliveryKind = 'push' | 'pull' | 'manual';
 
 export function deliveryKind(method: string): DeliveryKind {
-  if (method.startsWith('tmux:') || method.startsWith('cmux:') || method.startsWith('command:')) return 'push';
+  if (
+    method.startsWith('tmux:') ||
+    method.startsWith('cmux:') ||
+    method.startsWith('command:')
+  )
+    return 'push';
   if (method === 'hook') return 'pull';
   return 'manual';
 }
@@ -25,12 +30,17 @@ export function deliveryKind(method: string): DeliveryKind {
 export function validateNotifyMethod(method: string): string | null {
   if (method === 'hook' || method === 'none') return null;
   for (const prefix of ['tmux:', 'cmux:', 'command:']) {
-    if (method.startsWith(prefix)) return method.length > prefix.length ? null : `${prefix} needs a target`;
+    if (method.startsWith(prefix))
+      return method.length > prefix.length ? null : `${prefix} needs a target`;
   }
   return `Unknown notify method "${method}". Use tmux:<target>, cmux:<surface>, command:<shell>, hook, or none.`;
 }
 
-export async function push(method: string, message: string, enterDelayMs: number): Promise<void> {
+export async function push(
+  method: string,
+  message: string,
+  enterDelayMs: number,
+): Promise<void> {
   if (method.startsWith('tmux:')) {
     const target = method.slice('tmux:'.length);
     await execFileAsync('tmux', ['send-keys', '-t', target, '-l', message]);
@@ -43,7 +53,14 @@ export async function push(method: string, message: string, enterDelayMs: number
     // `paste --submit` refuses to send over a prompt someone is typing in or an
     // open dialog, which tmux can't detect. The failure shows up as a resendable notification.
     try {
-      await execFileAsync(cmuxBinary(), ['paste', '--surface', surface, '--submit', '--', message]);
+      await execFileAsync(cmuxBinary(), [
+        'paste',
+        '--surface',
+        surface,
+        '--submit',
+        '--',
+        message,
+      ]);
     } catch (error) {
       const stderr = (error as { stderr?: string }).stderr?.trim();
       throw new Error(stderr || (error as Error).message);
@@ -60,7 +77,11 @@ export async function push(method: string, message: string, enterDelayMs: number
       let stderr = '';
       child.stderr.on('data', (d: Buffer) => (stderr += d.toString()));
       child.on('error', reject);
-      child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`exited ${code}: ${stderr.trim()}`))));
+      child.on('close', (code) =>
+        code === 0
+          ? resolve()
+          : reject(new Error(`exited ${code}: ${stderr.trim()}`)),
+      );
     });
     return;
   }
@@ -71,7 +92,9 @@ export async function push(method: string, message: string, enterDelayMs: number
 function cmuxBinary(): string {
   if (process.env.AGENT_DIFF_CMUX) return process.env.AGENT_DIFF_CMUX;
   const bundled = '/Applications/cmux.app/Contents/Resources/bin/cmux';
-  const onPath = (process.env.PATH ?? '').split(':').some((dir) => dir && existsSync(`${dir}/cmux`));
+  const onPath = (process.env.PATH ?? '')
+    .split(':')
+    .some((dir) => dir && existsSync(`${dir}/cmux`));
   return onPath || !existsSync(bundled) ? 'cmux' : bundled;
 }
 

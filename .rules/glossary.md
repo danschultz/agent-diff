@@ -19,19 +19,19 @@ use those terms as defined, and the glossary must never contain conflicts.
 - A definition that contradicts another term, an accepted decision, or how
   `README.md` describes the product.
 
-If a change would create a conflict, stop and ask the user to resolve it
-before writing anything. Explain both sides of the conflict and suggest how
-to resolve it.
+If a change would create a conflict, stop and ask the user to resolve it before
+writing anything. Explain both sides of the conflict and suggest how to resolve
+it.
 
 ## Adding a term
 
-1. Only add terms the user has agreed on, either directly or through an
-   accepted decision that uses them.
+1. Only add terms the user has agreed on, either directly or through an accepted
+   decision that uses them.
 2. Check the existing terms for the same name or an overlapping meaning, and
    check the definition against accepted decisions and `README.md`.
 3. Add the term in alphabetical order, as a `###` heading followed by the
-   definition. Link to related terms and to the decision that introduced it,
-   if there is one.
+   definition. Link to related terms and to the decision that introduced it, if
+   there is one.
 
 ## Changing a term
 
@@ -47,6 +47,6 @@ to resolve it.
 
 1. Only remove a term with the user's agreement.
 2. Find every use of the term in `README.md`, `AGENTS.md`, `.rules/`, and
-   `docs/`, and replace or remove it, so nothing refers to a term that no
-   longer exists.
+   `docs/`, and replace or remove it, so nothing refers to a term that no longer
+   exists.
 3. Remove links to the term from other glossary entries.

@@ -1,15 +1,15 @@
-# 0002: Which TypeScript CLI libraries could build the `agent-diff` CLI?
+# 0004: Which TypeScript CLI libraries could build the `agent-diff` CLI?
 
 - Date: 2026-10-13
 
 ## Question
 
 [Decision 0011](../decisions/0011-api-core-with-cli-client.md) makes the
-`agent-diff` CLI the documented interface for agents and harnesses. Humans
-use it at a terminal, and agents run it from a shell. The prototype's CLI,
-[`prototype/src/cli/main.ts`](../../prototype/src/cli/main.ts), parses
-arguments with `node:util` `parseArgs` and prints a hand-written `USAGE`
-string. This research looks for a TypeScript library to build the real one
+`agent-diff` CLI the documented interface for agents and harnesses. Humans use
+it at a terminal, and agents run it from a shell. The prototype's CLI,
+[`prototype/src/cli/main.ts`](../../prototype/src/cli/main.ts), parses arguments
+with `node:util` `parseArgs` and prints a hand-written `USAGE` string. This
+research looks for a TypeScript library to build the real one
 ([#16](https://github.com/danschultz/agent-diff/issues/16)).
 
 The candidates are compared on whether they:
@@ -18,16 +18,16 @@ The candidates are compared on whether they:
   typed from the command definitions and no casts.
 - Build help into the CLI, so an agent can learn how to use `agent-diff` by
   running it rather than reading a README. That covers `--help` on every
-  command, the full reference in one call, machine-readable help, docs
-  generated from the same definitions, plain output when stdout isn't a TTY,
-  and usage errors that say what was wrong.
+  command, the full reference in one call, machine-readable help, docs generated
+  from the same definitions, plain output when stdout isn't a TTY, and usage
+  errors that say what was wrong.
 - Work for humans: readable help, shell completion, colour on a TTY, good
   errors.
-- Support nested subcommands, validation of allowed values, and global
-  options such as a possible `--json`.
+- Support nested subcommands, validation of allowed values, and global options
+  such as a possible `--json`.
 - Start quickly and install small, since the CLI is installed wherever agents
-  run, including sandboxes and containers, and a process starts for every
-  call, such as renewing a claim
+  run, including sandboxes and containers, and a process starts for every call,
+  such as renewing a claim
   ([0011](../decisions/0011-api-core-with-cli-client.md)).
 - Run under Node 24 type stripping with no build step, as the repo does
   ([`.node-version`](../../.node-version)).
@@ -40,8 +40,8 @@ commands below are only a common example to compare libraries with.
 
 ### How this was checked
 
-The same small CLI was written with every candidate that has typed arguments
-and nested subcommands, and with `parseArgs` as a baseline:
+The same small CLI was written with every candidate that has typed arguments and
+nested subcommands, and with `parseArgs` as a baseline:
 
 ```text
 agent-diff start [<path>...] [--base <ref>] [--title <text>] [--open]
@@ -50,176 +50,174 @@ agent-diff hook claude <SessionStart|UserPromptSubmit|Stop>
 ```
 
 The examples are in
-[`0002-typescript-cli-libraries/`](0002-typescript-cli-libraries/), one
-directory per library, each with a `package.json` pinning the version
-checked. Every example calls the same stubs in
-[`shared.ts`](0002-typescript-cli-libraries/shared.ts), which print the
-parsed values as JSON, so only the parsing and help code differs. The event
-argument for `hook claude` is checked against the allowed values, by the
-library where it can, by hand where it can't.
+[`0004-typescript-cli-libraries/`](0004-typescript-cli-libraries/), one
+directory per library, each with a `package.json` pinning the version checked.
+Every example calls the same stubs in
+[`shared.ts`](0004-typescript-cli-libraries/shared.ts), which print the parsed
+values as JSON, so only the parsing and help code differs. The event argument
+for `hook claude` is checked against the allowed values, by the library where it
+can, by hand where it can't.
 
 - **Machine:** Intel Atom C3858 (12 cores, 2.0 GHz), 8 GB RAM, Debian 13.7,
   Linux 6.12. Node 24.21.0 and npm 11.19.0. The repo pins Node 24.20.0, which
   wasn't installed.
-- **Running:** each example ran directly with `node cli.ts`, using Node's
-  type stripping and no build step. Output was captured with
-  [`capture.sh`](0002-typescript-cli-libraries/capture.sh), which sends
-  stdout and stderr to files, so neither is a TTY. The environment had
+- **Running:** each example ran directly with `node cli.ts`, using Node's type
+  stripping and no build step. Output was captured with
+  [`capture.sh`](0004-typescript-cli-libraries/capture.sh), which sends stdout
+  and stderr to files, so neither is a TTY. The environment had
   `TERM=xterm-256color` and `COLORTERM=truecolor`, with `NO_COLOR`,
-  `FORCE_COLOR`, and `CI` unset. Commands below are shown as
-  `agent-diff …`; they ran as `node cli.ts …` in the example's directory.
-- **Type-checking:** in a scratch directory outside the repo, each example
-  was installed with `npm install` and checked with TypeScript 7.0.2 (the
-  prototype's major version): `tsc --strict --noEmit --target es2024
-  --module nodenext --allowImportingTsExtensions --verbatimModuleSyntax
-  --erasableSyntaxOnly --skipLibCheck`. `--erasableSyntaxOnly` rejects
-  syntax that type stripping can't run. The checks were repeated with the
-  prototype's `--module preserve --moduleResolution bundler`, and without
-  `--skipLibCheck`.
+  `FORCE_COLOR`, and `CI` unset. Commands below are shown as `agent-diff …`;
+  they ran as `node cli.ts …` in the example's directory.
+- **Type-checking:** in a scratch directory outside the repo, each example was
+  installed with `npm install` and checked with TypeScript 7.0.2 (the
+  prototype's major version):
+  `tsc --strict --noEmit --target es2024 --module nodenext --allowImportingTsExtensions --verbatimModuleSyntax --erasableSyntaxOnly --skipLibCheck`.
+  `--erasableSyntaxOnly` rejects syntax that type stripping can't run. The
+  checks were repeated with the prototype's
+  `--module preserve --moduleResolution bundler`, and without `--skipLibCheck`.
 - **`any` probe:** `shared.ts` was temporarily changed so that a call fails to
-  compile when any value passed to it is typed `any`. This finds parsed
-  values that only type-check because the library returns `any`.
-- **Startup:** [`bench.mjs`](0002-typescript-cli-libraries/bench.mjs) runs
+  compile when any value passed to it is typed `any`. This finds parsed values
+  that only type-check because the library returns `any`.
+- **Startup:** [`bench.mjs`](0004-typescript-cli-libraries/bench.mjs) runs
   `node cli.ts start --help` 5 times to warm up, then 40 times per example,
-  interleaved across examples, with output sent to `/dev/null`, and reports
-  the median wall-clock time. An empty `cli.ts` measures Node's own startup.
-  A second pass of 20 runs enabled Node's on-disk compile cache
+  interleaved across examples, with output sent to `/dev/null`, and reports the
+  median wall-clock time. An empty `cli.ts` measures Node's own startup. A
+  second pass of 20 runs enabled Node's on-disk compile cache
   (`NODE_COMPILE_CACHE`,
   [Node docs](https://nodejs.org/api/module.html#module-compile-cache)).
 - **Install size:** `npm install` of the pinned versions into an empty
   directory, then `du -sk node_modules` (disk usage, in 4 KB blocks) and the
   number of packages in `package-lock.json`. This includes type-only packages
-  such as `@types/yargs` and peer dependencies that npm installs
-  automatically.
+  such as `@types/yargs` and peer dependencies that npm installs automatically.
 - **Maintenance:** the npm registry's `time` field for the latest release and
   the number of releases from 2025-10-13 to 2026-10-13, and the GitHub
   repository's last push and archived flag.
 
-Library behaviour comes from running the examples, from each package's
-README and type declarations as installed, and from the linked docs.
+Library behaviour comes from running the examples, from each package's README
+and type declarations as installed, and from the linked docs.
 
 ### Candidates
 
 All candidates the brief named were checked. Searching for others, including
-ones built for agents, found
-[Clerc](https://clerc.so1ve.dev), [Padrone](https://github.com/gkurt/padrone),
+ones built for agents, found [Clerc](https://clerc.so1ve.dev),
+[Padrone](https://github.com/gkurt/padrone),
 [cli-forge](https://github.com/AgentEnder/cli-forge), and
 [Crust](https://crustjs.com)
 ([search result](https://dev.to/hongminhee/building-cli-apps-with-typescript-in-2026-5c9d),
 [Padrone listing](https://awesome.ecosyste.ms/projects/github.com%2Fkurtgokhan%2Fpadrone),
 [cli-forge listing](https://tomevault.io/tome/AgentEnder/cli-forge),
 [Crust listing](https://www.everydev.ai/tools/crustjs/llms.txt)), which were
-added. [incur](https://github.com/wevm/incur) and Padrone are built for
-agents. Crust describes itself as Bun-native, but `@crustjs/core` 0.5.5
-declares `node >= 24` and its example ran on Node.
+added. [incur](https://github.com/wevm/incur) and Padrone are built for agents.
+Crust describes itself as Bun-native, but `@crustjs/core` 0.5.5 declares
+`node >= 24` and its example ran on Node.
 
-Some candidates fall short of the brief's criteria, or were checked as a different package:
+Some candidates fall short of the brief's criteria, or were checked as a
+different package:
 
 - **yargs** doesn't meet the TypeScript criterion. Some of its internals are
   TypeScript, but the package ships no types for its main entry, and the
   community types, [`@types/yargs`](https://www.npmjs.com/package/@types/yargs)
-  17.0.35, are for yargs 17 while the latest release is 18.2.0. Its example
-  was kept as a reference point. It type-checks with the 17 types.
+  17.0.35, are for yargs 17 while the latest release is 18.2.0. Its example was
+  kept as a reference point. It type-checks with the 17 types.
 - **cac** is written in TypeScript, but command actions are typed
   `(...args: any[]) => any`, and it has no nested subcommands. A command named
   `hook claude` printed nothing when run as `hook claude Stop`
   ([README](https://github.com/cacjs/cac#readme); checked by hand).
-- **cleye** is TypeScript with typed flags and parameters, but its commands
-  are one level deep. `command()` takes no `commands` option
+- **cleye** is TypeScript with typed flags and parameters, but its commands are
+  one level deep. `command()` takes no `commands` option
   ([README](https://github.com/privatenumber/cleye#commands)).
-- **meow** is JavaScript with a hand-written `index.d.ts`. It has one level
-  of commands, and its help is text you write yourself
+- **meow** is JavaScript with a hand-written `index.d.ts`. It has one level of
+  commands, and its help is text you write yourself
   ([README](https://github.com/sindresorhus/meow#readme)), so it has no
   generated help.
-- **`@effect/cli`** 0.77.2 is the Effect 3 package. In Effect 4, the CLI
-  module moved into the `effect` package as `effect/cli`, marked unstable in
-  its source. The example uses Effect 4.0.3, the latest release.
+- **`@effect/cli`** 0.77.2 is the Effect 3 package. In Effect 4, the CLI module
+  moved into the `effect` package as `effect/cli`, marked unstable in its
+  source. The example uses Effect 4.0.3, the latest release.
 
 ### Types and structure
 
-| Library | Version checked | TypeScript | How parsed arguments are typed | `any` found | Nested subcommands | Runs with type stripping, no build step |
-| ------- | --------------- | ---------- | ------------------------------ | ----------- | ------------------ | ----------------------------------------- |
-| `node:util` `parseArgs` | Node 24.21.0 | Built in, typed | Inferred from the `options` object. Positionals are `string[]`. The event needs a cast after a hand-written check. | No | No. Dispatch by hand. | Yes |
-| [Commander](https://github.com/tj/commander.js) + [extra-typings](https://github.com/commander-js/extra-typings) | 15.0.0 | JavaScript with hand-written typings; extra-typings infers types | Inferred from the `.argument()` and `.option()` strings and `.choices()` | No. `event` is the union. | Yes | Yes |
-| [yargs](https://github.com/yargs/yargs) | 18.2.0 (`@types/yargs` 17.0.35) | JavaScript entry; types from DefinitelyTyped for v17 | Inferred from the builder chain | No | Yes | Yes |
-| [oclif](https://github.com/oclif/core) (`@oclif/core`) | 5.1.7 | TypeScript | Inferred from static `args` and `flags` on command classes | Yes. `flags` includes `Record<string, any>`, variadic `argv` is `unknown[]`, and an `options` arg is `string`, so the example needs two casts. | Yes, as topics | Yes. Command discovery needs a `package.json` `oclif` block and a separate commands module: loading commands from the entry file itself left its top-level `await` unsettled. |
-| [Clipanion](https://github.com/arcanis/clipanion) | 4.0.0-rc.4 | TypeScript | Inferred from class fields (`Option.String()` etc.) with [Typanion](https://github.com/arcanis/typanion) validators | No | Yes, as command paths | Yes |
-| [citty](https://github.com/unjs/citty) | 0.2.2 | TypeScript | Inferred from the `args` object | No | Yes | Yes |
-| [gunshi](https://gunshi.dev) | 0.37.3 | TypeScript | Inferred from the `args` object | No | Yes | Yes |
-| [cmd-ts](https://github.com/Schniz/cmd-ts) | 0.15.0 | TypeScript | Inferred from typed parsers such as `oneOf()` | No | Yes | Yes |
-| [Stricli](https://bloomberg.github.io/stricli/) | 1.3.0 | TypeScript | From the handler's parameter types, which the parameter specs are checked against. Handlers need explicit types. | No | Yes, as route maps | Yes |
-| [Effect](https://github.com/Effect-TS/effect) (`effect/cli`) | 4.0.3 | TypeScript | Inferred from `Flag` and `Argument` combinators | No | Yes | Yes |
-| [Optique](https://optique.dev) | 1.3.5 | TypeScript | Inferred from parser combinators. The result is a discriminated union across commands. | No | Yes | Yes |
-| [Brocli](https://github.com/drizzle-team/brocli) | 0.12.1 | TypeScript | Inferred from option builders | Yes. Inside `subcommands`, `event` is `any`. Outside it, an `.enum()` positional is `string`, not the union. | Yes | Yes |
-| [trpc-cli](https://github.com/mmkal/trpc-cli) | 0.17.1 (zod 4.6.7) | TypeScript | Inferred from Zod (or other Standard Schema) input schemas | No | Yes, as nested routers | Yes |
-| [incur](https://github.com/wevm/incur) | 0.7.0 | TypeScript | Inferred from Zod schemas for `args` and `options` | No | Yes, by mounting a `Cli` | Yes |
-| [Clerc](https://github.com/clercjs/clerc) | 1.3.1 | TypeScript | Inferred from parameter strings such as `[path...]` and flag types | No | Yes, as space-separated names | Yes |
-| [Padrone](https://github.com/gkurt/padrone) | 3.0.0 (zod 4.6.7) | TypeScript | Inferred from a Zod schema per command | No | Yes | Yes |
-| [cli-forge](https://github.com/AgentEnder/cli-forge) | 1.10.0 | TypeScript | Inferred from the builder chain | No | Yes | Yes |
-| [Crust](https://github.com/chenxin-yan/crust) (`@crustjs/core`) | 0.5.5 | TypeScript | Inferred from `args` and `flags` definitions | No | Yes | Yes |
-| [cac](https://github.com/cacjs/cac) | 7.1.0 | TypeScript | Action arguments are `any[]` | Yes | No | Not run |
-| [cleye](https://github.com/privatenumber/cleye) | 2.7.0 | TypeScript | Inferred from `parameters` and `flags` | Not run | One level | Not run |
-| [meow](https://github.com/sindresorhus/meow) | 14.1.0 | JavaScript with hand-written types | Inferred from `flags` | Not run | One level | Not run |
+| Library                                                                                                          | Version checked                 | TypeScript                                                       | How parsed arguments are typed                                                                                      | `any` found                                                                                                                                    | Nested subcommands            | Runs with type stripping, no build step                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `node:util` `parseArgs`                                                                                          | Node 24.21.0                    | Built in, typed                                                  | Inferred from the `options` object. Positionals are `string[]`. The event needs a cast after a hand-written check.  | No                                                                                                                                             | No. Dispatch by hand.         | Yes                                                                                                                                                                           |
+| [Commander](https://github.com/tj/commander.js) + [extra-typings](https://github.com/commander-js/extra-typings) | 15.0.0                          | JavaScript with hand-written typings; extra-typings infers types | Inferred from the `.argument()` and `.option()` strings and `.choices()`                                            | No. `event` is the union.                                                                                                                      | Yes                           | Yes                                                                                                                                                                           |
+| [yargs](https://github.com/yargs/yargs)                                                                          | 18.2.0 (`@types/yargs` 17.0.35) | JavaScript entry; types from DefinitelyTyped for v17             | Inferred from the builder chain                                                                                     | No                                                                                                                                             | Yes                           | Yes                                                                                                                                                                           |
+| [oclif](https://github.com/oclif/core) (`@oclif/core`)                                                           | 5.1.7                           | TypeScript                                                       | Inferred from static `args` and `flags` on command classes                                                          | Yes. `flags` includes `Record<string, any>`, variadic `argv` is `unknown[]`, and an `options` arg is `string`, so the example needs two casts. | Yes, as topics                | Yes. Command discovery needs a `package.json` `oclif` block and a separate commands module: loading commands from the entry file itself left its top-level `await` unsettled. |
+| [Clipanion](https://github.com/arcanis/clipanion)                                                                | 4.0.0-rc.4                      | TypeScript                                                       | Inferred from class fields (`Option.String()` etc.) with [Typanion](https://github.com/arcanis/typanion) validators | No                                                                                                                                             | Yes, as command paths         | Yes                                                                                                                                                                           |
+| [citty](https://github.com/unjs/citty)                                                                           | 0.2.2                           | TypeScript                                                       | Inferred from the `args` object                                                                                     | No                                                                                                                                             | Yes                           | Yes                                                                                                                                                                           |
+| [gunshi](https://gunshi.dev)                                                                                     | 0.37.3                          | TypeScript                                                       | Inferred from the `args` object                                                                                     | No                                                                                                                                             | Yes                           | Yes                                                                                                                                                                           |
+| [cmd-ts](https://github.com/Schniz/cmd-ts)                                                                       | 0.15.0                          | TypeScript                                                       | Inferred from typed parsers such as `oneOf()`                                                                       | No                                                                                                                                             | Yes                           | Yes                                                                                                                                                                           |
+| [Stricli](https://bloomberg.github.io/stricli/)                                                                  | 1.3.0                           | TypeScript                                                       | From the handler's parameter types, which the parameter specs are checked against. Handlers need explicit types.    | No                                                                                                                                             | Yes, as route maps            | Yes                                                                                                                                                                           |
+| [Effect](https://github.com/Effect-TS/effect) (`effect/cli`)                                                     | 4.0.3                           | TypeScript                                                       | Inferred from `Flag` and `Argument` combinators                                                                     | No                                                                                                                                             | Yes                           | Yes                                                                                                                                                                           |
+| [Optique](https://optique.dev)                                                                                   | 1.3.5                           | TypeScript                                                       | Inferred from parser combinators. The result is a discriminated union across commands.                              | No                                                                                                                                             | Yes                           | Yes                                                                                                                                                                           |
+| [Brocli](https://github.com/drizzle-team/brocli)                                                                 | 0.12.1                          | TypeScript                                                       | Inferred from option builders                                                                                       | Yes. Inside `subcommands`, `event` is `any`. Outside it, an `.enum()` positional is `string`, not the union.                                   | Yes                           | Yes                                                                                                                                                                           |
+| [trpc-cli](https://github.com/mmkal/trpc-cli)                                                                    | 0.17.1 (zod 4.6.7)              | TypeScript                                                       | Inferred from Zod (or other Standard Schema) input schemas                                                          | No                                                                                                                                             | Yes, as nested routers        | Yes                                                                                                                                                                           |
+| [incur](https://github.com/wevm/incur)                                                                           | 0.7.0                           | TypeScript                                                       | Inferred from Zod schemas for `args` and `options`                                                                  | No                                                                                                                                             | Yes, by mounting a `Cli`      | Yes                                                                                                                                                                           |
+| [Clerc](https://github.com/clercjs/clerc)                                                                        | 1.3.1                           | TypeScript                                                       | Inferred from parameter strings such as `[path...]` and flag types                                                  | No                                                                                                                                             | Yes, as space-separated names | Yes                                                                                                                                                                           |
+| [Padrone](https://github.com/gkurt/padrone)                                                                      | 3.0.0 (zod 4.6.7)               | TypeScript                                                       | Inferred from a Zod schema per command                                                                              | No                                                                                                                                             | Yes                           | Yes                                                                                                                                                                           |
+| [cli-forge](https://github.com/AgentEnder/cli-forge)                                                             | 1.10.0                          | TypeScript                                                       | Inferred from the builder chain                                                                                     | No                                                                                                                                             | Yes                           | Yes                                                                                                                                                                           |
+| [Crust](https://github.com/chenxin-yan/crust) (`@crustjs/core`)                                                  | 0.5.5                           | TypeScript                                                       | Inferred from `args` and `flags` definitions                                                                        | No                                                                                                                                             | Yes                           | Yes                                                                                                                                                                           |
+| [cac](https://github.com/cacjs/cac)                                                                              | 7.1.0                           | TypeScript                                                       | Action arguments are `any[]`                                                                                        | Yes                                                                                                                                            | No                            | Not run                                                                                                                                                                       |
+| [cleye](https://github.com/privatenumber/cleye)                                                                  | 2.7.0                           | TypeScript                                                       | Inferred from `parameters` and `flags`                                                                              | Not run                                                                                                                                        | One level                     | Not run                                                                                                                                                                       |
+| [meow](https://github.com/sindresorhus/meow)                                                                     | 14.1.0                          | JavaScript with hand-written types                               | Inferred from `flags`                                                                                               | Not run                                                                                                                                        | One level                     | Not run                                                                                                                                                                       |
 
 Every example passed `tsc --strict --noEmit` with both module settings. With
-`--skipLibCheck` off, the libraries' own declarations had errors in trpc-cli
-(3, a missing `json-schema` types package), incur (48, in
-`@scalar/openapi-types`), Clerc (2, a missing `update-notifier` types package
-and an untyped chunk), Padrone (1), and cli-forge (14). The prototype's
-`tsconfig.json` sets `skipLibCheck`.
+`--skipLibCheck` off, the libraries' own declarations had errors in trpc-cli (3,
+a missing `json-schema` types package), incur (48, in `@scalar/openapi-types`),
+Clerc (2, a missing `update-notifier` types package and an untyped chunk),
+Padrone (1), and cli-forge (14). The prototype's `tsconfig.json` sets
+`skipLibCheck`.
 
 Variadic positionals and allowed values on a positional, both used by the
 example, aren't supported everywhere:
 
-- **Brocli** has no variadic positionals, so its example takes at most one
-  path. `start a b` fails with `Unrecognized options for command 'start': b`.
+- **Brocli** has no variadic positionals, so its example takes at most one path.
+  `start a b` fails with `Unrecognized options for command 'start': b`.
 - **citty** and **gunshi** only check allowed values on named options
-  (`type: 'enum'`), so `hook claude`'s event is checked by hand in both.
-  citty also has no variadic positional; extra positionals arrive in
-  `args._`.
+  (`type: 'enum'`), so `hook claude`'s event is checked by hand in both. citty
+  also has no variadic positional; extra positionals arrive in `args._`.
 - **cli-forge** takes a variadic positional, but its help shows `[path]`.
 
 ### Help
 
-| Library | Help per command | Full reference in one call | Machine-readable help | Allowed values in `hook claude --help` | ANSI codes when piped | Generated docs | Shell completion |
-| ------- | ---------------- | -------------------------- | --------------------- | -------------------------------------- | --------------------- | -------------- | ---------------- |
-| `parseArgs` | Hand-written | Hand-written | No | Hand-written | No | No | No |
-| Commander | Yes, and `help <command>` | No | No | Yes | No | No | No |
-| yargs | Yes | No | No | Yes | No | No | bash and zsh, with `.completion()` ([docs](https://yargs.js.org/docs/)) |
-| oclif | Yes, with topics | No | No | Yes | No | Markdown with `oclif readme` from the separate `oclif` dev CLI ([docs](https://github.com/oclif/oclif/blob/main/docs/readme.md)) | [`@oclif/plugin-autocomplete`](https://github.com/oclif/plugin-autocomplete) |
-| Clipanion | Yes | Yes, as JSON | `--clipanion=definitions` (with `Builtins.DefinitionsCommand`) | No | **Yes** | No | No |
-| citty | Yes | No | No | Only in description text | **Yes** | No | No |
-| gunshi | Yes | No | No | Only in description text | No | `gunshi/generator` renders usage to a string | [`@gunshi/plugin-completion`](https://www.npmjs.com/package/@gunshi/plugin-completion) |
-| cmd-ts | Yes | No | No | No | No | No | No |
-| Stricli | Yes | `generateHelpTextForAllCommands()` API | No | No | No | The same API | [`@stricli/auto-complete`](https://www.npmjs.com/package/@stricli/auto-complete) |
-| Effect | Yes | No | No | No (`event choice`) | No | No (a `HelpDoc` model in the API) | Built in: `--completions` for bash, zsh, fish, PowerShell, sh |
-| Optique | Yes, and `help <command>` | Root help lists every command's usage line | No | Yes, with `showChoices` | No | Man pages with [`@optique/man`](https://www.npmjs.com/package/@optique/man) | Built in: `completion` for bash, zsh, fish, PowerShell, Nushell |
-| Brocli | Yes | `commandsInfo()` API | `commandsInfo()` returns JSON-ready objects | Yes, in the usage line | No | The same API | No |
-| trpc-cli | Yes (Commander underneath) | `deepHelp()` API | `toJSON()` API | No | No | The same APIs | With [omelette](https://www.npmjs.com/package/omelette), an optional peer |
-| incur | Yes | `--llms-full` (Markdown) | `--llms-full --format json` (JSON Schema per command), `<command> --schema` | Yes, in the usage line | No | `skills add` writes agent skill files | Built in: `completions` |
-| Clerc | Yes, and `help <command>` | No | No | Yes | No | No | `@clerc/plugin-completions`, not enabled by `Cli()` |
-| Padrone | Yes, and `help <command>` | `--help --detail full` | `--help --format json` (also `markdown`, `html`) | Yes | No | The same `--format` options | Built in: `completion(shell)` |
-| cli-forge | Yes, but positionals aren't listed | No | No | No | No | `cli-forge generate-documentation` writes Markdown, JSON, or `llms.txt` | bash, zsh, fish, PowerShell scripts in the API |
-| Crust | Yes, with `@crustjs/extensions` | No | No | Yes | No | [`@crustjs/man`](https://www.npmjs.com/package/@crustjs/man) and [`@crustjs/skills`](https://www.npmjs.com/package/@crustjs/skills) | `completion()` extension: bash, zsh, fish |
+| Library     | Help per command                   | Full reference in one call                 | Machine-readable help                                                       | Allowed values in `hook claude --help` | ANSI codes when piped | Generated docs                                                                                                                      | Shell completion                                                                       |
+| ----------- | ---------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------- | -------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `parseArgs` | Hand-written                       | Hand-written                               | No                                                                          | Hand-written                           | No                    | No                                                                                                                                  | No                                                                                     |
+| Commander   | Yes, and `help <command>`          | No                                         | No                                                                          | Yes                                    | No                    | No                                                                                                                                  | No                                                                                     |
+| yargs       | Yes                                | No                                         | No                                                                          | Yes                                    | No                    | No                                                                                                                                  | bash and zsh, with `.completion()` ([docs](https://yargs.js.org/docs/))                |
+| oclif       | Yes, with topics                   | No                                         | No                                                                          | Yes                                    | No                    | Markdown with `oclif readme` from the separate `oclif` dev CLI ([docs](https://github.com/oclif/oclif/blob/main/docs/readme.md))    | [`@oclif/plugin-autocomplete`](https://github.com/oclif/plugin-autocomplete)           |
+| Clipanion   | Yes                                | Yes, as JSON                               | `--clipanion=definitions` (with `Builtins.DefinitionsCommand`)              | No                                     | **Yes**               | No                                                                                                                                  | No                                                                                     |
+| citty       | Yes                                | No                                         | No                                                                          | Only in description text               | **Yes**               | No                                                                                                                                  | No                                                                                     |
+| gunshi      | Yes                                | No                                         | No                                                                          | Only in description text               | No                    | `gunshi/generator` renders usage to a string                                                                                        | [`@gunshi/plugin-completion`](https://www.npmjs.com/package/@gunshi/plugin-completion) |
+| cmd-ts      | Yes                                | No                                         | No                                                                          | No                                     | No                    | No                                                                                                                                  | No                                                                                     |
+| Stricli     | Yes                                | `generateHelpTextForAllCommands()` API     | No                                                                          | No                                     | No                    | The same API                                                                                                                        | [`@stricli/auto-complete`](https://www.npmjs.com/package/@stricli/auto-complete)       |
+| Effect      | Yes                                | No                                         | No                                                                          | No (`event choice`)                    | No                    | No (a `HelpDoc` model in the API)                                                                                                   | Built in: `--completions` for bash, zsh, fish, PowerShell, sh                          |
+| Optique     | Yes, and `help <command>`          | Root help lists every command's usage line | No                                                                          | Yes, with `showChoices`                | No                    | Man pages with [`@optique/man`](https://www.npmjs.com/package/@optique/man)                                                         | Built in: `completion` for bash, zsh, fish, PowerShell, Nushell                        |
+| Brocli      | Yes                                | `commandsInfo()` API                       | `commandsInfo()` returns JSON-ready objects                                 | Yes, in the usage line                 | No                    | The same API                                                                                                                        | No                                                                                     |
+| trpc-cli    | Yes (Commander underneath)         | `deepHelp()` API                           | `toJSON()` API                                                              | No                                     | No                    | The same APIs                                                                                                                       | With [omelette](https://www.npmjs.com/package/omelette), an optional peer              |
+| incur       | Yes                                | `--llms-full` (Markdown)                   | `--llms-full --format json` (JSON Schema per command), `<command> --schema` | Yes, in the usage line                 | No                    | `skills add` writes agent skill files                                                                                               | Built in: `completions`                                                                |
+| Clerc       | Yes, and `help <command>`          | No                                         | No                                                                          | Yes                                    | No                    | No                                                                                                                                  | `@clerc/plugin-completions`, not enabled by `Cli()`                                    |
+| Padrone     | Yes, and `help <command>`          | `--help --detail full`                     | `--help --format json` (also `markdown`, `html`)                            | Yes                                    | No                    | The same `--format` options                                                                                                         | Built in: `completion(shell)`                                                          |
+| cli-forge   | Yes, but positionals aren't listed | No                                         | No                                                                          | No                                     | No                    | `cli-forge generate-documentation` writes Markdown, JSON, or `llms.txt`                                                             | bash, zsh, fish, PowerShell scripts in the API                                         |
+| Crust       | Yes, with `@crustjs/extensions`    | No                                         | No                                                                          | Yes                                    | No                    | [`@crustjs/man`](https://www.npmjs.com/package/@crustjs/man) and [`@crustjs/skills`](https://www.npmjs.com/package/@crustjs/skills) | `completion()` extension: bash, zsh, fish                                              |
 
 Notes:
 
-- **Colour when piped.** Clipanion and citty wrote ANSI colour codes into
-  piped stdout, because they decide colour from `TERM` rather than whether
-  stdout is a TTY. Both stopped with `NO_COLOR=1` or `TERM=dumb` (checked by
-  hand). Clipanion's [source](https://github.com/arcanis/clipanion/blob/master/sources/platform/node.ts)
-  uses `tty.WriteStream.prototype.getColorDepth()`, which reads the
-  environment. Clipanion's help also draws ruled headers with 256-colour
-  codes.
+- **Colour when piped.** Clipanion and citty wrote ANSI colour codes into piped
+  stdout, because they decide colour from `TERM` rather than whether stdout is a
+  TTY. Both stopped with `NO_COLOR=1` or `TERM=dumb` (checked by hand).
+  Clipanion's
+  [source](https://github.com/arcanis/clipanion/blob/master/sources/platform/node.ts)
+  uses `tty.WriteStream.prototype.getColorDepth()`, which reads the environment.
+  Clipanion's help also draws ruled headers with 256-colour codes.
 - **Built-in agent-facing help.** Only incur, Padrone, and Clipanion print a
-  full or machine-readable reference from the CLI itself. Stricli,
-  Brocli, and trpc-cli expose one through an API, which a `help --all`
-  command could print. cli-forge and Crust generate files at build time.
+  full or machine-readable reference from the CLI itself. Stricli, Brocli, and
+  trpc-cli expose one through an API, which a `help --all` command could print.
+  cli-forge and Crust generate files at build time.
 - **incur's `--llms`** lists commands only; `--llms-full` adds arguments and
-  options. Its usage line and schema mark `paths` as required although it has
-  a default of `[]`, and `start` with no paths ran.
-- **gunshi's header.** gunshi printed a header line, the CLI description,
-  before every command's output, including the JSON from `start`, until
+  options. Its usage line and schema mark `paths` as required although it has a
+  default of `[]`, and `start` with no paths ran.
+- **gunshi's header.** gunshi printed a header line, the CLI description, before
+  every command's output, including the JSON from `start`, until
   `renderHeader: null` was set. Its root help also shows an empty row for the
   required entry command.
 - **Stricli** showed `<path>...` in `start --help`, which reads as required,
@@ -227,77 +225,76 @@ Notes:
 
 ### Usage errors
 
-| Library | `start --nope` | `hook claude Stopp` | `strat` | Stream | Exit code |
-| ------- | -------------- | ------------------- | ------- | ------ | --------- |
-| `parseArgs` | Node's message, which suggests `--` | Hand-written | Hand-written | stderr | Chosen by the app (2) |
-| Commander | Did you mean `--open`? | Lists allowed values | Did you mean `start`? | stderr | 1 |
-| yargs | `Unknown argument: nope`, after the command's help | Lists allowed values, after help | Did you mean `start`?, after help | stderr | 1 |
-| oclif | `Nonexistent flag`, then usage | Lists allowed values | `command strat not found` (suggestions need [`@oclif/plugin-not-found`](https://github.com/oclif/plugin-not-found)) | stderr | 2 |
-| Clipanion | `Unsupported option name` | Lists allowed values | Lists every command | **stdout** | 1 |
-| citty | **Accepted silently** | App's own error with a stack trace | `Unknown command`, help on stdout | stderr | **0** for the unknown option, 1 otherwise |
-| gunshi | `Unknown option` (needs `strict: true`) | App's own error | `Command not found` | stdout for parse errors | 1 (the app catches the rejected promise) |
-| cmd-ts | Points at the token with `^` | Lists allowed values | Points at the token | stderr | 1 |
-| Stricli | Did you mean `--open`? | Lists allowed values | Did you mean `start`? | stderr | **252 and 251** (`ExitCode` −4 and −5) |
-| Effect | Did you mean `--open`? | Lists allowed values | Did you mean `start`? | Help on stdout, error on stderr | 1 |
-| Optique | `Unexpected option or subcommand` | Lists allowed values | Did you mean `start`? | stderr | 1 (configurable with `errorExitCode`) |
-| Brocli | `Unrecognized options` | Lists allowed values | `Unknown command` | stderr | 1 |
-| trpc-cli | Did you mean `--open`? | Lists allowed values | Did you mean `start`? | stderr | 1 |
-| incur | `Unknown flag` | Zod's message and issue list | Did you mean `start`?, with suggested commands | **stdout**, as TOON or JSON | 1 |
-| Clerc | `Unexpected flag` (with `strictFlagsPlugin`) | Lists allowed values | Did you mean `start`? (with `notFoundPlugin`) | stderr | 1 |
-| Padrone | Did you mean `--open`? | Lists allowed values | Did you mean `start`? | stderr | 1 |
-| cli-forge | `Unknown argument`, after help (needs `.strict()`) | Lists allowed values, after help | `Unknown argument: strat`, after help | **stdout** | 1 |
-| Crust | `Unknown flag` | Lists allowed values | Did you mean `start`? (with `didYouMean()`) | stderr | 1 |
+| Library     | `start --nope`                                     | `hook claude Stopp`                | `strat`                                                                                                             | Stream                          | Exit code                                 |
+| ----------- | -------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------- |
+| `parseArgs` | Node's message, which suggests `--`                | Hand-written                       | Hand-written                                                                                                        | stderr                          | Chosen by the app (2)                     |
+| Commander   | Did you mean `--open`?                             | Lists allowed values               | Did you mean `start`?                                                                                               | stderr                          | 1                                         |
+| yargs       | `Unknown argument: nope`, after the command's help | Lists allowed values, after help   | Did you mean `start`?, after help                                                                                   | stderr                          | 1                                         |
+| oclif       | `Nonexistent flag`, then usage                     | Lists allowed values               | `command strat not found` (suggestions need [`@oclif/plugin-not-found`](https://github.com/oclif/plugin-not-found)) | stderr                          | 2                                         |
+| Clipanion   | `Unsupported option name`                          | Lists allowed values               | Lists every command                                                                                                 | **stdout**                      | 1                                         |
+| citty       | **Accepted silently**                              | App's own error with a stack trace | `Unknown command`, help on stdout                                                                                   | stderr                          | **0** for the unknown option, 1 otherwise |
+| gunshi      | `Unknown option` (needs `strict: true`)            | App's own error                    | `Command not found`                                                                                                 | stdout for parse errors         | 1 (the app catches the rejected promise)  |
+| cmd-ts      | Points at the token with `^`                       | Lists allowed values               | Points at the token                                                                                                 | stderr                          | 1                                         |
+| Stricli     | Did you mean `--open`?                             | Lists allowed values               | Did you mean `start`?                                                                                               | stderr                          | **252 and 251** (`ExitCode` −4 and −5)    |
+| Effect      | Did you mean `--open`?                             | Lists allowed values               | Did you mean `start`?                                                                                               | Help on stdout, error on stderr | 1                                         |
+| Optique     | `Unexpected option or subcommand`                  | Lists allowed values               | Did you mean `start`?                                                                                               | stderr                          | 1 (configurable with `errorExitCode`)     |
+| Brocli      | `Unrecognized options`                             | Lists allowed values               | `Unknown command`                                                                                                   | stderr                          | 1                                         |
+| trpc-cli    | Did you mean `--open`?                             | Lists allowed values               | Did you mean `start`?                                                                                               | stderr                          | 1                                         |
+| incur       | `Unknown flag`                                     | Zod's message and issue list       | Did you mean `start`?, with suggested commands                                                                      | **stdout**, as TOON or JSON     | 1                                         |
+| Clerc       | `Unexpected flag` (with `strictFlagsPlugin`)       | Lists allowed values               | Did you mean `start`? (with `notFoundPlugin`)                                                                       | stderr                          | 1                                         |
+| Padrone     | Did you mean `--open`?                             | Lists allowed values               | Did you mean `start`?                                                                                               | stderr                          | 1                                         |
+| cli-forge   | `Unknown argument`, after help (needs `.strict()`) | Lists allowed values, after help   | `Unknown argument: strat`, after help                                                                               | **stdout**                      | 1                                         |
+| Crust       | `Unknown flag`                                     | Lists allowed values               | Did you mean `start`? (with `didYouMean()`)                                                                         | stderr                          | 1                                         |
 
 Without `.strict()`, cli-forge accepted `--nope`, and `strat` printed a stack
-trace (`agent-diff requires a command`). Without `strict: true`, gunshi
-accepted `--nope`. Stricli is the only library that documents distinct exit
-codes for usage errors, as its exported `ExitCode` enum, but they're negative
-numbers, which the shell sees as 251 and 252.
+trace (`agent-diff requires a command`). Without `strict: true`, gunshi accepted
+`--nope`. Stricli is the only library that documents distinct exit codes for
+usage errors, as its exported `ExitCode` enum, but they're negative numbers,
+which the shell sees as 251 and 252.
 
 ### Size, startup, and maintenance
 
-Startup is the median of `node cli.ts start --help`. An empty `cli.ts` took
-187 ms (85 ms with the compile cache), so Node itself is most of the
-baseline.
+Startup is the median of `node cli.ts start --help`. An empty `cli.ts` took 187
+ms (85 ms with the compile cache), so Node itself is most of the baseline.
 
-| Library | Packages installed | Install size | Startup | With compile cache | Example lines (non-blank) | Latest release | Releases in 12 months | GitHub |
-| ------- | ------------------ | ------------ | ------- | ------------------ | ------------------------- | -------------- | --------------------- | ------ |
-| `parseArgs` | 0 | 0 | 238 ms | 103 ms | 64 (59) | Node 24 | | |
-| Commander | 2 | 324 KB | 303 ms | 164 ms | 32 (26) | 15.0.0, 2026-05-29 | 3 (+1 pre-release) | 28.4k stars, pushed 2026-10-12 |
-| yargs | 17 | 1.2 MB | 515 ms | 365 ms | 46 (44) | 18.2.0, 2026-09-20 | 4 (+2) | 11.5k, 2026-10-13 |
-| oclif | 38 | 3.9 MB | 621 ms | 436 ms | 44 (39), plus 13 lines of `package.json` | 5.1.7, 2026-10-10 | 51 (+1) | 318, 2026-10-10 |
-| Clipanion | 2 | 636 KB | 322 ms | 179 ms | 47 (42) | 4.0.0-rc.4, 2024-09-06 | **0** | 1.3k, 2024-09-06 |
-| citty | 1 | 76 KB | 245 ms | 112 ms | 47 (42) | 0.2.2, 2026-04-01 | 3 | 1.3k, 2026-10-13 |
-| gunshi | 1 | 332 KB | 290 ms | 147 ms | 61 (54) | 0.37.3, 2026-09-16 | 32 (+11) | 472, 2026-10-12 |
-| cmd-ts | 7 | 1.3 MB | 334 ms | 192 ms | 40 (35) | 0.15.0, 2026-02-12 | 2 | 365, 2026-04-22 |
-| Stricli | 1 | 356 KB | 253 ms | 116 ms | 48 (41) | 1.3.0, 2026-07-16 | 10 | 1.1k, 2026-09-09 |
-| Effect | 14 | **80 MB** | **2,752 ms** | 2,303 ms | 45 (39) | 4.0.3, 2026-10-11 | 36 (+116) | 17.3k, 2026-10-13 |
-| Optique | 2 | 4.1 MB | 555 ms | 383 ms | 57 (51) | 1.3.5, 2026-10-12 | 115 (+790 dev builds) | 737, 2026-10-13 |
-| Brocli | 1 | 368 KB | 252 ms | 112 ms | 39 (34) | 0.12.1, 2026-09-04 | 2 | 480, 2026-09-04 |
-| trpc-cli | 3 | 16 MB | 673 ms | 471 ms | 33 (30) | 0.17.1, 2026-10-01 | 13 | 375, 2026-10-01 |
-| incur | 8 | 17 MB | 658 ms | 456 ms | 30 (27) | 0.7.0, 2026-10-01 | 81 (first release 2026-02-26) | 630, 2026-10-01 |
-| Clerc | 16 | 760 KB | 541 ms | 385 ms | 28 (26) | 1.3.1, 2026-02-22 | 10 (+32) | 226, 2026-10-10 |
-| Padrone | 7 | 15 MB | 807 ms | 600 ms | 36 (34) | 3.0.0, 2026-09-30 | 16 (+4); first release 2025-12-27 | **1**, 2026-09-30 |
-| cli-forge | 3 | 3.6 MB | 329 ms | 188 ms | 41 (39) | 1.10.0, 2026-04-23 | 22 | 11, 2026-08-27 |
-| Crust | 5 | 644 KB | 374 ms | 236 ms | 40 (34) | 0.5.5, 2026-10-08 | 36; first release 2026-02-18 | 409, 2026-10-09 |
-| cac | 1 | 68 KB | | | | 7.1.0, 2026-10-11 | 3 (+1) | 3.1k, 2026-10-11 |
-| cleye | 4 | 332 KB | | | | 2.7.0, 2026-09-19 | 11 (+2) | 694, 2026-09-19 |
-| meow | 1 | 444 KB | | | | 14.1.0, 2026-02-20 | 1 | 3.7k, 2026-07-21 |
+| Library     | Packages installed | Install size | Startup      | With compile cache | Example lines (non-blank)                | Latest release         | Releases in 12 months             | GitHub                         |
+| ----------- | ------------------ | ------------ | ------------ | ------------------ | ---------------------------------------- | ---------------------- | --------------------------------- | ------------------------------ |
+| `parseArgs` | 0                  | 0            | 238 ms       | 103 ms             | 64 (59)                                  | Node 24                |                                   |                                |
+| Commander   | 2                  | 324 KB       | 303 ms       | 164 ms             | 32 (26)                                  | 15.0.0, 2026-05-29     | 3 (+1 pre-release)                | 28.4k stars, pushed 2026-10-12 |
+| yargs       | 17                 | 1.2 MB       | 515 ms       | 365 ms             | 46 (44)                                  | 18.2.0, 2026-09-20     | 4 (+2)                            | 11.5k, 2026-10-13              |
+| oclif       | 38                 | 3.9 MB       | 621 ms       | 436 ms             | 44 (39), plus 13 lines of `package.json` | 5.1.7, 2026-10-10      | 51 (+1)                           | 318, 2026-10-10                |
+| Clipanion   | 2                  | 636 KB       | 322 ms       | 179 ms             | 47 (42)                                  | 4.0.0-rc.4, 2024-09-06 | **0**                             | 1.3k, 2024-09-06               |
+| citty       | 1                  | 76 KB        | 245 ms       | 112 ms             | 47 (42)                                  | 0.2.2, 2026-04-01      | 3                                 | 1.3k, 2026-10-13               |
+| gunshi      | 1                  | 332 KB       | 290 ms       | 147 ms             | 61 (54)                                  | 0.37.3, 2026-09-16     | 32 (+11)                          | 472, 2026-10-12                |
+| cmd-ts      | 7                  | 1.3 MB       | 334 ms       | 192 ms             | 40 (35)                                  | 0.15.0, 2026-02-12     | 2                                 | 365, 2026-04-22                |
+| Stricli     | 1                  | 356 KB       | 253 ms       | 116 ms             | 48 (41)                                  | 1.3.0, 2026-07-16      | 10                                | 1.1k, 2026-09-09               |
+| Effect      | 14                 | **80 MB**    | **2,752 ms** | 2,303 ms           | 45 (39)                                  | 4.0.3, 2026-10-11      | 36 (+116)                         | 17.3k, 2026-10-13              |
+| Optique     | 2                  | 4.1 MB       | 555 ms       | 383 ms             | 57 (51)                                  | 1.3.5, 2026-10-12      | 115 (+790 dev builds)             | 737, 2026-10-13                |
+| Brocli      | 1                  | 368 KB       | 252 ms       | 112 ms             | 39 (34)                                  | 0.12.1, 2026-09-04     | 2                                 | 480, 2026-09-04                |
+| trpc-cli    | 3                  | 16 MB        | 673 ms       | 471 ms             | 33 (30)                                  | 0.17.1, 2026-10-01     | 13                                | 375, 2026-10-01                |
+| incur       | 8                  | 17 MB        | 658 ms       | 456 ms             | 30 (27)                                  | 0.7.0, 2026-10-01      | 81 (first release 2026-02-26)     | 630, 2026-10-01                |
+| Clerc       | 16                 | 760 KB       | 541 ms       | 385 ms             | 28 (26)                                  | 1.3.1, 2026-02-22      | 10 (+32)                          | 226, 2026-10-10                |
+| Padrone     | 7                  | 15 MB        | 807 ms       | 600 ms             | 36 (34)                                  | 3.0.0, 2026-09-30      | 16 (+4); first release 2025-12-27 | **1**, 2026-09-30              |
+| cli-forge   | 3                  | 3.6 MB       | 329 ms       | 188 ms             | 41 (39)                                  | 1.10.0, 2026-04-23     | 22                                | 11, 2026-08-27                 |
+| Crust       | 5                  | 644 KB       | 374 ms       | 236 ms             | 40 (34)                                  | 0.5.5, 2026-10-08      | 36; first release 2026-02-18      | 409, 2026-10-09                |
+| cac         | 1                  | 68 KB        |              |                    |                                          | 7.1.0, 2026-10-11      | 3 (+1)                            | 3.1k, 2026-10-11               |
+| cleye       | 4                  | 332 KB       |              |                    |                                          | 2.7.0, 2026-09-19      | 11 (+2)                           | 694, 2026-09-19                |
+| meow        | 1                  | 444 KB       |              |                    |                                          | 14.1.0, 2026-02-20     | 1                                 | 3.7k, 2026-07-21               |
 
 Where the size goes:
 
 - **Effect:** `effect` itself is 56 MB, and `@effect/platform-node` brings
-  `undici`, `ws`, and `redis` (15 MB), a peer dependency npm installs. Most
-  of the startup time is imports: `import('@effect/platform-node')` alone
-  took 2.2 s, and importing subpaths (`@effect/platform-node/NodeRuntime`,
-  `/NodeServices`) instead of the package root brought the imports to 1.4 s
-  in a single run. The Effect 3 package, `@effect/cli` 0.77.2, installs 19
-  packages and 73 MB.
+  `undici`, `ws`, and `redis` (15 MB), a peer dependency npm installs. Most of
+  the startup time is imports: `import('@effect/platform-node')` alone took 2.2
+  s, and importing subpaths (`@effect/platform-node/NodeRuntime`,
+  `/NodeServices`) instead of the package root brought the imports to 1.4 s in a
+  single run. The Effect 3 package, `@effect/cli` 0.77.2, installs 19 packages
+  and 73 MB.
 - **trpc-cli, incur, and Padrone:** about 8 MB of each is Zod. incur also
   installs `@modelcontextprotocol/server` (3.5 MB) and `yaml`.
-- **oclif:** `@oclif/core` brings 37 packages, including `ejs`, `minimatch`,
-  and `supports-color`. oclif can write a command manifest to skip discovery
-  at startup, which wasn't tried.
+- **oclif:** `@oclif/core` brings 37 packages, including `ejs`, `minimatch`, and
+  `supports-color`. oclif can write a command manifest to skip discovery at
+  startup, which wasn't tried.
 
 Every library is published under MIT except Stricli, Brocli, and trpc-cli
 (Apache-2.0) and cli-forge (ISC). No repository is archived. Clipanion's last
@@ -307,32 +304,31 @@ hasn't been pushed to since.
 ### Agent-facing features
 
 - **incur** is built for agents
-  ([README](https://github.com/wevm/incur#readme)). Every CLI gets `--llms`
-  and `--llms-full` (a Markdown manifest), `--format json` (JSON Schema per
+  ([README](https://github.com/wevm/incur#readme)). Every CLI gets `--llms` and
+  `--llms-full` (a Markdown manifest), `--format json` (JSON Schema per
   command), `<command> --schema`, `skills add` (writes agent skill files),
   `--json` and `--format toon|json|yaml|md|jsonl` for command output,
-  `--filter-output`, and `--token-limit` for paging long output. Commands
-  return values, and incur formats them, defaulting to
-  [TOON](https://github.com/toon-format/toon). The `run` context has an
-  `agent` flag, true when stdout isn't a TTY. Errors are structured, with a
-  code, and can carry suggested next commands. It also serves the CLI as an
-  MCP server (`--mcp`, `mcp add`), and as an HTTP API. A command can opt out
-  of MCP with `mcp: false`. No root option to remove the MCP built-ins was
-  found in its types, and `--json` and `--format` are reserved globally.
+  `--filter-output`, and `--token-limit` for paging long output. Commands return
+  values, and incur formats them, defaulting to
+  [TOON](https://github.com/toon-format/toon). The `run` context has an `agent`
+  flag, true when stdout isn't a TTY. Errors are structured, with a code, and
+  can carry suggested next commands. It also serves the CLI as an MCP server
+  (`--mcp`, `mcp add`), and as an HTTP API. A command can opt out of MCP with
+  `mcp: false`. No root option to remove the MCP built-ins was found in its
+  types, and `--json` and `--format` are reserved globally.
 - **Padrone** derives help in text, Markdown, HTML, or JSON
-  (`--help --format json`), and `--help --detail full` prints every command.
-  It also offers an MCP server, a REST server, a Vercel AI SDK tool
-  definition, and a REPL, and an extension adds `--json` with a jq subset
-  ([README](https://github.com/gkurt/padrone#readme)). Its GitHub repository
-  had 1 star when checked.
+  (`--help --format json`), and `--help --detail full` prints every command. It
+  also offers an MCP server, a REST server, a Vercel AI SDK tool definition, and
+  a REPL, and an extension adds `--json` with a jq subset
+  ([README](https://github.com/gkurt/padrone#readme)). Its GitHub repository had
+  1 star when checked.
 - **cli-forge** generates Markdown, JSON, and an `llms.txt` "for AI agent
-  consumption" from the CLI definition, as a build step. Markdown and
-  `llms.txt` need `markdown-factory`, an optional peer, installed
-  ([README](https://github.com/AgentEnder/cli-forge#readme); checked by
-  hand).
+  consumption" from the CLI definition, as a build step. Markdown and `llms.txt`
+  need `markdown-factory`, an optional peer, installed
+  ([README](https://github.com/AgentEnder/cli-forge#readme); checked by hand).
 - **Crust** has separate packages to generate agent skills
-  ([`@crustjs/skills`](https://www.npmjs.com/package/@crustjs/skills)) and
-  man pages, and to serve commands over MCP
+  ([`@crustjs/skills`](https://www.npmjs.com/package/@crustjs/skills)) and man
+  pages, and to serve commands over MCP
   ([`@crustjs/mcp`](https://www.npmjs.com/package/@crustjs/mcp)).
 - **gunshi** detects when it runs under an AI coding agent
   ([`gunshi/agent`](https://gunshi.dev/guide/advanced/ai-agent-detection)),
@@ -340,8 +336,8 @@ hasn't been pushed to since.
 - **oclif** can add a `--json` flag to a command (`enableJsonFlag`), which
   prints the command's return value as JSON
   ([docs](https://oclif.io/docs/json)).
-- **Global options** such as `--json`: yargs options on the root apply to
-  every command, Commander exposes them with `optsWithGlobals()`, Effect with
+- **Global options** such as `--json`: yargs options on the root apply to every
+  command, Commander exposes them with `optsWithGlobals()`, Effect with
   `Command.withSharedFlags`, Brocli with `globals`, Clerc with `globalFlag()`,
   Padrone with `.globalArgs()`, and Stricli with `global` application flags.
   This came from their docs and types, not from running examples.
@@ -350,39 +346,41 @@ hasn't been pushed to since.
 
 These APIs come from each library's docs and types. None was exercised.
 
-| Library | In-process run with injected arguments and output |
-| ------- | -------------------------------------------------- |
-| `parseArgs` | A plain function of `argv`. Output is whatever the app writes. |
-| Commander | `parseAsync(argv, { from: 'user' })`, `exitOverride()`, `configureOutput({ writeOut, writeErr })` |
-| yargs | `parse(args, context, (err, argv, output) => …)` and `exitProcess(false)` |
-| oclif | [`@oclif/test`](https://www.npmjs.com/package/@oclif/test) `runCommand()` captures stdout and stderr |
-| Clipanion | `cli.run(argv, { stdout, stderr, stdin })` returns the exit code |
-| citty | `runCommand(cmd, { rawArgs })`. Help and errors go through `console`. |
-| gunshi | `cli(args, entry, options)`. Output goes through `console`. |
-| cmd-ts | `runSafely()` and `dryRun()` return a result instead of exiting |
-| Stricli | `run(app, inputs, { process })` with a fake `process` for stdout, stderr, and exit code |
-| Effect | `Command.runWith()` with test layers for `Stdio` and `Terminal` |
-| Optique | `run(parser, { args, stdout, stderr, onExit })`, or `parse()` with no I/O |
-| Brocli | `test(command, args)` parses without running the handler |
-| trpc-cli | `cli.run({ argv, process: { exit }, logger })` |
-| incur | `cli.serve(argv, { stdout, exit, env })` |
-| Clerc | `cli.parse({ argv })`. Output goes through `console`. |
-| Padrone | `eval(string)`, `run(name, args)`, `api()`, and `.runtime()` for custom I/O |
-| cli-forge | `TestHarness.parse(args)` |
-| Crust | `app.run(path, input)` captures output; `execute({ argv, io })`; [`@crustjs/testing`](https://www.npmjs.com/package/@crustjs/testing) |
+| Library     | In-process run with injected arguments and output                                                                                     |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `parseArgs` | A plain function of `argv`. Output is whatever the app writes.                                                                        |
+| Commander   | `parseAsync(argv, { from: 'user' })`, `exitOverride()`, `configureOutput({ writeOut, writeErr })`                                     |
+| yargs       | `parse(args, context, (err, argv, output) => …)` and `exitProcess(false)`                                                             |
+| oclif       | [`@oclif/test`](https://www.npmjs.com/package/@oclif/test) `runCommand()` captures stdout and stderr                                  |
+| Clipanion   | `cli.run(argv, { stdout, stderr, stdin })` returns the exit code                                                                      |
+| citty       | `runCommand(cmd, { rawArgs })`. Help and errors go through `console`.                                                                 |
+| gunshi      | `cli(args, entry, options)`. Output goes through `console`.                                                                           |
+| cmd-ts      | `runSafely()` and `dryRun()` return a result instead of exiting                                                                       |
+| Stricli     | `run(app, inputs, { process })` with a fake `process` for stdout, stderr, and exit code                                               |
+| Effect      | `Command.runWith()` with test layers for `Stdio` and `Terminal`                                                                       |
+| Optique     | `run(parser, { args, stdout, stderr, onExit })`, or `parse()` with no I/O                                                             |
+| Brocli      | `test(command, args)` parses without running the handler                                                                              |
+| trpc-cli    | `cli.run({ argv, process: { exit }, logger })`                                                                                        |
+| incur       | `cli.serve(argv, { stdout, exit, env })`                                                                                              |
+| Clerc       | `cli.parse({ argv })`. Output goes through `console`.                                                                                 |
+| Padrone     | `eval(string)`, `run(name, args)`, `api()`, and `.runtime()` for custom I/O                                                           |
+| cli-forge   | `TestHarness.parse(args)`                                                                                                             |
+| Crust       | `app.run(path, input)` captures output; `execute({ argv, io })`; [`@crustjs/testing`](https://www.npmjs.com/package/@crustjs/testing) |
 
 ### Examples and their output
 
-Each example's source is linked. The output below is exactly what each
-example printed with stdout not a TTY, except that ANSI colour codes were
-removed where noted, and the scratch directory's path is shown as
-`<examples>`. A command that wrote to both streams shows `[stdout]` then
-`[stderr]`, which is the order of the blocks, not of the writes. Long output
-is cut where noted.
+Each example's source is linked. The output below is exactly what each example
+printed with stdout not a TTY, except that ANSI colour codes were removed where
+noted, and the scratch directory's path is shown as `<examples>`. A command that
+wrote to both streams shows `[stdout]` then `[stderr]`, which is the order of
+the blocks, not of the writes. Long output is cut where noted.
 
 #### `node:util` `parseArgs` (baseline)
 
-[Source](0002-typescript-cli-libraries/parseargs/cli.ts). 64 lines (59 non-blank). `start --help` started in 238 ms. Hand-written usage string and dispatch, with the event checked by hand. Exit code 2 for usage errors is the example's choice.
+[Source](0004-typescript-cli-libraries/parseargs/cli.ts). 64 lines (59
+non-blank). `start --help` started in 238 ms. Hand-written usage string and
+dispatch, with the event checked by hand. Exit code 2 for usage errors is the
+example's choice.
 
 <details>
 <summary>Output</summary>
@@ -456,7 +454,9 @@ agent-diff: Unknown command "strat". Run `agent-diff --help`.
 
 #### Commander with extra-typings
 
-[Source](0002-typescript-cli-libraries/commander/cli.ts). 32 lines (26 non-blank). `start --help` started in 303 ms, against 238 ms for `parseArgs` in the same run. Default settings.
+[Source](0004-typescript-cli-libraries/commander/cli.ts). 32 lines (26
+non-blank). `start --help` started in 303 ms, against 238 ms for `parseArgs` in
+the same run. Default settings.
 
 <details>
 <summary>Output</summary>
@@ -526,7 +526,9 @@ error: unknown command 'strat'
 
 #### yargs
 
-[Source](0002-typescript-cli-libraries/yargs/cli.ts). 46 lines (44 non-blank). `start --help` started in 515 ms, against 238 ms for `parseArgs` in the same run. Uses `.strict()`, `.demandCommand(1)`, and `.recommendCommands()`.
+[Source](0004-typescript-cli-libraries/yargs/cli.ts). 46 lines (44 non-blank).
+`start --help` started in 515 ms, against 238 ms for `parseArgs` in the same
+run. Uses `.strict()`, `.demandCommand(1)`, and `.recommendCommands()`.
 
 <details>
 <summary>Output</summary>
@@ -639,7 +641,14 @@ Did you mean start?
 
 #### oclif
 
-44 lines (39 non-blank). `start --help` started in 621 ms, against 238 ms for `parseArgs` in the same run. Two files, [`cli.ts`](0002-typescript-cli-libraries/oclif/cli.ts) and [`commands.ts`](0002-typescript-cli-libraries/oclif/commands.ts), plus the `oclif` block in [`package.json`](0002-typescript-cli-libraries/oclif/package.json). `start` sets `strict = false` to allow several paths. The version line shows the example's package name.
+44 lines (39 non-blank). `start --help` started in 621 ms, against 238 ms for
+`parseArgs` in the same run. Two files,
+[`cli.ts`](0004-typescript-cli-libraries/oclif/cli.ts) and
+[`commands.ts`](0004-typescript-cli-libraries/oclif/commands.ts), plus the
+`oclif` block in
+[`package.json`](0004-typescript-cli-libraries/oclif/package.json). `start` sets
+`strict = false` to allow several paths. The version line shows the example's
+package name.
 
 <details>
 <summary>Output</summary>
@@ -723,7 +732,10 @@ $ agent-diff strat
 
 #### Clipanion
 
-[Source](0002-typescript-cli-libraries/clipanion/cli.ts). 47 lines (42 non-blank). `start --help` started in 322 ms, against 238 ms for `parseArgs` in the same run. Registers `Builtins.HelpCommand` and `Builtins.DefinitionsCommand`.
+[Source](0004-typescript-cli-libraries/clipanion/cli.ts). 47 lines (42
+non-blank). `start --help` started in 322 ms, against 238 ms for `parseArgs` in
+the same run. Registers `Builtins.HelpCommand` and
+`Builtins.DefinitionsCommand`.
 
 <details>
 <summary>Output</summary>
@@ -746,7 +758,7 @@ $ agent-diff --help
   agent-diff start [--base #0] [--title #0] [--open] ...
     Start a review session over one or more working directories.
 
-You can also print more details about any of these commands by calling them with 
+You can also print more details about any of these commands by calling them with
 the `-h,--help` flag right after the command name.
 ```
 
@@ -876,7 +888,10 @@ $ agent-diff --clipanion=definitions
 
 #### citty
 
-[Source](0002-typescript-cli-libraries/citty/cli.ts). 47 lines (42 non-blank). `start --help` started in 245 ms, against 238 ms for `parseArgs` in the same run. The event is checked by hand, so its error is the example's own, thrown from `run`.
+[Source](0004-typescript-cli-libraries/citty/cli.ts). 47 lines (42 non-blank).
+`start --help` started in 245 ms, against 238 ms for `parseArgs` in the same
+run. The event is checked by hand, so its error is the example's own, thrown
+from `run`.
 
 <details>
 <summary>Output</summary>
@@ -891,9 +906,9 @@ USAGE agent-diff start|review|hook
 
 COMMANDS
 
-   start    Start a review session over one or more working directories.   
+   start    Start a review session over one or more working directories.
   review    Print the most recent review for the current working directory.
-    hook    Handle harness hook events.                                    
+    hook    Handle harness hook events.
 
 Use agent-diff <command> --help for more information about a command.
 ```
@@ -912,8 +927,8 @@ ARGUMENTS
 
 OPTIONS
 
-    --base=<base>    Base ref to compare against                               
-  --title=<title>    Title for the review session                              
+    --base=<base>    Base ref to compare against
+  --title=<title>    Title for the review session
            --open    Open the review UI in a browser (Default: false)
 ```
 
@@ -934,7 +949,7 @@ Error: Invalid event "Stopp". Expected one of: SessionStart, UserPromptSubmit, S
     at async runCommand (file://<examples>/citty/node_modules/citty/dist/index.mjs:217:5)
     at async runCommand (file://<examples>/citty/node_modules/citty/dist/index.mjs:217:5)
     at async runMain (file://<examples>/citty/node_modules/citty/dist/index.mjs:394:10)
-    at async file://<examples>/citty/cli.ts:47:23 
+    at async file://<examples>/citty/cli.ts:47:23
 ```
 
 `agent-diff strat` (exit 1, stdout and stderr, ANSI codes removed):
@@ -948,9 +963,9 @@ USAGE agent-diff start|review|hook
 
 COMMANDS
 
-   start    Start a review session over one or more working directories.   
+   start    Start a review session over one or more working directories.
   review    Print the most recent review for the current working directory.
-    hook    Handle harness hook events.                                    
+    hook    Handle harness hook events.
 
 Use agent-diff <command> --help for more information about a command.
 
@@ -962,7 +977,10 @@ Unknown command strat
 
 #### gunshi
 
-[Source](0002-typescript-cli-libraries/gunshi/cli.ts). 61 lines (54 non-blank). `start --help` started in 290 ms, against 238 ms for `parseArgs` in the same run. Sets `strict: true` and `renderHeader: null`, and catches the promise `cli()` rejects with after printing a usage error. The event is checked by hand.
+[Source](0004-typescript-cli-libraries/gunshi/cli.ts). 61 lines (54 non-blank).
+`start --help` started in 290 ms, against 238 ms for `parseArgs` in the same
+run. Sets `strict: true` and `renderHeader: null`, and catches the promise
+`cli()` rejects with after printing a usage error. The event is checked by hand.
 
 <details>
 <summary>Output</summary>
@@ -975,7 +993,7 @@ USAGE:
   agent-diff [COMMANDS] <OPTIONS>
 
 COMMANDS:
-  <OPTIONS> 
+  <OPTIONS>
   hook <OPTIONS>                Handle harness hook events.
   review <OPTIONS>              Print the most recent review for the current working directory.
   start <OPTIONS>               Start a review session over one or more working directories.
@@ -1036,7 +1054,9 @@ Command not found: strat
 
 #### cmd-ts
 
-[Source](0002-typescript-cli-libraries/cmdts/cli.ts). 40 lines (35 non-blank). `start --help` started in 334 ms, against 238 ms for `parseArgs` in the same run. Default settings.
+[Source](0004-typescript-cli-libraries/cmdts/cli.ts). 40 lines (35 non-blank).
+`start --help` started in 334 ms, against 238 ms for `parseArgs` in the same
+run. Default settings.
 
 <details>
 <summary>Output</summary>
@@ -1119,7 +1139,11 @@ hint: for more information, try 'agent-diff --help'
 
 #### Stricli
 
-[Source](0002-typescript-cli-libraries/stricli/cli.ts). 48 lines (41 non-blank). `start --help` started in 253 ms, against 238 ms for `parseArgs` in the same run. Default settings. [`dump.ts`](0002-typescript-cli-libraries/stricli/dump.ts) prints `generateHelpTextForAllCommands()`.
+[Source](0004-typescript-cli-libraries/stricli/cli.ts). 48 lines (41 non-blank).
+`start --help` started in 253 ms, against 238 ms for `parseArgs` in the same
+run. Default settings.
+[`dump.ts`](0004-typescript-cli-libraries/stricli/dump.ts) prints
+`generateHelpTextForAllCommands()`.
 
 <details>
 <summary>Output</summary>
@@ -1258,7 +1282,9 @@ ARGUMENTS
 
 #### Effect (`effect/cli`)
 
-[Source](0002-typescript-cli-libraries/effect/cli.ts). 45 lines (39 non-blank). `start --help` started in 2752 ms, against 238 ms for `parseArgs` in the same run. Uses `@effect/platform-node` for the runtime.
+[Source](0004-typescript-cli-libraries/effect/cli.ts). 45 lines (39 non-blank).
+`start --help` started in 2752 ms, against 238 ms for `parseArgs` in the same
+run. Uses `@effect/platform-node` for the runtime.
 
 <details>
 <summary>Output</summary>
@@ -1444,7 +1470,10 @@ if ! type _init_completion &>/dev/null; then
 
 #### Optique
 
-[Source](0002-typescript-cli-libraries/optique/cli.ts). 57 lines (51 non-blank). `start --help` started in 555 ms, against 238 ms for `parseArgs` in the same run. Turns on the `help` command and option, the `completion` command, and `showChoices`.
+[Source](0004-typescript-cli-libraries/optique/cli.ts). 57 lines (51 non-blank).
+`start --help` started in 555 ms, against 238 ms for `parseArgs` in the same
+run. Turns on the `help` command and option, the `completion` command, and
+`showChoices`.
 
 <details>
 <summary>Output</summary>
@@ -1576,7 +1605,11 @@ function _agent-diff () {
 
 #### Brocli
 
-[Source](0002-typescript-cli-libraries/brocli/cli.ts). 39 lines (34 non-blank). `start --help` started in 252 ms, against 238 ms for `parseArgs` in the same run. Takes at most one path. [`dump.ts`](0002-typescript-cli-libraries/brocli/dump.ts) prints `commandsInfo()`.
+[Source](0004-typescript-cli-libraries/brocli/cli.ts). 39 lines (34 non-blank).
+`start --help` started in 252 ms, against 238 ms for `parseArgs` in the same
+run. Takes at most one path.
+[`dump.ts`](0004-typescript-cli-libraries/brocli/dump.ts) prints
+`commandsInfo()`.
 
 <details>
 <summary>Output</summary>
@@ -1720,7 +1753,11 @@ $ node dump.ts
 
 #### trpc-cli
 
-[Source](0002-typescript-cli-libraries/trpccli/cli.ts). 33 lines (30 non-blank). `start --help` started in 673 ms, against 238 ms for `parseArgs` in the same run. Uses trpc-cli's standalone `t` router with Zod, without `@trpc/server`. [`dump.ts`](0002-typescript-cli-libraries/trpccli/dump.ts) prints `deepHelp()` and `toJSON()`.
+[Source](0004-typescript-cli-libraries/trpccli/cli.ts). 33 lines (30 non-blank).
+`start --help` started in 673 ms, against 238 ms for `parseArgs` in the same
+run. Uses trpc-cli's standalone `t` router with Zod, without `@trpc/server`.
+[`dump.ts`](0004-typescript-cli-libraries/trpccli/dump.ts) prints `deepHelp()`
+and `toJSON()`.
 
 <details>
 <summary>Output</summary>
@@ -1921,7 +1958,10 @@ Options:
 
 #### incur
 
-[Source](0002-typescript-cli-libraries/incur/cli.ts). 30 lines (27 non-blank). `start --help` started in 658 ms, against 238 ms for `parseArgs` in the same run. `review` doesn't declare `--json`, because incur reserves it as a global option, and reads the chosen format instead.
+[Source](0004-typescript-cli-libraries/incur/cli.ts). 30 lines (27 non-blank).
+`start --help` started in 658 ms, against 238 ms for `parseArgs` in the same
+run. `review` doesn't declare `--json`, because incur reserves it as a global
+option, and reads the chosen format instead.
 
 <details>
 <summary>Output</summary>
@@ -2179,7 +2219,9 @@ $ agent-diff hook claude Stopp --json
 
 #### Clerc
 
-[Source](0002-typescript-cli-libraries/clerc/cli.ts). 28 lines (26 non-blank). `start --help` started in 541 ms, against 238 ms for `parseArgs` in the same run. Adds `notFoundPlugin`, `strictFlagsPlugin`, and `friendlyErrorPlugin`.
+[Source](0004-typescript-cli-libraries/clerc/cli.ts). 28 lines (26 non-blank).
+`start --help` started in 541 ms, against 238 ms for `parseArgs` in the same
+run. Adds `notFoundPlugin`, `strictFlagsPlugin`, and `friendlyErrorPlugin`.
 
 <details>
 <summary>Output</summary>
@@ -2254,7 +2296,9 @@ $ agent-diff strat
 
 #### Padrone
 
-[Source](0002-typescript-cli-libraries/padrone/cli.ts). 36 lines (34 non-blank). `start --help` started in 807 ms, against 236 ms for `parseArgs` in the same run. Default settings.
+[Source](0004-typescript-cli-libraries/padrone/cli.ts). 36 lines (34 non-blank).
+`start --help` started in 807 ms, against 236 ms for `parseArgs` in the same
+run. Default settings.
 
 <details>
 <summary>Output</summary>
@@ -2470,7 +2514,12 @@ $ agent-diff start --help --format json
 
 #### cli-forge
 
-[Source](0002-typescript-cli-libraries/cliforge/cli.ts). 41 lines (39 non-blank). `start --help` started in 329 ms, against 236 ms for `parseArgs` in the same run. Turns on `.strict()`. The `llms.txt` below was generated by `cli-forge generate-documentation ./cli.ts --export app --format md` with `markdown-factory` installed alongside, which the example's `package.json` doesn't include.
+[Source](0004-typescript-cli-libraries/cliforge/cli.ts). 41 lines (39
+non-blank). `start --help` started in 329 ms, against 236 ms for `parseArgs` in
+the same run. Turns on `.strict()`. The `llms.txt` below was generated by
+`cli-forge generate-documentation ./cli.ts --export app --format md` with
+`markdown-factory` installed alongside, which the example's `package.json`
+doesn't include.
 
 <details>
 <summary>Output</summary>
@@ -2488,9 +2537,9 @@ Commands:
   hook - Handle harness hook events.
 
 Options:
-  --help, -h - Show help for the current command  
+  --help, -h - Show help for the current command
   --version  - Show the version number for the CLI
- 
+
 Run `agent-diff [command] --help` for more information on a command
 ```
 
@@ -2502,11 +2551,11 @@ Usage: agent-diff start [path]
 Start a review session over one or more working directories.
 
 Options:
-  --help, -h - Show help for the current command  
+  --help, -h - Show help for the current command
   --version  - Show the version number for the CLI
-  --base     - Base ref to compare against        
-  --title    - Title for the review session       
-  --open     - Open the review UI in a browser    
+  --base     - Base ref to compare against
+  --title    - Title for the review session
+  --open     - Open the review UI in a browser
 ```
 
 `agent-diff start --nope` (exit 1, stdout):
@@ -2517,11 +2566,11 @@ Usage: agent-diff start [path]
 Start a review session over one or more working directories.
 
 Options:
-  --help, -h - Show help for the current command  
+  --help, -h - Show help for the current command
   --version  - Show the version number for the CLI
-  --base     - Base ref to compare against        
-  --title    - Title for the review session       
-  --open     - Open the review UI in a browser    
+  --base     - Base ref to compare against
+  --title    - Title for the review session
+  --open     - Open the review UI in a browser
 
 Validation failed for one or more options
   - Unknown argument: --nope
@@ -2535,7 +2584,7 @@ Usage: agent-diff hook claude <event>
 Handle a Claude Code hook event.
 
 Options:
-  --help, -h - Show help for the current command  
+  --help, -h - Show help for the current command
   --version  - Show the version number for the CLI
 
 Validation failed for one or more options
@@ -2555,9 +2604,9 @@ Commands:
   hook - Handle harness hook events.
 
 Options:
-  --help, -h - Show help for the current command  
+  --help, -h - Show help for the current command
   --version  - Show the version number for the CLI
- 
+
 Run `agent-diff [command] --help` for more information on a command
 
 Validation failed for one or more options
@@ -2658,7 +2707,9 @@ Subcommands:
 
 #### Crust
 
-[Source](0002-typescript-cli-libraries/crust/cli.ts). 40 lines (34 non-blank). `start --help` started in 374 ms, against 236 ms for `parseArgs` in the same run. Adds the `help()` and `didYouMean()` extensions from `@crustjs/extensions`.
+[Source](0004-typescript-cli-libraries/crust/cli.ts). 40 lines (34 non-blank).
+`start --help` started in 374 ms, against 236 ms for `parseArgs` in the same
+run. Adds the `help()` and `didYouMean()` extensions from `@crustjs/extensions`.
 
 <details>
 <summary>Output</summary>
@@ -2725,12 +2776,11 @@ Available commands: start, review, hook
 
 </details>
 
-
 ## Options
 
-These are the approaches the findings suggest. They aren't mutually
-exclusive: any parser can be paired with a hand-written `help --all` command
-or a generated reference.
+These are the approaches the findings suggest. They aren't mutually exclusive:
+any parser can be paired with a hand-written `help --all` command or a generated
+reference.
 
 ### Keep `node:util` `parseArgs` with hand-written help
 
@@ -2738,47 +2788,45 @@ Benefits:
 
 - No dependencies, nothing to install in sandboxes and containers, and the
   fastest startup measured (238 ms, against 187 ms for Node alone).
-- Help and errors say exactly what the project writes, so the full reference
-  can be one `--help` call.
+- Help and errors say exactly what the project writes, so the full reference can
+  be one `--help` call.
 
 Costs:
 
 - Help is maintained by hand and can drift from the parser.
-- No nested subcommands, allowed values, suggestions, or completion. The
-  example needs a cast for the event after a hand-written check, and it's the
-  longest example (64 lines).
+- No nested subcommands, allowed values, suggestions, or completion. The example
+  needs a cast for the event after a hand-written check, and it's the longest
+  example (64 lines).
 
 ### A typed parser library
 
-Commander with extra-typings, Stricli, Brocli, citty, gunshi, cmd-ts,
-Clipanion, cli-forge, and Crust install 1 to 7 packages in under 4 MB and
-started within about 140 ms of the `parseArgs` baseline. Optique, Clerc, and
-yargs are in the same family but started 300 ms or more after the baseline
-(555, 541, and 515 ms), and yargs relies on community types for an older
-major version.
+Commander with extra-typings, Stricli, Brocli, citty, gunshi, cmd-ts, Clipanion,
+cli-forge, and Crust install 1 to 7 packages in under 4 MB and started within
+about 140 ms of the `parseArgs` baseline. Optique, Clerc, and yargs are in the
+same family but started 300 ms or more after the baseline (555, 541, and 515
+ms), and yargs relies on community types for an older major version.
 
 Benefits:
 
 - Help is generated from the same definitions as the types, per command.
 - Commander, Stricli, Crust, Optique, and Clerc print "did you mean"
   suggestions. Stricli gives usage errors distinct exit codes.
-- Optique and Clerc build in or bundle completion, and Optique's root help
-  lists every command's usage.
+- Optique and Clerc build in or bundle completion, and Optique's root help lists
+  every command's usage.
 - Small enough that installing in sandboxes costs little.
 
 Costs:
 
 - None prints the full reference or machine-readable help from the CLI by
   itself. Stricli and Brocli expose it through an API that a `help --all`
-  command would have to print, and cli-forge and Crust generate files at
-  build time.
-- Each has gaps found here: Brocli has no variadic positionals and its
-  nested handler's `event` is `any`; citty accepts unknown options and,
-  like Clipanion, writes colour codes to pipes; Clipanion writes errors to
-  stdout and hasn't released since 2024; gunshi and cli-forge need strict
-  mode turned on and write errors to stdout; gunshi and citty can't check
-  allowed values on a positional; Clipanion, cmd-ts, Stricli, and cli-forge
-  don't list allowed values in help.
+  command would have to print, and cli-forge and Crust generate files at build
+  time.
+- Each has gaps found here: Brocli has no variadic positionals and its nested
+  handler's `event` is `any`; citty accepts unknown options and, like Clipanion,
+  writes colour codes to pipes; Clipanion writes errors to stdout and hasn't
+  released since 2024; gunshi and cli-forge need strict mode turned on and write
+  errors to stdout; gunshi and citty can't check allowed values on a positional;
+  Clipanion, cmd-ts, Stricli, and cli-forge don't list allowed values in help.
 
 ### A schema-driven, agent-oriented framework
 
@@ -2787,8 +2835,8 @@ schemas.
 
 Benefits:
 
-- incur and Padrone print the full reference and JSON help from the CLI
-  itself, so an agent can query it without a README.
+- incur and Padrone print the full reference and JSON help from the CLI itself,
+  so an agent can query it without a README.
 - incur adds agent features beyond help: structured errors, output formats
   including TOON and JSON, token limits, and skill files.
 - The schemas can describe output too (incur), and the same schemas could be
@@ -2796,16 +2844,16 @@ Benefits:
 
 Costs:
 
-- 15 to 17 MB installed, mostly Zod, and 658 to 807 ms to start, about
-  three times the baseline.
+- 15 to 17 MB installed, mostly Zod, and 658 to 807 ms to start, about three
+  times the baseline.
 - They bring an MCP server and other features that
-  [0011](../decisions/0011-api-core-with-cli-client.md) doesn't plan for.
-  incur turns its MCP commands on by default and reserves `--json` and
-  `--format` globally.
+  [0011](../decisions/0011-api-core-with-cli-client.md) doesn't plan for. incur
+  turns its MCP commands on by default and reserves `--json` and `--format`
+  globally.
 - They're young: incur's first release was in February 2026, Padrone's in
   December 2025, and Padrone's repository had 1 star.
-- incur writes errors to stdout and reports `paths` as required when it has
-  a default.
+- incur writes errors to stdout and reports `paths` as required when it has a
+  default.
 
 ### A full framework
 
@@ -2813,53 +2861,53 @@ oclif or Effect.
 
 Benefits:
 
-- oclif has plugins for completion and "did you mean", generated README
-  docs, a `--json` flag per command, and a test package. It's used by large
-  CLIs and released often.
-- Effect has built-in completions and "did you mean", and fits a code base
-  that uses Effect elsewhere.
+- oclif has plugins for completion and "did you mean", generated README docs, a
+  `--json` flag per command, and a test package. It's used by large CLIs and
+  released often.
+- Effect has built-in completions and "did you mean", and fits a code base that
+  uses Effect elsewhere.
 
 Costs:
 
-- oclif installs 38 packages and started in 621 ms. Its types leaked `any`
-  and `unknown` into the example, and it needs `package.json` configuration
-  and a separate commands module.
+- oclif installs 38 packages and started in 621 ms. Its types leaked `any` and
+  `unknown` into the example, and it needs `package.json` configuration and a
+  separate commands module.
 - Effect installs 80 MB and took 2.75 s to start, more than 10 times the
-  baseline, which matters for frequent calls such as renewing a claim. Its
-  CLI module is marked unstable.
+  baseline, which matters for frequent calls such as renewing a claim. Its CLI
+  module is marked unstable.
 
 ## Gaps
 
 Checked by hand:
 
 - Every example was installed in a scratch directory outside the repo,
-  type-checked with `tsc --strict --noEmit` (TypeScript 7.0.2) under two
-  module settings, probed for `any`, run with Node 24.21.0 type stripping
-  with stdout and stderr piped, and benchmarked. None needed a build step.
+  type-checked with `tsc --strict --noEmit` (TypeScript 7.0.2) under two module
+  settings, probed for `any`, run with Node 24.21.0 type stripping with stdout
+  and stderr piped, and benchmarked. None needed a build step.
 - The output in this doc was generated from those captured files.
 - `NO_COLOR=1` and `TERM=dumb` for Clipanion and citty; incur's `--llms`,
-  `--llms-full`, `--format json`, and `--schema`; Padrone's
-  `--detail full` and `--format json`; cli-forge's `generate-documentation`
-  with `markdown-factory` installed; that cac can't nest commands.
+  `--llms-full`, `--format json`, and `--schema`; Padrone's `--detail full` and
+  `--format json`; cli-forge's `generate-documentation` with `markdown-factory`
+  installed; that cac can't nest commands.
 
 Not checked:
 
-- Output on a real TTY: colour, wrapping, and terminal width. All captures
-  piped stdout.
-- Installing and using shell completions. Only Effect's and Optique's
-  generated scripts were captured.
+- Output on a real TTY: colour, wrapping, and terminal width. All captures piped
+  stdout.
+- Installing and using shell completions. Only Effect's and Optique's generated
+  scripts were captured.
 - The in-process test APIs, global options, oclif's `enableJsonFlag` and
   manifest, Stricli's and gunshi's completion packages, Crust's skills, man
   page, and MCP packages, Padrone's MCP and REST servers, and incur's MCP
   server. These come from docs and types.
-- How each library behaves when a hook command must never fail the agent,
-  for example reading JSON from stdin and exiting 0 on any error.
+- How each library behaves when a hook command must never fail the agent, for
+  example reading JSON from stdin and exiting 0 on any error.
 - Node 24.20.0, which `.node-version` pins, Bun, macOS, and Windows.
-- Startup on other machines. The Atom C3858 is slow, so absolute times will
-  be lower elsewhere; the ratios to the baseline are the useful part.
+- Startup on other machines. The Atom C3858 is slow, so absolute times will be
+  lower elsewhere; the ratios to the baseline are the useful part.
 - Effect's startup with narrower imports was measured once, not benchmarked.
 - yargs 18 with types written for it, since none exist.
-- Maintenance beyond release dates, release counts, stars, and last push.
-  Stars and dates were read on 2026-10-13.
+- Maintenance beyond release dates, release counts, stars, and last push. Stars
+  and dates were read on 2026-10-13.
 - CLI frameworks in other languages, for agent-facing help ideas that no
   TypeScript candidate has. None were surveyed.

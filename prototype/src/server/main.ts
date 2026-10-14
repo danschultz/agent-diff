@@ -6,11 +6,27 @@
 // step is needed. --static serves the production build in dist/ instead,
 // which is closer to real rendering performance (run `npx vite build` first).
 
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from 'node:http';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { dataDir, defaultPort, prototypeDir, serverInfoFile, type ServerInfo } from '../shared/paths.ts';
+import {
+  dataDir,
+  defaultPort,
+  prototypeDir,
+  serverInfoFile,
+  type ServerInfo,
+} from '../shared/paths.ts';
 import { Db } from './db.ts';
 import { Api } from './http.ts';
 import { ReviewService } from './service.ts';
@@ -26,7 +42,9 @@ const port = Number(values.port);
 mkdirSync(dataDir, { recursive: true });
 const db = new Db(path.join(dataDir, 'agent-diff.sqlite'));
 let api: Api | null = null;
-const service = new ReviewService(db, dataDir, (event) => api?.broadcast(event));
+const service = new ReviewService(db, dataDir, (event) =>
+  api?.broadcast(event),
+);
 api = new Api(service, port);
 
 const server = createServer();
@@ -45,7 +63,9 @@ server.on('request', async (req, res) => {
 
 server.on('error', (error: NodeJS.ErrnoException) => {
   if (error.code === 'EADDRINUSE') {
-    console.error(`Port ${port} is in use. Another agent-diff server may be running (see ${serverInfoFile}).`);
+    console.error(
+      `Port ${port} is in use. Another agent-diff server may be running (see ${serverInfoFile}).`,
+    );
     process.exit(1);
   }
   throw error;
@@ -53,9 +73,16 @@ server.on('error', (error: NodeJS.ErrnoException) => {
 
 await service.init();
 server.listen(port, '127.0.0.1', () => {
-  const info: ServerInfo = { pid: process.pid, port, url: `http://127.0.0.1:${port}`, startedAt: new Date().toISOString() };
+  const info: ServerInfo = {
+    pid: process.pid,
+    port,
+    url: `http://127.0.0.1:${port}`,
+    startedAt: new Date().toISOString(),
+  };
   writeFileSync(serverInfoFile, JSON.stringify(info, null, 2));
-  console.log(`agent-diff review server on ${info.url} (data in ${dataDir}${values.static ? ', static UI' : ''})`);
+  console.log(
+    `agent-diff review server on ${info.url} (data in ${dataDir}${values.static ? ', static UI' : ''})`,
+  );
 });
 
 const shutdown = () => {
@@ -69,7 +96,9 @@ const shutdown = () => {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
-async function viteUi(): Promise<(req: IncomingMessage, res: ServerResponse) => void> {
+async function viteUi(): Promise<
+  (req: IncomingMessage, res: ServerResponse) => void
+> {
   const { createServer: createVite } = await import('vite');
   const vite = await createVite({
     configFile: path.join(prototypeDir, 'vite.config.ts'),
@@ -82,7 +111,9 @@ async function viteUi(): Promise<(req: IncomingMessage, res: ServerResponse) => 
 function staticUi(): (req: IncomingMessage, res: ServerResponse) => void {
   const dist = path.join(prototypeDir, 'dist');
   if (!existsSync(path.join(dist, 'index.html'))) {
-    console.error('No build in dist/. Run `npx vite build` first, or start without --static.');
+    console.error(
+      'No build in dist/. Run `npx vite build` first, or start without --static.',
+    );
     process.exit(1);
   }
   const types: Record<string, string> = {
@@ -96,8 +127,11 @@ function staticUi(): (req: IncomingMessage, res: ServerResponse) => void {
   return (req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
     let file = path.join(dist, path.normalize(url.pathname));
-    if (!file.startsWith(dist) || !existsSync(file) || url.pathname === '/') file = path.join(dist, 'index.html');
-    res.writeHead(200, { 'content-type': types[path.extname(file)] ?? 'application/octet-stream' });
+    if (!file.startsWith(dist) || !existsSync(file) || url.pathname === '/')
+      file = path.join(dist, 'index.html');
+    res.writeHead(200, {
+      'content-type': types[path.extname(file)] ?? 'application/octet-stream',
+    });
     res.end(readFileSync(file));
   };
 }

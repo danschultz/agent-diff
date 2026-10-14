@@ -40,12 +40,19 @@ export function onNotification(input: HookInput, deps: HookDeps): void {
   // Already reported. Dan's answer moves the brief back to agent:working.
   if (issue.labels.includes(LABELS.needsInput)) return;
 
-  let question = (input.transcript_path && lastAssistantText(input.transcript_path)) || '';
-  if (question.length > MAX_QUESTION_LENGTH) question = `…${question.slice(-MAX_QUESTION_LENGTH)}`;
+  let question =
+    (input.transcript_path && lastAssistantText(input.transcript_path)) || '';
+  if (question.length > MAX_QUESTION_LENGTH)
+    question = `…${question.slice(-MAX_QUESTION_LENGTH)}`;
   const heading = permission
     ? `**The agent session is waiting for permission:** ${input.message ?? ''}`
     : '**The agent session needs input.**';
-  const quoted = question ? `\n\n${question.split('\n').map((l) => `> ${l}`).join('\n')}` : '';
+  const quoted = question
+    ? `\n\n${question
+        .split('\n')
+        .map((l) => `> ${l}`)
+        .join('\n')}`
+    : '';
   moveTo(github, issue, LABELS.needsInput, ALL_LABELS);
   github.comment(
     issue.number,
@@ -60,5 +67,6 @@ export function onPromptSubmit(input: HookInput, deps: HookDeps): void {
   if (!brief) return;
   const github = deps.github(brief.repo);
   const issue = github.issue(brief.issue);
-  if (issue.labels.includes(LABELS.needsInput)) moveTo(github, issue, LABELS.working, ALL_LABELS);
+  if (issue.labels.includes(LABELS.needsInput))
+    moveTo(github, issue, LABELS.working, ALL_LABELS);
 }

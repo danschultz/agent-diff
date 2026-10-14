@@ -2,12 +2,24 @@
   "hooks": {
     "Notification": [
       {
-        "hooks": [{ "type": "command", "command": "{{implement}} hook notification", "timeout": 60 }]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{implement}} hook notification",
+            "timeout": 60
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
       {
-        "hooks": [{ "type": "command", "command": "{{implement}} hook prompt", "timeout": 60 }]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{implement}} hook prompt",
+            "timeout": 60
+          }
+        ]
       }
     ]
   }

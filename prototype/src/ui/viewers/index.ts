@@ -3,7 +3,12 @@ import type { ViewerProps } from './types.ts';
 
 export type ViewerId = 'basic' | 'git-diff-view' | 'monaco' | 'codemirror';
 
-export const VIEWERS: { id: ViewerId; label: string; notes: string; component: ComponentType<ViewerProps> }[] = [
+export const VIEWERS: {
+  id: ViewerId;
+  label: string;
+  notes: string;
+  component: ComponentType<ViewerProps>;
+}[] = [
   {
     id: 'basic',
     label: 'Basic (custom)',
@@ -19,13 +24,15 @@ export const VIEWERS: { id: ViewerId; label: string; notes: string; component: C
   {
     id: 'monaco',
     label: 'Monaco diff editor',
-    notes: 'The VS Code editor. Tall files scroll inside the editor. In unified layout, removed lines can\'t be commented on.',
+    notes:
+      "The VS Code editor. Tall files scroll inside the editor. In unified layout, removed lines can't be commented on.",
     component: lazy(() => import('./MonacoViewer.tsx')),
   },
   {
     id: 'codemirror',
     label: 'CodeMirror merge',
-    notes: 'CodeMirror 6 merge view. In unified layout, removed lines can\'t be commented on.',
+    notes:
+      "CodeMirror 6 merge view. In unified layout, removed lines can't be commented on.",
     component: lazy(() => import('./CodeMirrorViewer.tsx')),
   },
 ];

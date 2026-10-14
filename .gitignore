@@ -1,1 +1,12 @@
+# Every ignore pattern in the repo lives here, because Prettier only reads
+# this file. See .rules/gitignore.md.
+
+# Worktrees created by implement.
 .claude/worktrees
+
+node_modules/
+
+# These were unanchored in prototype/.gitignore, so they match at any depth
+# under prototype/.
+/prototype/**/dist/
+/prototype/**/.data/

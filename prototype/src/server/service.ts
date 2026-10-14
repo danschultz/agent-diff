@@ -1,5 +1,9 @@
 import path from 'node:path';
-import { defaultReanchorOptions, reanchor, splitLines } from '../shared/reanchor.ts';
+import {
+  defaultReanchorOptions,
+  reanchor,
+  splitLines,
+} from '../shared/reanchor.ts';
 import { cliCommand } from '../shared/paths.ts';
 import type {
   AgentInfo,
@@ -27,7 +31,11 @@ import type {
 import { Db, newId, now, type Row } from './db.ts';
 import { deliveryKind, push, validateNotifyMethod } from './notify.ts';
 import { WorkspaceWatcher } from './watcher.ts';
-import { GitWorkspace, resolveWorkspaceRoot, workspaceId } from './workspace.ts';
+import {
+  GitWorkspace,
+  resolveWorkspaceRoot,
+  workspaceId,
+} from './workspace.ts';
 
 export class HttpError extends Error {
   readonly status: number;
@@ -87,7 +95,9 @@ export class ReviewService {
       try {
         this.watchWorkspace(await this.workspaceById(row.workspace_id));
       } catch (error) {
-        console.warn(`[init] can't reopen workspace ${row.workspace_id}: ${(error as Error).message}`);
+        console.warn(
+          `[init] can't reopen workspace ${row.workspace_id}: ${(error as Error).message}`,
+        );
       }
     }
   }
@@ -106,7 +116,12 @@ export class ReviewService {
     const cached = this.workspaces.get(id);
     if (cached) return cached;
     const ws = await GitWorkspace.open(root, this.dataDir);
-    this.db.run('insert or ignore into workspaces (id, root, created_at) values (?, ?, ?)', ws.id, ws.root, now());
+    this.db.run(
+      'insert or ignore into workspaces (id, root, created_at) values (?, ?, ?)',
+      ws.id,
+      ws.root,
+      now(),
+    );
     this.workspaces.set(ws.id, ws);
     return ws;
   }
@@ -114,14 +129,21 @@ export class ReviewService {
   async workspaceById(id: string): Promise<GitWorkspace> {
     const cached = this.workspaces.get(id);
     if (cached) return cached;
-    const row = this.db.get<{ root: string }>('select root from workspaces where id = ?', id);
+    const row = this.db.get<{ root: string }>(
+      'select root from workspaces where id = ?',
+      id,
+    );
     if (!row) throw new HttpError(404, `Unknown workspace ${id}`);
     return this.openWorkspace(row.root);
   }
 
   private watchWorkspace(ws: GitWorkspace): void {
     if (this.watchers.has(ws.id)) return;
-    const watcher = new WorkspaceWatcher(ws, () => this.settings, (event) => this.emit(event));
+    const watcher = new WorkspaceWatcher(
+      ws,
+      () => this.settings,
+      (event) => this.emit(event),
+    );
     watcher.start();
     this.watchers.set(ws.id, watcher);
   }
@@ -143,7 +165,11 @@ export class ReviewService {
       rsId,
       wsId,
     );
-    if (!row) throw new HttpError(404, `Workspace ${wsId} isn't in review session ${rsId}`);
+    if (!row)
+      throw new HttpError(
+        404,
+        `Workspace ${wsId} isn't in review session ${rsId}`,
+      );
     return row;
   }
 
@@ -164,7 +190,8 @@ export class ReviewService {
     title?: string | null;
     startedBy?: string | null;
   }): Promise<ReviewSessionInfo> {
-    if (!input.workspaces?.length) throw new HttpError(400, 'A review session needs at least one workspace');
+    if (!input.workspaces?.length)
+      throw new HttpError(400, 'A review session needs at least one workspace');
     const id = newId('rs');
     this.db.run(
       'insert into review_sessions (id, title, status, started_by, created_at) values (?, ?, ?, ?, ?)',
@@ -179,7 +206,11 @@ export class ReviewService {
     return this.reviewSessionInfo(id);
   }
 
-  async addWorkspace(rsId: string, input: { path: string; baseRef?: string | null }, announce = true): Promise<ReviewSessionInfo> {
+  async addWorkspace(
+    rsId: string,
+    input: { path: string; baseRef?: string | null },
+    announce = true,
+  ): Promise<ReviewSessionInfo> {
     this.requireOpen(rsId);
     const ws = await this.openWorkspace(input.path);
     const baseRef = input.baseRef || (await ws.defaultBaseRef());
@@ -194,15 +225,23 @@ export class ReviewService {
       now(),
     );
     this.watchWorkspace(ws);
-    if (!this.latestSnapshot(ws.id)) await this.createSnapshot(ws, 'review-session-start', null);
+    if (!this.latestSnapshot(ws.id))
+      await this.createSnapshot(ws, 'review-session-start', null);
     if (announce) this.emit({ type: 'state-changed' });
     return this.reviewSessionInfo(rsId);
   }
 
   async endReviewSession(rsId: string): Promise<ReviewSessionInfo> {
     this.requireOpen(rsId);
-    this.db.run(`update review_sessions set status = 'ended', ended_at = ? where id = ?`, now(), rsId);
-    for (const row of this.db.all<{ workspace_id: string }>('select workspace_id from review_session_workspaces where review_session_id = ?', rsId)) {
+    this.db.run(
+      `update review_sessions set status = 'ended', ended_at = ? where id = ?`,
+      now(),
+      rsId,
+    );
+    for (const row of this.db.all<{ workspace_id: string }>(
+      'select workspace_id from review_session_workspaces where review_session_id = ?',
+      rsId,
+    )) {
       this.unwatchIfUnused(row.workspace_id);
     }
     this.emit({ type: 'state-changed' });
@@ -210,15 +249,26 @@ export class ReviewService {
   }
 
   private requireOpen(rsId: string): void {
-    const row = this.db.get<{ status: string }>('select status from review_sessions where id = ?', rsId);
+    const row = this.db.get<{ status: string }>(
+      'select status from review_sessions where id = ?',
+      rsId,
+    );
     if (!row) throw new HttpError(404, `Unknown review session ${rsId}`);
-    if (row.status !== 'open') throw new HttpError(409, `Review session ${rsId} has ended`);
+    if (row.status !== 'open')
+      throw new HttpError(409, `Review session ${rsId} has ended`);
   }
 
   async reviewSessionInfo(rsId: string): Promise<ReviewSessionInfo> {
-    const row = this.db.get<Row>('select * from review_sessions where id = ?', rsId);
+    const row = this.db.get<Row>(
+      'select * from review_sessions where id = ?',
+      rsId,
+    );
     if (!row) throw new HttpError(404, `Unknown review session ${rsId}`);
-    const members = this.db.all<{ workspace_id: string; base_ref: string; root: string }>(
+    const members = this.db.all<{
+      workspace_id: string;
+      base_ref: string;
+      root: string;
+    }>(
       `select rsw.workspace_id, rsw.base_ref, w.root from review_session_workspaces rsw
        join workspaces w on w.id = rsw.workspace_id where rsw.review_session_id = ? order by rsw.added_at`,
       rsId,
@@ -231,7 +281,12 @@ export class ReviewService {
       } catch {
         branch = null;
       }
-      workspaces.push({ id: m.workspace_id, root: m.root, baseRef: m.base_ref, branch });
+      workspaces.push({
+        id: m.workspace_id,
+        root: m.root,
+        baseRef: m.base_ref,
+        branch,
+      });
     }
     return {
       id: rsId,
@@ -245,15 +300,27 @@ export class ReviewService {
   }
 
   async listReviewSessions(): Promise<ReviewSessionInfo[]> {
-    const ids = this.db.all<{ id: string }>('select id from review_sessions order by created_at desc limit 50');
+    const ids = this.db.all<{ id: string }>(
+      'select id from review_sessions order by created_at desc limit 50',
+    );
     return Promise.all(ids.map((r) => this.reviewSessionInfo(r.id)));
   }
 
   // Diffs
 
-  private async sidesFor(rsId: string, ws: GitWorkspace, mode: DiffMode, snapshotId: number | null) {
+  private async sidesFor(
+    rsId: string,
+    ws: GitWorkspace,
+    mode: DiffMode,
+    snapshotId: number | null,
+  ) {
     const { base_ref } = this.membership(rsId, ws.id);
-    const snapshot = mode === 'last-turn' ? (snapshotId ? this.snapshotById(ws.id, snapshotId) : this.latestSnapshot(ws.id)) : null;
+    const snapshot =
+      mode === 'last-turn'
+        ? snapshotId
+          ? this.snapshotById(ws.id, snapshotId)
+          : this.latestSnapshot(ws.id)
+        : null;
     try {
       return await ws.sides(mode, base_ref, snapshot?.commit ?? null);
     } catch (error) {
@@ -261,7 +328,12 @@ export class ReviewService {
     }
   }
 
-  async files(rsId: string, wsId: string, mode: DiffMode, snapshotId: number | null): Promise<FileListResponse> {
+  async files(
+    rsId: string,
+    wsId: string,
+    mode: DiffMode,
+    snapshotId: number | null,
+  ): Promise<FileListResponse> {
     const started = performance.now();
     const ws = await this.workspaceById(wsId);
     const sides = await this.sidesFor(rsId, ws, mode, snapshotId);
@@ -277,14 +349,20 @@ export class ReviewService {
     }
     const files: ChangedFile[] = raw.map((f) => ({
       ...f,
-      commentCount: (counts.get(f.path) ?? 0) + (f.oldPath ? (counts.get(f.oldPath) ?? 0) : 0),
+      commentCount:
+        (counts.get(f.path) ?? 0) +
+        (f.oldPath ? (counts.get(f.oldPath) ?? 0) : 0),
     }));
     const done = performance.now();
     return {
       from: sides.from,
       to: sides.to,
       files,
-      timingMs: { trees: round(treesDone - started), diff: round(done - treesDone), total: round(done - started) },
+      timingMs: {
+        trees: round(treesDone - started),
+        diff: round(done - treesDone),
+        total: round(done - started),
+      },
       warning: null,
     };
   }
@@ -300,13 +378,20 @@ export class ReviewService {
     const started = performance.now();
     const ws = await this.workspaceById(wsId);
     const sides = await this.sidesFor(rsId, ws, mode, snapshotId);
-    const changed = (await ws.changedFiles(sides.from, sides.to)).find((f) => f.path === filePath);
+    const changed = (await ws.changedFiles(sides.from, sides.to)).find(
+      (f) => f.path === filePath,
+    );
     const fromPath = oldPath ?? changed?.oldPath ?? filePath;
     const empty = { hash: null, content: null, binary: false, tooLarge: false };
-    const [oldSide, newSide] = await Promise.all([ws.readFile(sides.from.tree, fromPath), ws.readFile(sides.to.tree, filePath)]);
+    const [oldSide, newSide] = await Promise.all([
+      ws.readFile(sides.from.tree, fromPath),
+      ws.readFile(sides.to.tree, filePath),
+    ]);
     const gitDone = performance.now();
     const paths = new Set([filePath, fromPath]);
-    const records = this.commentRecords(rsId).filter((c) => c.workspaceId === wsId && c.path && paths.has(c.path));
+    const records = this.commentRecords(rsId).filter(
+      (c) => c.workspaceId === wsId && c.path && paths.has(c.path),
+    );
     const comments = await this.place(ws, sides, records);
     const done = performance.now();
     return {
@@ -316,18 +401,31 @@ export class ReviewService {
       old: oldSide ?? empty,
       new: newSide ?? empty,
       comments,
-      timingMs: { git: round(gitDone - started), reanchor: round(done - gitDone), total: round(done - started) },
+      timingMs: {
+        git: round(gitDone - started),
+        reanchor: round(done - gitDone),
+        total: round(done - started),
+      },
     };
   }
 
   // Comments
 
   private commentRecords(rsId: string): CommentRecord[] {
-    return this.db.all<Row>('select * from comments where review_session_id = ? order by created_at', rsId).map(toComment);
+    return this.db
+      .all<Row>(
+        'select * from comments where review_session_id = ? order by created_at',
+        rsId,
+      )
+      .map(toComment);
   }
 
   /** Every comment in the review session, placed for the given diff mode. */
-  async placedComments(rsId: string, mode: DiffMode, snapshotId: number | null): Promise<PlacedComment[]> {
+  async placedComments(
+    rsId: string,
+    mode: DiffMode,
+    snapshotId: number | null,
+  ): Promise<PlacedComment[]> {
     const records = this.commentRecords(rsId);
     const byWorkspace = new Map<string, CommentRecord[]>();
     const result: PlacedComment[] = [];
@@ -336,7 +434,10 @@ export class ReviewService {
         result.push({ ...c, placement: null, originalCode: [] });
         continue;
       }
-      byWorkspace.set(c.workspaceId, [...(byWorkspace.get(c.workspaceId) ?? []), c]);
+      byWorkspace.set(c.workspaceId, [
+        ...(byWorkspace.get(c.workspaceId) ?? []),
+        c,
+      ]);
     }
     for (const [wsId, list] of byWorkspace) {
       const ws = await this.workspaceById(wsId);
@@ -348,22 +449,39 @@ export class ReviewService {
         error = (e as Error).message;
       }
       if (sides) result.push(...(await this.place(ws, sides, list)));
-      else result.push(...list.map((c) => ({ ...c, placement: unplaceable(error!), originalCode: this.originalCode(c) })));
+      else
+        result.push(
+          ...list.map((c) => ({
+            ...c,
+            placement: unplaceable(error!),
+            originalCode: this.originalCode(c),
+          })),
+        );
     }
     return result.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
   private originalCode(c: CommentRecord): string[] {
     if (!c.fileVersion || !c.startLine || !c.endLine) return [];
-    const row = this.db.get<{ content: string }>('select content from file_versions where hash = ?', c.fileVersion);
+    const row = this.db.get<{ content: string }>(
+      'select content from file_versions where hash = ?',
+      c.fileVersion,
+    );
     return row ? splitLines(row.content).slice(c.startLine - 1, c.endLine) : [];
   }
 
-  private async place(ws: GitWorkspace, sides: { from: TreeSideInfo; to: TreeSideInfo }, comments: CommentRecord[]): Promise<PlacedComment[]> {
+  private async place(
+    ws: GitWorkspace,
+    sides: { from: TreeSideInfo; to: TreeSideInfo },
+    comments: CommentRecord[],
+  ): Promise<PlacedComment[]> {
     let renames: Map<string, string> | null = null;
     const out: PlacedComment[] = [];
     for (const c of comments) {
-      const version = this.db.get<{ content: string }>('select content from file_versions where hash = ?', c.fileVersion);
+      const version = this.db.get<{ content: string }>(
+        'select content from file_versions where hash = ?',
+        c.fileVersion,
+      );
       if (!version || !c.path || !c.startLine || !c.endLine) {
         out.push({ ...c, placement: null, originalCode: [] });
         continue;
@@ -373,7 +491,9 @@ export class ReviewService {
       let target = await ws.readFile(tree, targetPath);
       if (!target && c.side !== 'old') {
         renames ??= new Map(
-          (await ws.changedFiles(sides.from, sides.to)).filter((f) => f.oldPath).map((f) => [f.oldPath!, f.path]),
+          (await ws.changedFiles(sides.from, sides.to))
+            .filter((f) => f.oldPath)
+            .map((f) => [f.oldPath!, f.path]),
         );
         const renamed = renames.get(c.path);
         if (renamed) {
@@ -381,17 +501,28 @@ export class ReviewService {
           target = await ws.readFile(tree, renamed);
         }
       }
-      const result = reanchor(version.content, { start: c.startLine, end: c.endLine }, target?.content ?? null, this.settings.reanchor);
+      const result = reanchor(
+        version.content,
+        { start: c.startLine, end: c.endLine },
+        target?.content ?? null,
+        this.settings.reanchor,
+      );
       out.push({
         ...c,
         placement: { ...result, path: target ? targetPath : null },
-        originalCode: splitLines(version.content).slice(c.startLine - 1, c.endLine),
+        originalCode: splitLines(version.content).slice(
+          c.startLine - 1,
+          c.endLine,
+        ),
       });
     }
     return out;
   }
 
-  async createComment(rsId: string, input: CreateCommentInput): Promise<CommentRecord> {
+  async createComment(
+    rsId: string,
+    input: CreateCommentInput,
+  ): Promise<CommentRecord> {
     this.requireOpen(rsId);
     const body = input.body?.trim();
     if (!body) throw new HttpError(400, 'A comment needs a body');
@@ -407,20 +538,43 @@ export class ReviewService {
         at,
       );
     } else {
-      const { workspaceId: wsId, path: file, side, startLine, endLine, versionHash, mode } = input;
+      const {
+        workspaceId: wsId,
+        path: file,
+        side,
+        startLine,
+        endLine,
+        versionHash,
+        mode,
+      } = input;
       if (!file || !side || !startLine || !endLine || !versionHash) {
-        throw new HttpError(400, 'Line comments need path, side, startLine, endLine, and versionHash');
+        throw new HttpError(
+          400,
+          'Line comments need path, side, startLine, endLine, and versionHash',
+        );
       }
       this.membership(rsId, wsId);
       const ws = await this.workspaceById(wsId);
       const blob = await ws.readBlob(versionHash).catch(() => null);
-      if (!blob || blob.content === null) throw new HttpError(400, `File version ${versionHash} isn't readable text`);
+      if (!blob || blob.content === null)
+        throw new HttpError(
+          400,
+          `File version ${versionHash} isn't readable text`,
+        );
       const lineCount = splitLines(blob.content).length;
       if (startLine < 1 || endLine < startLine || endLine > lineCount) {
-        throw new HttpError(400, `Lines ${startLine}-${endLine} are outside the file (${lineCount} lines)`);
+        throw new HttpError(
+          400,
+          `Lines ${startLine}-${endLine} are outside the file (${lineCount} lines)`,
+        );
       }
       this.db.transaction(() => {
-        this.db.run('insert or ignore into file_versions (hash, content, created_at) values (?, ?, ?)', versionHash, blob.content, at);
+        this.db.run(
+          'insert or ignore into file_versions (hash, content, created_at) values (?, ?, ?)',
+          versionHash,
+          blob.content,
+          at,
+        );
         this.db.run(
           `insert into comments (id, review_session_id, workspace_id, path, side, start_line, end_line, file_version, diff_mode, body, created_at, updated_at)
            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -440,25 +594,42 @@ export class ReviewService {
       });
     }
     this.emit({ type: 'comments-changed', reviewSessionId: rsId });
-    return toComment(this.db.get<Row>('select * from comments where id = ?', id)!);
+    return toComment(
+      this.db.get<Row>('select * from comments where id = ?', id)!,
+    );
   }
 
   updateComment(id: string, body: string): CommentRecord {
     const row = this.db.get<Row>('select * from comments where id = ?', id);
     if (!row) throw new HttpError(404, `Unknown comment ${id}`);
-    if (row.review_id) throw new HttpError(409, 'Submitted comments can no longer be edited');
+    if (row.review_id)
+      throw new HttpError(409, 'Submitted comments can no longer be edited');
     if (!body?.trim()) throw new HttpError(400, 'A comment needs a body');
-    this.db.run('update comments set body = ?, updated_at = ? where id = ?', body.trim(), now(), id);
-    this.emit({ type: 'comments-changed', reviewSessionId: row.review_session_id as string });
-    return toComment(this.db.get<Row>('select * from comments where id = ?', id)!);
+    this.db.run(
+      'update comments set body = ?, updated_at = ? where id = ?',
+      body.trim(),
+      now(),
+      id,
+    );
+    this.emit({
+      type: 'comments-changed',
+      reviewSessionId: row.review_session_id as string,
+    });
+    return toComment(
+      this.db.get<Row>('select * from comments where id = ?', id)!,
+    );
   }
 
   deleteComment(id: string): void {
     const row = this.db.get<Row>('select * from comments where id = ?', id);
     if (!row) throw new HttpError(404, `Unknown comment ${id}`);
-    if (row.review_id) throw new HttpError(409, 'Submitted comments can no longer be deleted');
+    if (row.review_id)
+      throw new HttpError(409, 'Submitted comments can no longer be deleted');
     this.db.run('delete from comments where id = ?', id);
-    this.emit({ type: 'comments-changed', reviewSessionId: row.review_session_id as string });
+    this.emit({
+      type: 'comments-changed',
+      reviewSessionId: row.review_session_id as string,
+    });
   }
 
   // Reviews and notifications
@@ -469,35 +640,73 @@ export class ReviewService {
       'select id, workspace_id from comments where review_session_id = ? and review_id is null',
       rsId,
     );
-    if (drafts.length === 0) throw new HttpError(400, 'There are no draft comments to submit');
+    if (drafts.length === 0)
+      throw new HttpError(400, 'There are no draft comments to submit');
     const reviewId = newId('rv');
     const at = now();
     const allWorkspaces = this.db
-      .all<{ workspace_id: string }>('select workspace_id from review_session_workspaces where review_session_id = ?', rsId)
+      .all<{ workspace_id: string }>(
+        'select workspace_id from review_session_workspaces where review_session_id = ?',
+        rsId,
+      )
       .map((r) => r.workspace_id);
     const hasOverall = drafts.some((d) => !d.workspace_id);
-    const targets = hasOverall ? allWorkspaces : [...new Set(drafts.map((d) => d.workspace_id!))];
+    const targets = hasOverall
+      ? allWorkspaces
+      : [...new Set(drafts.map((d) => d.workspace_id!))];
 
     const toPush: string[] = [];
     this.db.transaction(() => {
-      this.db.run('insert into reviews (id, review_session_id, submitted_at) values (?, ?, ?)', reviewId, rsId, at);
-      this.db.run('update comments set review_id = ? where review_session_id = ? and review_id is null', reviewId, rsId);
+      this.db.run(
+        'insert into reviews (id, review_session_id, submitted_at) values (?, ?, ?)',
+        reviewId,
+        rsId,
+        at,
+      );
+      this.db.run(
+        'update comments set review_id = ? where review_session_id = ? and review_id is null',
+        reviewId,
+        rsId,
+      );
       for (const wsId of targets) {
-        const root = this.db.get<{ root: string }>('select root from workspaces where id = ?', wsId)!.root;
+        const root = this.db.get<{ root: string }>(
+          'select root from workspaces where id = ?',
+          wsId,
+        )!.root;
         const message = notificationMessage(rsId, root);
-        const agents = this.db.all<{ id: string; notify: string; busy: number }>(
+        const agents = this.db.all<{
+          id: string;
+          notify: string;
+          busy: number;
+        }>(
           'select a.id, a.notify, a.busy from agents a join agent_workspaces aw on aw.agent_id = a.id where aw.workspace_id = ?',
           wsId,
         );
         if (agents.length === 0) {
-          this.insertNotification(reviewId, null, wsId, 'none', message, 'manual');
+          this.insertNotification(
+            reviewId,
+            null,
+            wsId,
+            'none',
+            message,
+            'manual',
+          );
           continue;
         }
         for (const agent of agents) {
           const kind = deliveryKind(agent.notify);
           let status: NotificationStatus = kind === 'pull' ? 'pull' : 'manual';
-          if (kind === 'push') status = agent.busy && this.settings.holdWhileBusy ? 'held' : 'sent';
-          const id = this.insertNotification(reviewId, agent.id, wsId, agent.notify, message, status);
+          if (kind === 'push')
+            status =
+              agent.busy && this.settings.holdWhileBusy ? 'held' : 'sent';
+          const id = this.insertNotification(
+            reviewId,
+            agent.id,
+            wsId,
+            agent.notify,
+            message,
+            status,
+          );
           if (status === 'sent') toPush.push(id);
         }
       }
@@ -533,42 +742,95 @@ export class ReviewService {
   }
 
   private async pushNotification(id: string): Promise<void> {
-    const n = this.db.get<{ method: string; message: string; review_id: string }>('select method, message, review_id from notifications where id = ?', id)!;
+    const n = this.db.get<{
+      method: string;
+      message: string;
+      review_id: string;
+    }>(
+      'select method, message, review_id from notifications where id = ?',
+      id,
+    )!;
     try {
       await push(n.method, n.message, this.settings.enterDelayMs);
-      this.db.run(`update notifications set status = 'sent', sent_at = ?, error = null where id = ?`, now(), id);
+      this.db.run(
+        `update notifications set status = 'sent', sent_at = ?, error = null where id = ?`,
+        now(),
+        id,
+      );
     } catch (error) {
-      this.db.run(`update notifications set status = 'failed', error = ? where id = ?`, (error as Error).message, id);
+      this.db.run(
+        `update notifications set status = 'failed', error = ? where id = ?`,
+        (error as Error).message,
+        id,
+      );
     }
-    const rs = this.db.get<{ review_session_id: string }>('select review_session_id from reviews where id = ?', n.review_id)!;
-    this.emit({ type: 'reviews-changed', reviewSessionId: rs.review_session_id });
+    const rs = this.db.get<{ review_session_id: string }>(
+      'select review_session_id from reviews where id = ?',
+      n.review_id,
+    )!;
+    this.emit({
+      type: 'reviews-changed',
+      reviewSessionId: rs.review_session_id,
+    });
   }
 
   async resendNotification(id: string): Promise<void> {
-    const n = this.db.get<{ method: string }>('select method from notifications where id = ?', id);
+    const n = this.db.get<{ method: string }>(
+      'select method from notifications where id = ?',
+      id,
+    );
     if (!n) throw new HttpError(404, `Unknown notification ${id}`);
-    if (deliveryKind(n.method) !== 'push') throw new HttpError(400, `${n.method} notifications can't be pushed`);
+    if (deliveryKind(n.method) !== 'push')
+      throw new HttpError(400, `${n.method} notifications can't be pushed`);
     await this.pushNotification(id);
   }
 
   reviews(rsId: string): ReviewInfo[] {
-    return this.db.all<Row>('select * from reviews where review_session_id = ? order by submitted_at', rsId).map((r) => ({
-      id: r.id as string,
-      reviewSessionId: rsId,
-      submittedAt: r.submitted_at as string,
-      commentCount: (this.db.get<{ n: number }>('select count(*) as n from comments where review_id = ?', r.id)!).n,
-      notifications: this.db.all<Row>('select * from notifications where review_id = ? order by created_at', r.id).map(toNotification),
-      fetches: this.db
-        .all<Row>('select * from feedback_fetches where review_id = ? order by fetched_at', r.id)
-        .map((f) => ({ workspaceId: f.workspace_id as string, agentId: f.agent_id as string | null, fetchedAt: f.fetched_at as string })),
-    }));
+    return this.db
+      .all<Row>(
+        'select * from reviews where review_session_id = ? order by submitted_at',
+        rsId,
+      )
+      .map((r) => ({
+        id: r.id as string,
+        reviewSessionId: rsId,
+        submittedAt: r.submitted_at as string,
+        commentCount: this.db.get<{ n: number }>(
+          'select count(*) as n from comments where review_id = ?',
+          r.id,
+        )!.n,
+        notifications: this.db
+          .all<Row>(
+            'select * from notifications where review_id = ? order by created_at',
+            r.id,
+          )
+          .map(toNotification),
+        fetches: this.db
+          .all<Row>(
+            'select * from feedback_fetches where review_id = ? order by fetched_at',
+            r.id,
+          )
+          .map((f) => ({
+            workspaceId: f.workspace_id as string,
+            agentId: f.agent_id as string | null,
+            fetchedAt: f.fetched_at as string,
+          })),
+      }));
   }
 
   // Agents and turns
 
-  registerAgent(input: { id: string; label?: string | null; parentId?: string | null; notify?: string | null }): void {
+  registerAgent(input: {
+    id: string;
+    label?: string | null;
+    parentId?: string | null;
+    notify?: string | null;
+  }): void {
     if (!input.id) throw new HttpError(400, 'An agent needs an id');
-    const existing = this.db.get<{ notify: string }>('select notify from agents where id = ?', input.id);
+    const existing = this.db.get<{ notify: string }>(
+      'select notify from agents where id = ?',
+      input.id,
+    );
     const notify = input.notify ?? existing?.notify ?? 'hook';
     const invalid = validateNotifyMethod(notify);
     if (invalid) throw new HttpError(400, invalid);
@@ -586,35 +848,66 @@ export class ReviewService {
     );
   }
 
-  async registerAgentWorkspace(agentId: string, dir: string): Promise<GitWorkspace> {
+  async registerAgentWorkspace(
+    agentId: string,
+    dir: string,
+  ): Promise<GitWorkspace> {
     const ws = await this.openWorkspace(dir);
-    this.db.run('insert or ignore into agent_workspaces (agent_id, workspace_id) values (?, ?)', agentId, ws.id);
+    this.db.run(
+      'insert or ignore into agent_workspaces (agent_id, workspace_id) values (?, ?)',
+      agentId,
+      ws.id,
+    );
     this.emit({ type: 'state-changed' });
     return ws;
   }
 
   agents(): AgentInfo[] {
-    return this.db.all<Row>('select * from agents order by last_seen_at desc').map((a) => ({
-      id: a.id as string,
-      label: a.label as string | null,
-      parentId: a.parent_id as string | null,
-      notify: a.notify as string,
-      busy: Boolean(a.busy),
-      lastSeenAt: a.last_seen_at as string,
-      workspaceIds: this.db.all<{ workspace_id: string }>('select workspace_id from agent_workspaces where agent_id = ?', a.id).map((r) => r.workspace_id),
-    }));
+    return this.db
+      .all<Row>('select * from agents order by last_seen_at desc')
+      .map((a) => ({
+        id: a.id as string,
+        label: a.label as string | null,
+        parentId: a.parent_id as string | null,
+        notify: a.notify as string,
+        busy: Boolean(a.busy),
+        lastSeenAt: a.last_seen_at as string,
+        workspaceIds: this.db
+          .all<{ workspace_id: string }>(
+            'select workspace_id from agent_workspaces where agent_id = ?',
+            a.id,
+          )
+          .map((r) => r.workspace_id),
+      }));
   }
 
-  async turn(agentId: string, input: TurnInput): Promise<{ pending: PendingFeedback; snapshot: SnapshotInfo | null }> {
-    this.registerAgent({ id: agentId, label: input.label, parentId: input.parentId, notify: input.notify });
+  async turn(
+    agentId: string,
+    input: TurnInput,
+  ): Promise<{ pending: PendingFeedback; snapshot: SnapshotInfo | null }> {
+    this.registerAgent({
+      id: agentId,
+      label: input.label,
+      parentId: input.parentId,
+      notify: input.notify,
+    });
     const ws = await this.registerAgentWorkspace(agentId, input.cwd);
     const pending = this.pendingFeedback(ws.id);
     // A stop hook that hands over feedback keeps the agent working, so it stays busy.
-    const busy = input.event === 'start' || (pending.pending && Boolean(input.canWake));
-    this.db.run('update agents set busy = ?, last_seen_at = ? where id = ?', busy ? 1 : 0, now(), agentId);
+    const busy =
+      input.event === 'start' || (pending.pending && Boolean(input.canWake));
+    this.db.run(
+      'update agents set busy = ?, last_seen_at = ? where id = ?',
+      busy ? 1 : 0,
+      now(),
+      agentId,
+    );
 
     let snapshot: SnapshotInfo | null = null;
-    if (input.event === 'start' && this.openReviewSessionsFor(ws.id).length > 0) {
+    if (
+      input.event === 'start' &&
+      this.openReviewSessionsFor(ws.id).length > 0
+    ) {
       snapshot = await this.createSnapshot(ws, 'turn-start', agentId);
     }
 
@@ -629,10 +922,16 @@ export class ReviewService {
         );
       }
     } else if (input.event === 'end') {
-      const held = this.db.all<{ id: string }>(`select id from notifications where agent_id = ? and status = 'held'`, agentId);
+      const held = this.db.all<{ id: string }>(
+        `select id from notifications where agent_id = ? and status = 'held'`,
+        agentId,
+      );
       if (held.length > 0) {
         // Give the agent's terminal a moment to return to its prompt before typing.
-        setTimeout(() => held.forEach((n) => void this.pushNotification(n.id)), this.settings.enterDelayMs);
+        setTimeout(
+          () => held.forEach((n) => void this.pushNotification(n.id)),
+          this.settings.enterDelayMs,
+        );
       }
     }
     this.emit({ type: 'state-changed' });
@@ -640,7 +939,11 @@ export class ReviewService {
   }
 
   pendingFeedback(wsId: string): PendingFeedback {
-    const rows = this.db.all<{ review_id: string; review_session_id: string; n: number }>(
+    const rows = this.db.all<{
+      review_id: string;
+      review_session_id: string;
+      n: number;
+    }>(
       `select r.id as review_id, r.review_session_id, count(c.id) as n
        from reviews r
        join review_sessions rs on rs.id = r.review_session_id and rs.status = 'open'
@@ -652,8 +955,18 @@ export class ReviewService {
       wsId,
       wsId,
     );
-    if (rows.length === 0) return { pending: false, reviewSessionId: null, reviewIds: [], commentCount: 0, message: null };
-    const root = this.db.get<{ root: string }>('select root from workspaces where id = ?', wsId)!.root;
+    if (rows.length === 0)
+      return {
+        pending: false,
+        reviewSessionId: null,
+        reviewIds: [],
+        commentCount: 0,
+        message: null,
+      };
+    const root = this.db.get<{ root: string }>(
+      'select root from workspaces where id = ?',
+      wsId,
+    )!.root;
     const rsId = rows[rows.length - 1].review_session_id;
     return {
       pending: true,
@@ -668,10 +981,16 @@ export class ReviewService {
     return this.pendingFeedback((await this.openWorkspace(dir)).id);
   }
 
-  async feedback(input: { workspace: string; reviewSessionId?: string | null; all?: boolean; agentId?: string | null }): Promise<FeedbackResponse> {
+  async feedback(input: {
+    workspace: string;
+    reviewSessionId?: string | null;
+    all?: boolean;
+    agentId?: string | null;
+  }): Promise<FeedbackResponse> {
     const ws = await this.openWorkspace(input.workspace);
     const rsId = input.reviewSessionId ?? this.openReviewSessionsFor(ws.id)[0];
-    if (!rsId) throw new HttpError(404, `${ws.root} isn't in an open review session`);
+    if (!rsId)
+      throw new HttpError(404, `${ws.root} isn't in an open review session`);
     const { base_ref } = this.membership(rsId, ws.id);
 
     const reviewRows = this.db.all<{ id: string; submitted_at: string }>(
@@ -683,18 +1002,34 @@ export class ReviewService {
     );
     const reviewIds = new Set(reviewRows.map((r) => r.id));
     const records = this.commentRecords(rsId).filter(
-      (c) => c.reviewId && reviewIds.has(c.reviewId) && (c.workspaceId === ws.id || c.workspaceId === null),
+      (c) =>
+        c.reviewId &&
+        reviewIds.has(c.reviewId) &&
+        (c.workspaceId === ws.id || c.workspaceId === null),
     );
 
     const sides = await this.sidesFor(rsId, ws, 'all', null);
-    const placed = await this.place(ws, sides, records.filter((c) => c.workspaceId));
+    const placed = await this.place(
+      ws,
+      sides,
+      records.filter((c) => c.workspaceId),
+    );
     const placedById = new Map(placed.map((c) => [c.id, c]));
     const currentLines = new Map<string, string[]>();
     const comments: FeedbackComment[] = [];
     for (const c of records) {
       const p = placedById.get(c.id);
       if (!p || !p.placement || !c.startLine || !c.endLine) {
-        comments.push({ id: c.id, reviewId: c.reviewId!, kind: 'overall', path: null, side: null, original: null, current: null, body: c.body });
+        comments.push({
+          id: c.id,
+          reviewId: c.reviewId!,
+          kind: 'overall',
+          path: null,
+          side: null,
+          original: null,
+          current: null,
+          body: c.body,
+        });
         continue;
       }
       const at = p.placement.range ?? p.placement.replacement;
@@ -702,7 +1037,10 @@ export class ReviewService {
       if (at && p.placement.path) {
         const key = `${c.side}:${p.placement.path}`;
         if (!currentLines.has(key)) {
-          const file = await ws.readFile(c.side === 'old' ? sides.from.tree : sides.to.tree, p.placement.path);
+          const file = await ws.readFile(
+            c.side === 'old' ? sides.from.tree : sides.to.tree,
+            p.placement.path,
+          );
           currentLines.set(key, splitLines(file?.content ?? ''));
         }
         code = currentLines.get(key)!.slice(at.start - 1, at.end);
@@ -713,8 +1051,18 @@ export class ReviewService {
         kind: 'line',
         path: p.placement.path ?? c.path,
         side: c.side,
-        original: { startLine: c.startLine, endLine: c.endLine, code: p.originalCode },
-        current: { state: p.placement.state, startLine: at?.start ?? null, endLine: at?.end ?? null, code, reason: p.placement.reason },
+        original: {
+          startLine: c.startLine,
+          endLine: c.endLine,
+          code: p.originalCode,
+        },
+        current: {
+          state: p.placement.state,
+          startLine: at?.start ?? null,
+          endLine: at?.end ?? null,
+          code,
+          reason: p.placement.reason,
+        },
         body: c.body,
       });
     }
@@ -722,7 +1070,13 @@ export class ReviewService {
     const at = now();
     this.db.transaction(() => {
       for (const r of reviewRows) {
-        this.db.run('insert into feedback_fetches (review_id, workspace_id, agent_id, fetched_at) values (?, ?, ?, ?)', r.id, ws.id, input.agentId ?? null, at);
+        this.db.run(
+          'insert into feedback_fetches (review_id, workspace_id, agent_id, fetched_at) values (?, ?, ?, ?)',
+          r.id,
+          ws.id,
+          input.agentId ?? null,
+          at,
+        );
         this.db.run(
           `update notifications set status = 'fetched', fetched_at = ? where review_id = ? and workspace_id = ? and status != 'fetched'`,
           at,
@@ -731,12 +1085,16 @@ export class ReviewService {
         );
       }
     });
-    if (reviewRows.length > 0) this.emit({ type: 'reviews-changed', reviewSessionId: rsId });
+    if (reviewRows.length > 0)
+      this.emit({ type: 'reviews-changed', reviewSessionId: rsId });
 
     return {
       reviewSessionId: rsId,
       workspace: { id: ws.id, root: ws.root, baseRef: base_ref },
-      reviews: reviewRows.map((r) => ({ id: r.id, submittedAt: r.submitted_at })),
+      reviews: reviewRows.map((r) => ({
+        id: r.id,
+        submittedAt: r.submitted_at,
+      })),
       comments,
     };
   }
@@ -744,24 +1102,47 @@ export class ReviewService {
   // Turn snapshots
 
   private latestSnapshot(wsId: string): SnapshotInfo | null {
-    const row = this.db.get<Row>('select * from turn_snapshots where workspace_id = ? order by seq desc limit 1', wsId);
+    const row = this.db.get<Row>(
+      'select * from turn_snapshots where workspace_id = ? order by seq desc limit 1',
+      wsId,
+    );
     return row ? toSnapshot(row) : null;
   }
 
   private snapshotById(wsId: string, id: number): SnapshotInfo {
-    const row = this.db.get<Row>('select * from turn_snapshots where workspace_id = ? and id = ?', wsId, id);
+    const row = this.db.get<Row>(
+      'select * from turn_snapshots where workspace_id = ? and id = ?',
+      wsId,
+      id,
+    );
     if (!row) throw new HttpError(404, `Unknown snapshot ${id}`);
     return toSnapshot(row);
   }
 
   snapshots(wsId: string): SnapshotInfo[] {
-    return this.db.all<Row>('select * from turn_snapshots where workspace_id = ? order by seq desc limit 100', wsId).map(toSnapshot);
+    return this.db
+      .all<Row>(
+        'select * from turn_snapshots where workspace_id = ? order by seq desc limit 100',
+        wsId,
+      )
+      .map(toSnapshot);
   }
 
-  async createSnapshot(ws: GitWorkspace, reason: string, agentId: string | null): Promise<SnapshotInfo> {
-    const seq = (this.db.get<{ m: number | null }>('select max(seq) as m from turn_snapshots where workspace_id = ?', ws.id)!.m ?? 0) + 1;
+  async createSnapshot(
+    ws: GitWorkspace,
+    reason: string,
+    agentId: string | null,
+  ): Promise<SnapshotInfo> {
+    const seq =
+      (this.db.get<{ m: number | null }>(
+        'select max(seq) as m from turn_snapshots where workspace_id = ?',
+        ws.id,
+      )!.m ?? 0) + 1;
     const ref = `refs/agent-diff/${ws.id}/snapshots/${seq}`;
-    const { commit } = await ws.createSnapshot(ref, `agent-diff turn snapshot ${seq} (${reason}${agentId ? `, ${agentId}` : ''})`);
+    const { commit } = await ws.createSnapshot(
+      ref,
+      `agent-diff turn snapshot ${seq} (${reason}${agentId ? `, ${agentId}` : ''})`,
+    );
     this.db.run(
       'insert into turn_snapshots (workspace_id, seq, commit_sha, ref, agent_id, reason, created_at) values (?, ?, ?, ?, ?, ?, ?)',
       ws.id,
@@ -793,7 +1174,15 @@ function notificationMessage(rsId: string, root: string): string {
 }
 
 function unplaceable(reason: string): Placement {
-  return { state: 'outdated', range: null, replacement: null, insertAfter: null, similarity: null, reason, path: null };
+  return {
+    state: 'outdated',
+    range: null,
+    replacement: null,
+    insertAfter: null,
+    similarity: null,
+    reason,
+    path: null,
+  };
 }
 
 function toComment(r: Row): CommentRecord {

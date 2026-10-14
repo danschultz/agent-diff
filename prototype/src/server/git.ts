@@ -28,15 +28,31 @@ export class GitError extends Error {
 
 // Variables a parent git process (for example a git hook that runs an agent)
 // may have set. Inheriting them would point every command at the wrong repo.
-const INHERITED_GIT_VARS = ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_PREFIX', 'GIT_COMMON_DIR', 'GIT_OBJECT_DIRECTORY'];
+const INHERITED_GIT_VARS = [
+  'GIT_DIR',
+  'GIT_WORK_TREE',
+  'GIT_INDEX_FILE',
+  'GIT_PREFIX',
+  'GIT_COMMON_DIR',
+  'GIT_OBJECT_DIRECTORY',
+];
 
 function baseEnv(): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { ...process.env, GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0', LC_ALL: 'C' };
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    GIT_OPTIONAL_LOCKS: '0',
+    GIT_TERMINAL_PROMPT: '0',
+    LC_ALL: 'C',
+  };
   for (const name of INHERITED_GIT_VARS) delete env[name];
   return env;
 }
 
-export function runGit(cwd: string, args: string[], options: RunOptions = {}): Promise<RunResult> {
+export function runGit(
+  cwd: string,
+  args: string[],
+  options: RunOptions = {},
+): Promise<RunResult> {
   return new Promise((resolve, reject) => {
     const child = spawn('git', ['-c', 'core.quotepath=false', ...args], {
       cwd,
@@ -49,8 +65,13 @@ export function runGit(cwd: string, args: string[], options: RunOptions = {}): P
     child.stderr.on('data', (d: Buffer) => err.push(d));
     child.on('error', reject);
     child.on('close', (code) => {
-      const result = { code: code ?? -1, stdout: Buffer.concat(out), stderr: Buffer.concat(err).toString('utf8') };
-      if (!(options.okCodes ?? [0]).includes(result.code)) reject(new GitError(args, result.code, result.stderr));
+      const result = {
+        code: code ?? -1,
+        stdout: Buffer.concat(out),
+        stderr: Buffer.concat(err).toString('utf8'),
+      };
+      if (!(options.okCodes ?? [0]).includes(result.code))
+        reject(new GitError(args, result.code, result.stderr));
       else resolve(result);
     });
     // git may exit without reading stdin. The write then fails with EPIPE,
@@ -62,7 +83,11 @@ export function runGit(cwd: string, args: string[], options: RunOptions = {}): P
   });
 }
 
-export async function git(cwd: string, args: string[], options: RunOptions = {}): Promise<string> {
+export async function git(
+  cwd: string,
+  args: string[],
+  options: RunOptions = {},
+): Promise<string> {
   return (await runGit(cwd, args, options)).stdout.toString('utf8');
 }
 
@@ -107,8 +132,14 @@ export class ObjectReader {
     this.child = null;
   }
 
-  private request(kind: Pending['kind'], name: string): Promise<{ info: ObjectInfo; content: Buffer | null } | null> {
-    if (name.includes('\n')) return Promise.reject(new Error('Object names with newlines are not supported'));
+  private request(
+    kind: Pending['kind'],
+    name: string,
+  ): Promise<{ info: ObjectInfo; content: Buffer | null } | null> {
+    if (name.includes('\n'))
+      return Promise.reject(
+        new Error('Object names with newlines are not supported'),
+      );
     const child = this.start();
     // An idle reader mustn't keep the process alive, but a pending read must.
     if (this.pending.length === 0) pipe(child.stdout).ref();
@@ -120,7 +151,11 @@ export class ObjectReader {
 
   private start(): ChildProcessWithoutNullStreams {
     if (this.child) return this.child;
-    const child = spawn('git', ['cat-file', '--batch-command'], { cwd: this.cwd, env: baseEnv(), stdio: ['pipe', 'pipe', 'pipe'] });
+    const child = spawn('git', ['cat-file', '--batch-command'], {
+      cwd: this.cwd,
+      env: baseEnv(),
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
     let stderr = '';
     child.stderr.on('data', (d: Buffer) => (stderr += d.toString('utf8')));
     child.stdout.on('data', (d: Buffer) => {
@@ -133,17 +168,21 @@ export class ObjectReader {
       for (const p of this.pending.splice(0)) p.reject(error);
     };
     child.on('error', fail);
-    child.on('close', (code) => fail(new Error(`git cat-file exited ${code}: ${stderr.trim()}`)));
+    child.on('close', (code) =>
+      fail(new Error(`git cat-file exited ${code}: ${stderr.trim()}`)),
+    );
     child.stdin.on('error', () => undefined);
     child.unref();
-    for (const stream of [child.stdin, child.stdout, child.stderr]) pipe(stream).unref();
+    for (const stream of [child.stdin, child.stdout, child.stderr])
+      pipe(stream).unref();
     this.child = child;
     return child;
   }
 
   private drain(): void {
     this.drainPending();
-    if (this.pending.length === 0 && this.child) pipe(this.child.stdout).unref();
+    if (this.pending.length === 0 && this.child)
+      pipe(this.child.stdout).unref();
   }
 
   private drainPending(): void {
@@ -182,7 +221,11 @@ function pipe(stream: unknown): Socket {
 }
 
 /** Like `git`, but returns null instead of throwing when the command fails. */
-export async function gitMaybe(cwd: string, args: string[], options: RunOptions = {}): Promise<string | null> {
+export async function gitMaybe(
+  cwd: string,
+  args: string[],
+  options: RunOptions = {},
+): Promise<string | null> {
   try {
     return (await git(cwd, args, options)).trim();
   } catch (error) {

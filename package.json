@@ -1,0 +1,23 @@
+{
+  "name": "agent-diff",
+  "private": true,
+  "description": "Repo-wide tooling for agent-diff, such as formatting and linting docs. See README.md.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "prepare": "git config core.hooksPath .githooks",
+    "check": "npm run format:check && npm run lint:docs && npm test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint:docs": "node scripts/lint-docs.ts",
+    "test": "node --test \"scripts/test/*.test.ts\""
+  },
+  "devDependencies": {
+    "prettier": "3.9.10",
+    "remark-cli": "12.0.1",
+    "remark-validate-links": "13.1.0",
+    "unist-util-visit": "5.1.0"
+  }
+}

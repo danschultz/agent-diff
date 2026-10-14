@@ -2,7 +2,11 @@
 // multi-line selection, and per-line extension rows for comments.
 
 import { generateDiffFile } from '@git-diff-view/file';
-import { DiffModeEnum, DiffViewWithMultiSelect, type DiffViewWithMultiSelectRef } from '@git-diff-view/react';
+import {
+  DiffModeEnum,
+  DiffViewWithMultiSelect,
+  type DiffViewWithMultiSelectRef,
+} from '@git-diff-view/react';
 import '@git-diff-view/react/styles/diff-view-pure.css';
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { languageFor } from '../language.ts';
@@ -15,7 +19,18 @@ interface Extend {
 }
 
 export default function GitDiffViewViewer(props: ViewerProps) {
-  const { path, oldText, newText, layout, wrap, comments, selection, onSelect, composer, reveal } = props;
+  const {
+    path,
+    oldText,
+    newText,
+    layout,
+    wrap,
+    comments,
+    selection,
+    onSelect,
+    composer,
+    reveal,
+  } = props;
   const renderStart = useRef(0);
   renderStart.current = performance.now();
   const onRendered = useRef(props.onRendered);
@@ -39,11 +54,15 @@ export default function GitDiffViewViewer(props: ViewerProps) {
     for (const mark of commentMarks(comments)) {
       const key = String(Math.max(1, mark.afterLine));
       const target = mark.side === 'old' ? oldFile : newFile;
-      (target[key] ??= { data: { marks: [], composer: null } }).data.marks.push(mark);
+      (target[key] ??= { data: { marks: [], composer: null } }).data.marks.push(
+        mark,
+      );
     }
     if (selection) {
       const target = selection.side === 'old' ? oldFile : newFile;
-      (target[String(selection.end)] ??= { data: { marks: [], composer: null } }).data.composer = composer;
+      (target[String(selection.end)] ??= {
+        data: { marks: [], composer: null },
+      }).data.composer = composer;
     }
     return { oldFile, newFile };
   }, [comments, selection, composer]);
@@ -58,7 +77,8 @@ export default function GitDiffViewViewer(props: ViewerProps) {
   useEffect(() => {
     const el = host.current!;
     const stop = (e: MouseEvent) => {
-      if ((e.target as Element).closest('.diff-add-widget')) e.stopPropagation();
+      if ((e.target as Element).closest('.diff-add-widget'))
+        e.stopPropagation();
     };
     el.addEventListener('mousedown', stop);
     return () => el.removeEventListener('mousedown', stop);
@@ -73,7 +93,9 @@ export default function GitDiffViewViewer(props: ViewerProps) {
     if (!reveal) return;
     const el =
       host.current?.querySelector(`[data-comment-id="${reveal.commentId}"]`) ??
-      host.current?.querySelector(`[data-line-${reveal.side}-num="${reveal.line}"], .diff-line-${reveal.side}-num [data-line-num="${reveal.line}"]`);
+      host.current?.querySelector(
+        `[data-line-${reveal.side}-num="${reveal.line}"], .diff-line-${reveal.side}-num [data-line-num="${reveal.line}"]`,
+      );
     el?.scrollIntoView({ block: 'center' });
   }, [reveal]);
 
@@ -82,7 +104,9 @@ export default function GitDiffViewViewer(props: ViewerProps) {
       <DiffViewWithMultiSelect<Extend>
         ref={diffView}
         diffFile={diffFile}
-        diffViewMode={layout === 'split' ? DiffModeEnum.Split : DiffModeEnum.Unified}
+        diffViewMode={
+          layout === 'split' ? DiffModeEnum.Split : DiffModeEnum.Unified
+        }
         diffViewTheme="dark"
         diffViewHighlight
         diffViewWrap={wrap}
