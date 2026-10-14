@@ -219,11 +219,11 @@ waiting feedback, so the server marks it sent instead of typing it.
 
 ## Sub-agents in other worktrees
 
-Each worktree is its own [workspace](../../docs/glossary.md#workspace). Add it
-to the review session with `$AD add <review-session> <worktree>`. A sub-agent
-that runs as its own agent session with these hooks registers itself. Set
-`AGENT_DIFF_PARENT_ID` in its environment, or pass `--parent` to `register`, to
-record its parent.
+Each worktree is its own [workspace](../../docs/glossary.md#working-directory).
+Add it to the review session with `$AD add <review-session> <worktree>`. A
+sub-agent that runs as its own agent session with these hooks registers itself.
+Set `AGENT_DIFF_PARENT_ID` in its environment, or pass `--parent` to `register`,
+to record its parent.
 
 ## No harness
 
