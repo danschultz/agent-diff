@@ -70,6 +70,7 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
 - Briefs written as GitHub issues are implemented by `implement`, which starts a
   headless agent session per brief and opens a pull request. When an agent
   session needs input, Dan is alerted and answers through Remote Control.
+- The `agent-diff` CLI is built with Crust.
 
 ## Diff modes
 
