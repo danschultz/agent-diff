@@ -25,12 +25,14 @@ in [docs/research](docs/research/README.md), and agreed terms are defined in
 ## Checks
 
 Run `npm install` at the repo root once per checkout or worktree. It installs
-Prettier, remark, and a pre-commit hook that runs `npm run check` and blocks the
-commit when it fails. CI runs the same script on pushes to `main` and on pull
-requests. The checks run on the working tree, not only what's staged.
+every npm workspace, listed in the root `package.json`, and a pre-commit hook
+that runs `npm run check` and blocks the commit when it fails. CI runs the same
+script on pushes to `main` and on pull requests. The checks run on the working
+tree, not only what's staged.
 
 - `npm run format` formats every file Prettier supports, skipping files the root
-  `.gitignore` ignores.
+  `.gitignore` ignores. `.sql` files are formatted as SQLite by
+  `prettier-plugin-sql-cst`, configured in `.prettierrc.json`.
 - `npm run format:check` lists the files that aren't formatted.
 - `npm run lint:docs` runs `scripts/lint-docs.ts`, which never changes files. It
   fails when:
@@ -49,7 +51,40 @@ requests. The checks run on the working tree, not only what's staged.
   The link checks are `remark-validate-links` and
   `scripts/remark-local-links.ts`, configured in `.remarkrc.js`.
 
-- `npm test` runs the tests for `scripts/` with `node --test`.
-- `npm run check` runs every check. To add a check, add an npm script for it and
-  append it to the `check` script in the root `package.json`, which today is
-  `npm run format:check && npm run lint:docs && npm test`.
+- `npm run typecheck` runs `tsc` in every npm workspace, each extending the root
+  `tsconfig.base.json`, and on the end-to-end tests in `e2e/`.
+- `npm test` runs the tests for `scripts/`, then each npm workspace's `test`
+  script, all with `node --test`. CLI commands are tested in-process with
+  `@crustjs/testing`, and in child processes against a real review server. Tests
+  set `XDG_STATE_HOME` to a temporary directory, so they never use the real
+  state directory.
+- `npm run check` runs every check above. To add a check, add an npm script for
+  it and append it to the `check` script in the root `package.json`, which today
+  is
+  `npm run format:check && npm run lint:docs && npm run typecheck && npm test`.
+- `npm run test:e2e` builds the review UI, then runs the Playwright tests in
+  `e2e/`, configured in `playwright.config.ts`. It isn't part of `npm run check`
+  or the pre-commit hook, and runs in its own CI job. Install Chromium for it
+  once with `npx playwright install --with-deps chromium`.
+
+## Development
+
+The review server, the CLI, and `packages/shared` run on Node 24 with type
+stripping, with no build step. Only the review UI is built. See
+[0026](docs/decisions/0026-workspaces-typescript-7-and-test-stack.md).
+
+- **The CLI** runs from the repo root as `npx agent-diff`, such as
+  `npx agent-diff server hello Dan`.
+- **The review server** runs in the foreground with
+  `npx agent-diff server start --foreground`, or with `npm run dev:server`,
+  which restarts it when its code changes. It serves the built review UI, so run
+  `npm run build -w packages/ui` first to see the review UI at the URL it
+  prints.
+- **The review UI** runs on Vite's dev server with `npm run dev:ui`, which
+  reloads as its code changes and proxies API calls to the review server. Start
+  the review server first, because the proxy reads its port from the config
+  file.
+
+Both use the real state directory, `$XDG_STATE_HOME/agent-diff` or
+`~/.local/state/agent-diff`. Set `XDG_STATE_HOME` to another directory, in every
+shell, to keep development data separate.
