@@ -1,0 +1,10 @@
+{
+  "name": "fastify-example",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "zod": "4.6.7",
+    "fastify": "5.12.7",
+    "fastify-type-provider-zod": "7.0.0"
+  }
+}

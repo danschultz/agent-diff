@@ -1,0 +1,9 @@
+{
+  "name": "better-sqlite3-driver",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "better-sqlite3": "13.0.3",
+    "@types/better-sqlite3": "9.6.0"
+  }
+}

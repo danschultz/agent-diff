@@ -1,0 +1,10 @@
+{
+  "name": "drizzle-query",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "drizzle-orm": "0.45.4",
+    "better-sqlite3": "13.0.3",
+    "@types/better-sqlite3": "9.6.0"
+  }
+}

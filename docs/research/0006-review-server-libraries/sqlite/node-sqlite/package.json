@@ -1,0 +1,6 @@
+{
+  "name": "node-sqlite-driver",
+  "private": true,
+  "type": "module",
+  "dependencies": {}
+}

@@ -1,0 +1,8 @@
+{
+  "name": "sqlite3-driver",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "sqlite3": "6.0.1"
+  }
+}

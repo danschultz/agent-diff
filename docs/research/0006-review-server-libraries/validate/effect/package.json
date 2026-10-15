@@ -1,0 +1,8 @@
+{
+  "name": "effect-validate",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "effect": "4.0.4"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "arktype-validate",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "arktype": "2.2.8"
+  }
+}
