@@ -13,7 +13,7 @@ repositories at once. Reviewing that work today means jumping between terminals,
 branches, and `git diff` invocations, then copy-pasting feedback back into a
 chat. `agent-diff` gives the reviewer a single UI that shows what changed in
 every working directory, lets them leave line-level and overall comments, and
-sends that feedback back to agents to address.
+lets agents fetch those comments and mark them addressed.
 
 ## Typical workflow
 
@@ -21,8 +21,9 @@ sends that feedback back to agents to address.
    repos.
 2. That agent, or a fleet of sub-agents it delegates to, makes the changes, each
    in its own working directory.
-3. An actor starts a review session over the working directories to review. For
-   example, a human asks the main agent to start one covering all of its
+3. An actor starts a review session over the working directories to review with
+   `agent-diff session new <working-dir>...`, which prints the review session's
+   ID. For example, a human asks the main agent to start one covering all of its
    sub-agents' working directories, or asks a sub-agent to start one for its
    own. Working directories can be added to the review session later.
 4. The review UI opens for that review session. The reviewer can switch between
@@ -31,18 +32,22 @@ sends that feedback back to agents to address.
    each working directory to its base ref. A working directory doesn't have to
    be a git repo. If it doesn't use git, the file view lists all its files and
    there's no diff.
-6. The reviewer adds comments on a single line, a range of lines, or the review
-   as a whole. Comments are drafts until they're submitted.
-7. The reviewer submits a review to the review session, then tells the agent to
-   apply it, for example "Apply the latest feedback." The agent claims a working
-   directory, fetches the most recent review with `agent-diff review`, and
-   addresses its comments. Agents don't block while a review session is open, so
-   the human can keep working with them in the meantime.
+6. The reviewer leaves line comments on a single line or a range of lines, and
+   overall comments that aren't attached to code. A comment is available to
+   agents as soon as it's saved.
+7. The reviewer tells the agent to address the comments, using a prompt copied
+   from the review UI that includes the review session's ID. The agent lists the
+   open comments with `agent-diff comment list <session-id>`, overall comments
+   first, addresses them, and marks each one with
+   `agent-diff comment addressed <comment-id>`. The reviewer checks the work and
+   resolves each comment, or reopens it. Agents don't block while a review
+   session is open, so the human can keep working with them in the meantime.
 8. Whenever any actor changes the code, the diff updates live. The review server
    watches the file system, so this includes agents in other processes and
    humans editing in their IDE.
-9. The review session ends through an API call, from the reviewer in the review
-   UI, an agent, or other automation.
+9. When the work is done, the reviewer, an agent, or other automation archives
+   the review session, which stops watching its working directories and keeps
+   its comments read-only, or deletes it.
 
 ## Decisions
 
@@ -53,14 +58,16 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
 - The file view can show unchanged files.
 - The reviewer can open the code in an IDE.
 - The agent tree is reported by agents and harnesses, not inferred from git.
-- The user prompts the agent to apply a review, and the agent fetches the most
-  recent review from the review server. The server never contacts agents.
+- The user prompts the agent to address comments, and the agent fetches them
+  from the review server. The server never contacts agents.
 - Review state is stored in SQLite, so it survives crashes and restarts.
 - The review UI live-reloads by watching the file system.
 - Comments follow the code as it changes, and are marked outdated rather than
   guessed when their lines change.
-- Reviews are submitted to review sessions, and agents claim feedback per
-  working directory.
+- Review sessions cover working directories. Comments are available as soon as
+  they're saved, with no drafts, reviews, or claims. Agents list a review
+  session's open comments by its ID and mark each one addressed. Review sessions
+  are archived or deleted.
 - The review server has an API. Agents and harnesses use the `agent-diff` CLI,
   which calls it. There's no MCP server.
 - The review UI renders diffs with CodeMirror.
@@ -70,7 +77,9 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
 - Briefs written as GitHub issues are implemented by `implement`, which starts a
   headless agent session per brief and opens a pull request. When an agent
   session needs input, Dan is alerted and answers through Remote Control.
-- The `agent-diff` CLI is built with Crust.
+- The `agent-diff` CLI is built with Crust. Its commands are noun then verb,
+  such as `session new` and `comment list`, and it doesn't start the review
+  server unless told to with `server start`.
 
 ## Diff modes
 
@@ -122,10 +131,9 @@ helps, for example:
   terminal.
 - **otty** and **herdr**: equivalent hooks for opening the review UI.
 
-Agents and harnesses start review sessions, claim working directories, and fetch
-reviews through the `agent-diff` CLI, a small, documented interface that any
-harness can adopt. The CLI calls the review server's API, which the review UI
-also uses.
+Agents and harnesses start review sessions and list and address comments through
+the `agent-diff` CLI, a small, documented interface that any harness can adopt.
+The CLI calls the review server's API, which the review UI also uses.
 
 ### Open in an IDE
 
@@ -151,11 +159,11 @@ out.
 
 ### Agents reply to comments
 
-After addressing feedback, the agent replies in each comment's thread and gives
-it a status, such as addressed, declined, or needs input. Comments become
-threads that both the reviewer and the agent can add to, and the reviewer
-resolves them. Replies are one more message from the agent to the review server,
-so no new kind of connection is needed.
+Today an agent can only mark a comment addressed. Instead, the agent replies in
+each comment's thread and gives it a status, such as addressed, declined, or
+needs input. Comments become threads that both the reviewer and the agent can
+add to, and the reviewer resolves them. Replies are one more message from the
+agent to the review server, so no new kind of connection is needed.
 
 Examples of how this helps:
 
@@ -172,22 +180,27 @@ Examples of how this helps:
   same bug." The reviewer knows to look at changes they didn't ask for.
 - **Reporting blockers.** "Couldn't address this: the test needs a database that
   isn't available in this environment." The reviewer learns why nothing changed.
-- **Focused follow-up reviews.** The next review shows only threads that are
-  still open, so the reviewer doesn't re-check comments that are already
-  settled.
+- **Focused follow-up.** The reviewer sees only threads that are still open, so
+  they don't re-check comments that are already settled.
 
 ## To do
 
-- **Clarify glossary terms.** Go through [docs/glossary.md](docs/glossary.md)
-  and resolve these unclear spots:
-  - A [comment](docs/glossary.md#comment) is a draft "until its review is
-    submitted," but a [review](docs/glossary.md#review) only exists once it's
-    submitted, so drafts point to a review that doesn't exist yet.
-  - The "Last turn" [diff mode](docs/glossary.md#diff-mode) doesn't say whose
-    turn it is when several agents work in one working directory, and it says
-    "current state" where the other modes say "working tree."
+- **Clarify glossary terms.** In [docs/glossary.md](docs/glossary.md), the "Last
+  turn" [diff mode](docs/glossary.md#diff-mode) doesn't say whose turn it is
+  when several agents work in one working directory, and it says "current state"
+  where the other modes say "working tree."
 
 ## Open questions
 
-None right now. Follow-up choices that come out of a decision are listed in that
-decision's file.
+Follow-up choices that come out of a decision are listed in that decision's
+file.
+
+- **Reporting turns.** How agents or harnesses tell the review server where a
+  turn starts and ends, so it can record the turn snapshots that the "Last turn"
+  diff mode needs.
+- **Registration.** Whether agents still register
+  ([0004](docs/decisions/0004-agent-tree-is-an-input.md)) now that nothing in
+  the comment flow needs to know which agent is which, and if so, the command
+  for it. What's left is showing who changed what and filtering the review UI by
+  agent. It's tied to reporting turns, since turn snapshots are what show who
+  changed which lines.

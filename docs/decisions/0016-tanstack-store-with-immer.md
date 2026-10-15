@@ -174,11 +174,10 @@ Costs:
 - **How state is split into stores.** Which of the review UI's state, such as
   the [review session](../glossary.md#review-session),
   [diff mode](../glossary.md#diff-mode), [file view](../glossary.md#file-view),
-  selection, and [drafts](../glossary.md#draft), shares a store.
+  selection, and drafts, shares a store.
 - **Data loaded from the review server.** Whether file lists, diffs, comments,
-  and [reviews](../glossary.md#review) are held in stores or in a data-fetching
-  library such as TanStack Query, with stores holding the reviewer's UI state
-  and drafts.
+  and reviews are held in stores or in a data-fetching library such as TanStack
+  Query, with stores holding the reviewer's UI state and drafts.
 - **Selecting objects after pushed updates.** Replacing state creates new
   objects, so components that select an object rather than a value re-render on
   each pushed update unless they compare by value. 0003 only measured a

@@ -504,9 +504,9 @@ export function DraftCount({ path }: { path: string }) {
   TypeScript can't check for a generic `T`, so the helper passes the initial
   state `as never`. The comment in the helper explains it.
 - **Naming.** Immer calls the object a recipe changes a "draft" and its type
-  `Draft`. The helper imports that type as `Writable`, because
-  [draft](../glossary.md#draft) means an unsubmitted comment in this project,
-  and the examples' `Draft` type is that comment.
+  `Draft`. The helper imports that type as `Writable`, because draft means an
+  unsubmitted comment in this project, and the examples' `Draft` type is that
+  comment.
 - **Not documented by TanStack.** The helper is local code. Agents won't know it
   from training data and would learn it from the repo.
 

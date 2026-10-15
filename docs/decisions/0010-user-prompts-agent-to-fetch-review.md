@@ -1,7 +1,8 @@
 # 0010: The user prompts the agent to fetch the latest review
 
-- Status: Accepted, amended by [0011](0011-api-core-with-cli-client.md) and
-  [0013](0013-working-directories.md)
+- Status: Accepted, amended by [0011](0011-api-core-with-cli-client.md),
+  [0013](0013-working-directories.md), and
+  [0018](0018-agents-list-open-comments.md)
 - Date: 2026-10-11
 
 > **Amended by [0011](0011-api-core-with-cli-client.md):** there's no MCP tool.
@@ -10,6 +11,12 @@
 > **Amended by [0013](0013-working-directories.md):** the agent's current
 > directory doesn't have to match a working directory exactly. The CLI finds the
 > working directory that contains it.
+
+> **Amended by [0018](0018-agents-list-open-comments.md):** there's no review to
+> fetch and no claim. The prompt includes the review session's ID, the agent
+> runs `agent-diff comment list <session-id>` to list open comments, and marks
+> each one addressed with `agent-diff comment addressed <comment-id>`. The
+> agent's current directory isn't used.
 
 ## Problem
 

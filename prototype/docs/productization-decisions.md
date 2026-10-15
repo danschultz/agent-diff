@@ -72,9 +72,8 @@ goes into polishing features a built-in tool already has.
   state that survives restarts
   ([0006](../../docs/decisions/0006-sqlite-review-state.md)), comments that
   follow the code ([0008](../../docs/decisions/0008-comment-reanchoring.md)),
-  and [claims](../../docs/glossary.md#claim) so several agents can work through
-  [feedback](../../docs/glossary.md#feedback). Works in cmux, tmux, Cursor, or a
-  plain terminal.
+  and claims so several agents can work through feedback. Works in cmux, tmux,
+  Cursor, or a plain terminal.
 - **cmux-first companion.** Lean into cmux (browser surface, notifications,
   maybe its comment format) and position as the multi-workspace layer cmux diff
   doesn't have. Faster to a polished experience for cmux users, but tied to one

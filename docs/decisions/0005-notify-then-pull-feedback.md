@@ -1,8 +1,9 @@
 # 0005: Agents are notified of feedback, then pull it from the server
 
 - Status: Accepted, amended by [0009](0009-review-sessions-and-claims.md),
-  [0010](0010-user-prompts-agent-to-fetch-review.md), and
-  [0011](0011-api-core-with-cli-client.md)
+  [0010](0010-user-prompts-agent-to-fetch-review.md),
+  [0011](0011-api-core-with-cli-client.md), and
+  [0018](0018-agents-list-open-comments.md)
 - Date: 2026-10-10
 
 > **Amended by [0009](0009-review-sessions-and-claims.md):** feedback goes to a
@@ -18,6 +19,11 @@
 
 > **Amended by [0011](0011-api-core-with-cli-client.md):** agents fetch feedback
 > through the CLI, which calls the review server's API. There's no MCP tool.
+
+> **Amended by [0018](0018-agents-list-open-comments.md):** comments aren't held
+> as drafts and delivered as a submitted batch. Each comment is available to
+> agents as soon as it's saved, and the agent lists open comments with
+> `agent-diff comment list <session-id>`.
 
 ## Problem
 

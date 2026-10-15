@@ -1,7 +1,16 @@
 # 0011: The review server has an API, and agents use a CLI that calls it
 
-- Status: Accepted
+- Status: Accepted, amended by [0018](0018-agents-list-open-comments.md) and
+  [0019](0019-cli-does-not-start-the-server.md)
 - Date: 2026-10-11
+
+> **Amended by [0018](0018-agents-list-open-comments.md):** the CLI doesn't work
+> out the working directory from the directory it runs in. Every command takes
+> explicit IDs, and output is text written for agents.
+
+> **Amended by [0019](0019-cli-does-not-start-the-server.md):** the CLI doesn't
+> start the review server. `agent-diff server start` does, and other commands
+> fail with an error when it isn't running.
 
 ## Problem
 

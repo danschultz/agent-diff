@@ -7,8 +7,8 @@ use those terms as defined, and the glossary must never contain conflicts.
 
 - Use glossary terms as defined in every doc, including `README.md`,
   `AGENTS.md`, rules, and decisions.
-- Don't introduce synonyms for an existing term. For example, write "review",
-  not "round" or "submission".
+- Don't introduce synonyms for an existing term. For example, write "working
+  directory", not "workspace" or "checkout".
 - If a doc needs a concept the glossary doesn't cover, propose a term to the
   user before using it.
 
