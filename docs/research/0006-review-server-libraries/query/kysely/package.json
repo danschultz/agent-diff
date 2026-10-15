@@ -1,0 +1,8 @@
+{
+  "name": "kysely-query",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "kysely": "0.29.6"
+  }
+}

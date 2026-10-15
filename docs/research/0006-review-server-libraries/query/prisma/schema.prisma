@@ -1,0 +1,41 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "./generated"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model ReviewSession {
+  id                 String             @id
+  title              String?
+  startedAt          String             @map("started_at")
+  workingDirectories WorkingDirectory[]
+  comments           Comment[]
+
+  @@map("review_sessions")
+}
+
+model WorkingDirectory {
+  reviewSessionId String        @map("review_session_id")
+  path            String
+  reviewSession   ReviewSession @relation(fields: [reviewSessionId], references: [id])
+
+  @@id([reviewSessionId, path])
+  @@map("review_session_working_directories")
+}
+
+model Comment {
+  id              String        @id
+  reviewSessionId String        @map("review_session_id")
+  path            String
+  startLine       Int           @map("start_line")
+  endLine         Int           @map("end_line")
+  body            String
+  createdAt       String        @map("created_at")
+  reviewSession   ReviewSession @relation(fields: [reviewSessionId], references: [id])
+
+  @@map("comments")
+}

@@ -1,0 +1,11 @@
+{
+  "name": "hono-example",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "zod": "4.6.7",
+    "hono": "4.13.13",
+    "@hono/node-server": "2.1.5",
+    "@hono/standard-validator": "0.4.0"
+  }
+}

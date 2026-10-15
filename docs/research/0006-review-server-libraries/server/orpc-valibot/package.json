@@ -1,0 +1,14 @@
+{
+  "name": "orpc-valibot-example",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "valibot": "1.5.0",
+    "@orpc/server": "1.15.6",
+    "@orpc/client": "1.15.6",
+    "@orpc/contract": "1.15.6",
+    "@orpc/openapi": "1.15.6",
+    "@orpc/openapi-client": "1.15.6",
+    "@orpc/valibot": "1.15.6"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "h3-example",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "zod": "4.6.7",
+    "h3": "2.0.2"
+  }
+}

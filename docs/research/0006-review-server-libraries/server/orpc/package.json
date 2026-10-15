@@ -1,0 +1,14 @@
+{
+  "name": "orpc-example",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "zod": "4.6.7",
+    "@orpc/server": "1.15.6",
+    "@orpc/client": "1.15.6",
+    "@orpc/contract": "1.15.6",
+    "@orpc/openapi": "1.15.6",
+    "@orpc/openapi-client": "1.15.6",
+    "@orpc/zod": "1.15.6"
+  }
+}
