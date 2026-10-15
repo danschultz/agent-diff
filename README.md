@@ -80,6 +80,15 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
 - The `agent-diff` CLI is built with Crust. Its commands are noun then verb,
   such as `session new` and `comment list`, and it doesn't start the review
   server unless told to with `server start`.
+- Each user runs one review server, which serves all their review sessions and
+  is the only process that opens their database.
+- A config file in `$XDG_STATE_HOME/agent-diff` (or `~/.local/state/agent-diff`)
+  holds the user's review server port and token, and only the user can read it.
+  The database is a file beside it, and the browser swaps the token for a
+  cookie.
+- The review server's API is built with oRPC, and validated with Valibot.
+- Review state is stored with `node:sqlite` and plain SQL, and dbmate applies
+  migrations when the review server starts.
 
 ## Diff modes
 
