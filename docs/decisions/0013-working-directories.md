@@ -1,7 +1,12 @@
 # 0013: Review sessions cover working directories, which don't have to use git
 
-- Status: Accepted
+- Status: Accepted, amended by [0018](0018-agents-list-open-comments.md)
 - Date: 2026-10-12
+
+> **Amended by [0018](0018-agents-list-open-comments.md):** the CLI doesn't look
+> for the working directory that contains the directory it runs in. Commands
+> take a review session ID, and working directories are given as paths. Claims
+> are removed.
 
 ## Problem
 

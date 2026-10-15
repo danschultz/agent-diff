@@ -8,9 +8,9 @@ It checks five things:
 
 1. **The agent feedback loop**
    ([0005](../docs/decisions/0005-notify-then-pull-feedback.md)): a submitted
-   [review](../docs/glossary.md#review) sends a one-line notification to the
+   review sends a one-line notification to the
    [agent session](../docs/glossary.md#agent-session), and the agent pulls the
-   [feedback](../docs/glossary.md#feedback) with the CLI.
+   feedback with the CLI.
 2. **Comment re-anchoring**
    ([0008](../docs/decisions/0008-comment-reanchoring.md)): whether comments
    land in the right [anchor state](../docs/glossary.md#anchor-state) as the
@@ -306,8 +306,8 @@ Notifications carry no review content.
 
 ## Not in the prototype
 
-[Claims](../docs/glossary.md#claim), opening files in an IDE
-([0003](../docs/decisions/0003-open-in-ide.md)), showing unchanged files
+Claims, opening files in an IDE ([0003](../docs/decisions/0003-open-in-ide.md)),
+showing unchanged files
 ([0002](../docs/decisions/0002-show-unchanged-files.md)), filtering by the
 [agent tree](../docs/glossary.md#agent-tree), and authentication beyond the
 checks above.

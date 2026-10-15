@@ -1,7 +1,12 @@
 # 0008: Comments are re-anchored in layers and marked outdated rather than guessed
 
-- Status: Accepted
+- Status: Accepted, amended by [0018](0018-agents-list-open-comments.md)
 - Date: 2026-10-10
+
+> **Amended by [0018](0018-agents-list-open-comments.md):** there are no drafts
+> or submitted comments, so the "Drafts and submitted comments" section no
+> longer applies. How anchor states are shown alongside comment statuses is left
+> open in 0018.
 
 ## Problem
 

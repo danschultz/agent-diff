@@ -1,8 +1,9 @@
 # 0009: Reviews are submitted to review sessions, and agents claim feedback per working directory
 
 - Status: Accepted, amended by
-  [0010](0010-user-prompts-agent-to-fetch-review.md) and
-  [0013](0013-working-directories.md)
+  [0010](0010-user-prompts-agent-to-fetch-review.md),
+  [0013](0013-working-directories.md), and
+  [0018](0018-agents-list-open-comments.md)
 - Date: 2026-10-10
 
 > **Amended by [0010](0010-user-prompts-agent-to-fetch-review.md):** no agents
@@ -12,6 +13,11 @@
 > **Amended by [0013](0013-working-directories.md):** a working directory is
 > just a directory, and may not use git. The branch is whatever `HEAD` points to
 > rather than part of what's reviewed.
+
+> **Amended by [0018](0018-agents-list-open-comments.md):** there are no reviews
+> or claims. The reviewer leaves comments in a review session, an agent lists
+> the open ones and marks each one addressed, and the reviewer decides which
+> agent works where. Review sessions are archived or deleted rather than ended.
 
 ## Problem
 

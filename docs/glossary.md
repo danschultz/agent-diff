@@ -48,37 +48,40 @@ Where a [comment](#comment) is shown relative to the current code:
   The comment is shown next to the replacement code, along with the original
   code.
 
-This is about where the comment sits, not whether its feedback has been
-addressed. See [0008](decisions/0008-comment-reanchoring.md).
+This is about where the comment sits, not whether it has been addressed, which
+is its [comment status](#comment-status). See
+[0008](decisions/0008-comment-reanchoring.md).
 
 ### Base ref
 
 The branch or commit that a git [working directory](#working-directory)'s
 changes are compared against.
 
-### Claim
-
-An agent's lease on a [working directory](#working-directory) in a
-[review session](#review-session), taken so the agent can address that working
-directory's unaddressed [feedback](#feedback). A working directory has at most
-one active claim at a time. The agent renews the claim while working, and it
-expires if the agent stops renewing it. The agent can also release a claim, or
-complete it when the feedback is addressed. Claims are advisory: they help
-agents coordinate but don't stop other processes from editing files. See
-[0009](decisions/0009-review-sessions-and-claims.md).
-
 ### Comment
 
-A note the [reviewer](#reviewer) writes on a single line, a range of lines, or
-the [review](#review) as a whole (an overall comment). A comment is a
-[draft](#draft) until its review is submitted. Each line or range comment has an
-[anchor](#anchor) and an [anchor state](#anchor-state).
+A note the [reviewer](#reviewer) leaves in a [review session](#review-session).
+There are two kinds:
 
-### Current directory
+- **Line comment:** on a single line or a range of lines in a file. It has an
+  [anchor](#anchor) and an [anchor state](#anchor-state).
+- **Overall comment:** not attached to code. It belongs to the review session.
 
-The directory a process, such as an agent or the `agent-diff` CLI, is running
-in. The CLI finds the [working directory](#working-directory) that contains it.
-See [0013](decisions/0013-working-directories.md).
+A comment is available to agents as soon as it's saved, and has a
+[comment status](#comment-status). See
+[0018](decisions/0018-agents-list-open-comments.md).
+
+### Comment status
+
+Whether a [comment](#comment) has been dealt with:
+
+- **Open:** not yet addressed. Every comment starts open.
+- **Addressed:** an agent has marked it addressed.
+- **Resolved:** the [reviewer](#reviewer) checked the agent's work and resolved
+  it.
+
+The reviewer can reopen a comment, which sets it back to open. This is separate
+from its [anchor state](#anchor-state). See
+[0018](decisions/0018-agents-list-open-comments.md).
 
 ### Diff mode
 
@@ -92,16 +95,6 @@ What the diff compares for a git [working directory](#working-directory):
   state.
 
 A working directory that doesn't use git has no diff modes.
-
-### Draft
-
-A [comment](#comment) that hasn't been submitted yet as part of a
-[review](#review).
-
-### Feedback
-
-The [comments](#comment) in submitted [reviews](#review), from the point of view
-of the agent addressing them.
 
 ### File version
 
@@ -130,13 +123,6 @@ An agent, or its [harness](#harness), reporting the agent to the
 [review server](#review-server): its ID, its parent, and its
 [working directories](#working-directory).
 
-### Review
-
-A batch of [comments](#comment) the [reviewer](#reviewer) submits to a
-[review session](#review-session). A review can span several
-[working directories](#working-directory), and a review session can receive many
-reviews over time.
-
 ### Review server
 
 The local server that stores review state in SQLite, watches
@@ -146,12 +132,13 @@ The local server that stores review state in SQLite, watches
 
 ### Review session
 
-A set of [working directories](#working-directory) under review. An
-[actor](#actor) starts a review session through an API call, working directories
-can be added after it starts, and [reviews](#review) are submitted to it. A
-review session ends through an API call from the reviewer in the review UI, an
-agent, or other automation. See
-[0009](decisions/0009-review-sessions-and-claims.md).
+A set of [working directories](#working-directory) under review, identified by
+an ID. An [actor](#actor) starts a review session through an API call, working
+directories can be added after it starts, and the [reviewer](#reviewer) leaves
+[comments](#comment) in it. A review session is archived, which stops watching
+its working directories and makes it read-only, or deleted, which removes its
+data. See [0009](decisions/0009-review-sessions-and-claims.md) and
+[0018](decisions/0018-agents-list-open-comments.md).
 
 ### Review UI
 
@@ -185,6 +172,5 @@ or a directory inside a repo, or it may not use git at all. The diff and the
 [file view](#file-view) only include files under it, even when git runs against
 the whole repo. In a git working directory, the branch is whatever `HEAD` points
 to, and isn't part of the working directory. A working directory that doesn't
-use git has no diffs. Not to be confused with a process's
-[current directory](#current-directory). See
+use git has no diffs. A working directory can be in several review sessions. See
 [0013](decisions/0013-working-directories.md).

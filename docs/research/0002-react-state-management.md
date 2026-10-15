@@ -33,9 +33,9 @@ The review UI holds:
 - The [file view](../glossary.md#file-view): tree or list, and whether unchanged
   files are shown.
 - The selected file and line.
-- [Drafts](../glossary.md#draft), and each [comment](../glossary.md#comment)'s
+- Drafts, and each [comment](../glossary.md#comment)'s
   [anchor state](../glossary.md#anchor-state).
-- File lists, diffs, comments, [reviews](../glossary.md#review), and
+- File lists, diffs, comments, reviews, and
   [turn snapshots](../glossary.md#turn-snapshot) loaded from the review server.
 
 In the prototype, the review server sends events over an `EventSource`
