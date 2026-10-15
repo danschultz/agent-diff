@@ -1,0 +1,30 @@
+{
+  "name": "@agent-diff/server",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The review server: the API, the database, and the built review UI. See README.md.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    ".": "./src/server.ts"
+  },
+  "scripts": {
+    "dev": "node --watch src/main.ts",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@agent-diff/shared": "0.0.0",
+    "@orpc/server": "1.15.7",
+    "dbmate": "2.36.0",
+    "valibot": "1.5.0"
+  },
+  "devDependencies": {
+    "@orpc/client": "1.15.7",
+    "@orpc/contract": "1.15.7",
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
+  }
+}

@@ -1,11 +1,18 @@
 {
   "singleQuote": true,
+  "plugins": ["prettier-plugin-sql-cst"],
   "overrides": [
     {
       "files": "*.md",
       "options": {
         "proseWrap": "always",
         "printWidth": 80
+      }
+    },
+    {
+      "files": "*.sql",
+      "options": {
+        "parser": "sqlite"
       }
     }
   ]

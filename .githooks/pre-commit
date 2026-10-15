@@ -12,6 +12,12 @@ if [ ! -x node_modules/.bin/prettier ] || [ ! -x node_modules/.bin/remark ]; the
   exit 1
 fi
 
+# Git points hooks at this repo with variables such as GIT_DIR and
+# GIT_INDEX_FILE. Tests that run git in temporary repos would inherit them and
+# change this repo instead, so they're cleared. The checks run on the working
+# tree, so they don't need them.
+unset $(git rev-parse --local-env-vars)
+
 if ! npm run --silent check; then
   echo "pre-commit: checks failed. Run \`npm run format\` to fix formatting," >&2
   echo "pre-commit: fix any doc numbers and links listed above," >&2

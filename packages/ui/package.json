@@ -1,0 +1,30 @@
+{
+  "name": "@agent-diff/ui",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The review UI, built with Vite and served by the review server. See README.md.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@agent-diff/shared": "0.0.0",
+    "@orpc/client": "1.15.7",
+    "@orpc/contract": "1.15.7",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "typescript": "7.0.2",
+    "vite": "8.3.4"
+  }
+}

@@ -26,10 +26,14 @@ Drizzle, and Prisma. The prototype already uses `node:sqlite` with plain SQL
 
 ```sql
 -- migrate:up
-create table review_sessions (id text primary key, title text, started_at text not null);
+CREATE TABLE review_sessions (
+  id TEXT PRIMARY KEY,
+  title TEXT,
+  started_at TEXT NOT NULL
+);
 
 -- migrate:down
-drop table review_sessions;
+DROP TABLE review_sessions;
 ```
 
 - **Applying migrations.** The review server runs `dbmate up` against its
