@@ -14,13 +14,19 @@ relies on when reviewing their work.
 ## Solution
 
 - **Every change is written test-first,** in every package, including
-  `prototype/`, `scripts/`, and `tools/`, with no exceptions. The rule is
+  `prototype/`, `scripts/`, and `tools/`. The rule is
   [`.rules/testing.md`](../../.rules/testing.md), listed in `AGENTS.md`'s Rules
   table to be read when changing code or tests.
 - **The steps:** write a failing test first, run it, and see it fail for the
   expected reason. Write the least code that makes it pass. Refactor with the
   tests passing.
 - **A bug fix starts with a test that reproduces the bug.**
+- **Performance fixes are the only exception.** Tests that check timing are
+  flaky in CI, so a performance fix doesn't need a failing test first. It gets
+  one when the cost can be checked without timing, such as a scaling test that
+  counts queries, or a test with a timeout that a catastrophically backtracking
+  regex would fail. See [`.rules/performance.md`](../../.rules/performance.md)
+  and [0030](0030-self-review-before-the-pull-request-opens.md).
 - **The test stack is unchanged.** Tests use the stack from
   [0026](0026-workspaces-typescript-7-and-test-stack.md): `node --test`,
   `@crustjs/testing`, and Playwright.
@@ -38,6 +44,8 @@ Benefits:
 
 Costs:
 
+- A performance fix can land without a test that would catch the slowdown coming
+  back.
 - Changes take longer, including small ones and changes to `prototype/`, which
   isn't checked by `npm run check` or CI.
 - Some changes, such as prompts or docs that code reads, are hard to test

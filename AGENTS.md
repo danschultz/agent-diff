@@ -14,14 +14,15 @@ in [docs/research](docs/research/README.md), and agreed terms are defined in
 
 ## Rules
 
-| Rule                                           | When to read                                                                        |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------- |
-| [`.rules/glossary.md`](.rules/glossary.md)     | Always                                                                              |
-| [`.rules/decisions.md`](.rules/decisions.md)   | When the user settles a design question or answers an open question in `README.md`. |
-| [`.rules/research.md`](.rules/research.md)     | When the user or a brief asks for options to be researched.                         |
-| [`.rules/formatting.md`](.rules/formatting.md) | When a change adds a file type the repo doesn't have yet.                           |
-| [`.rules/gitignore.md`](.rules/gitignore.md)   | When adding or changing ignore patterns.                                            |
-| [`.rules/testing.md`](.rules/testing.md)       | When changing code or tests.                                                        |
+| Rule                                             | When to read                                                                        |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| [`.rules/glossary.md`](.rules/glossary.md)       | Always                                                                              |
+| [`.rules/decisions.md`](.rules/decisions.md)     | When the user settles a design question or answers an open question in `README.md`. |
+| [`.rules/research.md`](.rules/research.md)       | When the user or a brief asks for options to be researched.                         |
+| [`.rules/formatting.md`](.rules/formatting.md)   | When a change adds a file type the repo doesn't have yet.                           |
+| [`.rules/gitignore.md`](.rules/gitignore.md)     | When adding or changing ignore patterns.                                            |
+| [`.rules/testing.md`](.rules/testing.md)         | When changing code or tests.                                                        |
+| [`.rules/performance.md`](.rules/performance.md) | When changing code.                                                                 |
 
 ## Checks
 

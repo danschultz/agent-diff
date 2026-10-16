@@ -30,7 +30,7 @@ fine, such as `git diff`, `git log`, `gh issue view`, `npm run check`, and
 ## Steps
 
 1. Read `AGENTS.md` and every rule in its Rules table that applies to the
-   changes, including `.rules/testing.md`.
+   changes, including `.rules/testing.md` and `.rules/performance.md`.
 2. Read the brief with `gh issue view <number>`: its goal, out of scope,
    acceptance criteria, verification, and escalation criteria.
 3. Read the diff with `git diff <range>`, and the commits with
@@ -41,7 +41,24 @@ fine, such as `git diff`, `git log`, `gh issue view`, `npm run check`, and
    - **The brief:** whether each acceptance criterion is met, and whether
      anything crosses the out of scope boundary or an escalation criterion.
    - **The rules:** including test-first. Every behavior change has a test that
-     would fail without it, and a bug fix has a test that reproduces the bug.
+     would fail without it, and a bug fix has a test that reproduces the bug. A
+     performance fix doesn't need one.
+   - **Performance:** for each loop, query, file read, and render the diff adds,
+     name what grows and how often the code runs, using the sizes in
+     `.rules/performance.md`. Report it only when the cost at those sizes would
+     be noticeable.
+     - `high`: anything exponential, including regexes that can backtrack
+       catastrophically on input. Anything worse than linear in files, diff
+       lines, or file-system events on a hot path. Work that blocks the review
+       server's event loop in proportion to input size. Reading a whole working
+       directory or a large file into memory without a limit.
+     - `medium`: linear work on a hot path where constant time is easy, such as
+       scanning every comment to find one by ID. Redoing everything when one
+       thing changed, such as re-diffing every file on one file-system event.
+       N+1 queries. File-system events that aren't batched or debounced.
+       `await`s run one at a time when they could run in parallel.
+     - Don't report constant-factor tweaks, or work over something that stays
+       small.
    - **Code quality:** whether it matches the surrounding code, and is as simple
      as it can be.
    - **Scope:** whether the diff stays within the brief, with no unrelated

@@ -100,10 +100,12 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
   `.claude/settings.json` sets the model and effort, sub-agents live in
   `.claude/agents/`, and rules live in `.rules/`. `implement` adds only what
   running unattended needs.
-- Code is written test-first, in every package.
+- Code is written test-first, in every package, except performance fixes, which
+  can't be tested reliably by timing.
 - Before opening a pull request, agent sessions started by `implement` have a
-  `self-review` sub-agent review their diff, and they wait for CI to pass before
-  handing the brief to Dan.
+  `self-review` sub-agent review their diff, including its performance against
+  the sizes agent-diff designs for, and they wait for CI to pass before handing
+  the brief to Dan.
 
 ## Diff modes
 

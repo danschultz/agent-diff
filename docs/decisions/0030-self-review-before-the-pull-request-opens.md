@@ -31,9 +31,24 @@ request can reach Dan with failing CI, because nothing waits for it.
 - **What it does.** It reads `AGENTS.md`, the rules, the brief, the diff, and
   the code around it. It checks correctness, the brief's acceptance criteria and
   out of scope boundary, the rules (including test-first,
-  [0029](0029-code-is-written-test-first.md)), code quality, and whether the
-  diff stays within the brief. It returns findings, each with a location, how
-  serious it is, and why.
+  [0029](0029-code-is-written-test-first.md)), performance, code quality, and
+  whether the diff stays within the brief. It returns findings, each with a
+  location, how serious it is, and why.
+- **Performance is judged against agent-diff's sizes.** A new rule,
+  [`.rules/performance.md`](../../.rules/performance.md), is in `AGENTS.md`'s
+  Rules table, so the implementing agent session reads it too. It treats Big-O
+  as one input, not the whole measure: a cost counts only when the work grows
+  faster than it should, n is large in practice, and the code runs often. It
+  sets the sizes to design for (about 50 working directories in a
+  [review session](../glossary.md#review-session), 10,000 files in a working
+  directory, 50,000 lines in one file's diff, 500 comments, and thousands of
+  file-system events a second), and calls out agent-diff's own risks:
+  synchronous `node:sqlite` queries blocking the event loop, recomputing
+  everything on one file-system event, hand-written LCS diffs, and re-rendering
+  the review UI. The sub-agent rates exponential work, worse-than-linear work on
+  a hot path, and unbounded reads as `high`, avoidable linear work, N+1 queries,
+  unbatched events, and serial `await`s as `medium`, and doesn't report
+  constant-factor tweaks or work over something that stays small.
 - **Rounds.** After checking the acceptance criteria and running the
   verification steps, and before pushing, the agent session starts the
   `self-review` sub-agent. It fixes the findings it agrees with, test-first, and
@@ -88,6 +103,9 @@ Costs:
   can still decline a good one. The "Self-review" section shows Dan what it
   declined and why.
 - Fixes made after Dan's pull request review aren't self-reviewed.
+- The sizes in `.rules/performance.md` are estimates. Too small, and real
+  bottlenecks pass. Too large, and the sub-agent pushes optimizations against
+  keeping code simple.
 
 ## Follow-up design choices
 

@@ -1,8 +1,8 @@
 # Writing code test-first
 
 Every change to code is written test-first, in every package, including
-`prototype/`, `scripts/`, and `tools/`. There are no exceptions. See
-[0029](../docs/decisions/0029-code-is-written-test-first.md).
+`prototype/`, `scripts/`, and `tools/`. The only exception is performance fixes,
+below. See [0029](../docs/decisions/0029-code-is-written-test-first.md).
 
 ## Steps
 
@@ -14,6 +14,14 @@ Every change to code is written test-first, in every package, including
 
 A bug fix starts with a test that reproduces the bug, and fails until the bug is
 fixed.
+
+## Performance fixes
+
+A performance fix doesn't need a failing test first, because tests that check
+timing are flaky in CI. Write one when the cost can be checked without timing,
+such as a scaling test that counts queries, or a test with a timeout that a
+catastrophically backtracking regex would fail. See
+[`.rules/performance.md`](performance.md).
 
 ## Test stack
 
