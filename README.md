@@ -89,6 +89,10 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
 - The review server's API is built with oRPC, and validated with Valibot.
 - Review state is stored with `node:sqlite` and plain SQL, and dbmate applies
   migrations when the review server starts.
+- The API is declared contract-first, served with oRPC's RPC protocol, and
+  called through the same contract by the review UI and the CLI.
+- The code is split into npm workspaces on TypeScript 7. Only the review UI is
+  built, and the review server serves it.
 
 ## Diff modes
 

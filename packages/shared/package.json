@@ -1,0 +1,27 @@
+{
+  "name": "@agent-diff/shared",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The API contract, its Valibot schemas, and the state directory's file paths, shared by the review server, the CLI, and the review UI.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    "./contract": "./src/contract.ts",
+    "./schemas": "./src/schemas.ts",
+    "./state": "./src/state.ts"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@orpc/contract": "1.15.7",
+    "valibot": "1.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
+  }
+}

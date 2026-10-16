@@ -1,23 +1,38 @@
 {
   "name": "agent-diff",
   "private": true,
-  "description": "Repo-wide tooling for agent-diff, such as formatting and linting docs. See README.md.",
+  "description": "The agent-diff workspaces, and repo-wide tooling such as formatting and linting docs. See README.md.",
   "type": "module",
   "engines": {
     "node": ">=24"
   },
+  "workspaces": [
+    "packages/shared",
+    "packages/server",
+    "packages/cli",
+    "packages/ui",
+    "tools/implement"
+  ],
   "scripts": {
     "prepare": "git config core.hooksPath .githooks",
-    "check": "npm run format:check && npm run lint:docs && npm test",
+    "check": "npm run format:check && npm run lint:docs && npm run typecheck && npm test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint:docs": "node scripts/lint-docs.ts",
-    "test": "node --test \"scripts/test/*.test.ts\""
+    "typecheck": "npm run typecheck --workspaces && tsc -p e2e",
+    "test": "node --test \"scripts/test/*.test.ts\" && npm test --workspaces --if-present",
+    "test:e2e": "npm run build -w packages/ui && playwright test",
+    "dev:server": "node --watch packages/cli/bin/agent-diff.ts server start --foreground",
+    "dev:ui": "npm run dev -w packages/ui"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.19.2",
     "prettier": "3.9.10",
+    "prettier-plugin-sql-cst": "0.23.1",
     "remark-cli": "12.0.1",
     "remark-validate-links": "13.1.0",
+    "typescript": "7.0.2",
     "unist-util-visit": "5.1.0"
   }
 }

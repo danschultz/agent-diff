@@ -10,3 +10,12 @@ node_modules/
 # under prototype/.
 /prototype/**/dist/
 /prototype/**/.data/
+
+# The review UI, built by `npm run build -w packages/ui`.
+/packages/ui/dist/
+
+# Playwright's output from `npm run test:e2e`.
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

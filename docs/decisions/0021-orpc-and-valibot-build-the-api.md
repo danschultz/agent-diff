@@ -1,7 +1,12 @@
 # 0021: The review server's API is built with oRPC, and validated with Valibot
 
-- Status: Accepted
+- Status: Accepted, amended by [0025](0025-contract-first-orpc-over-rpc.md)
 - Date: 2026-10-15
+
+> [0025](0025-contract-first-orpc-over-rpc.md) answers the "Protocol" and
+> "Contract or router first" follow-ups: the API is declared contract-first with
+> `@orpc/contract`, served with `RPCHandler`, and called through `RPCLink`. The
+> REST paths in the example below aren't used.
 
 ## Problem
 
