@@ -44,6 +44,10 @@ ${issue.body.trim()}
 - Read AGENTS.md first and follow it. This brief is an agreed task, so you can
   implement it without asking for agreement first.
 - The goal is the outcome to deliver. Out of scope is a hard boundary.
+- Explore before editing: read the brief's Context and the files the change
+  touches. Before starting a brief with more than one step, write a short plan.
+- Match the surrounding code, keep the diff to the brief, and leave unrelated
+  code alone.
 - Commit as you go.
 
 ${ESCALATION}
@@ -52,14 +56,27 @@ ${ESCALATION}
 
 1. Check each acceptance criterion, and run every verification step,
    recording the results.
-2. Push the branch: \`git push -u origin ${brief.branch}\`.
-3. Open a draft pull request against \`${baseBranch}\` with
+2. Self-review, before pushing. Start the \`self-review\` sub-agent with the
+   Agent tool, and give it only the brief's issue number, #${issue.number}, and the
+   diff range \`origin/${baseBranch}...HEAD\`: not your summary or reasoning.
+   Commit everything first, so the diff range holds all of it. Fix the
+   findings you agree with, test-first, and rerun the verification steps.
+   If the fixes were substantial, start a second, new \`self-review\` sub-agent,
+   and give it the first round's findings and how you handled each, as well.
+   Run at most 2 rounds.
+3. Push the branch: \`git push -u origin ${brief.branch}\`.
+4. Open a draft pull request against \`${baseBranch}\` with
    \`gh pr create --draft\`. Its body must contain:
    - "Closes #${issue.number}".
    - The acceptance criteria as a checklist, each checked if met, or left
      unchecked with the reason it's not met.
    - The verification results.
-4. Move the brief to review:
+   - A "Self-review" section listing every finding as fixed, declined with the
+     reason, or still open. Findings still open don't block the pull request.
+5. Wait for the pull request's checks with \`gh pr checks <number> --watch\`.
+   If any fail, fix them, push again, and watch again. If you can't make them
+   pass, stop and ask Dan.
+6. Move the brief to review only once they pass:
    \`gh issue edit ${issue.number} --remove-label ${LABELS.working} --add-label ${LABELS.review}\`.
 
 ${GITHUB_ETIQUETTE}
@@ -86,8 +103,10 @@ Read the review's inline comments with
 \`gh pr view ${pr.number} --comments\`.
 
 Address the feedback, rerun the brief's verification steps, update the pull
-request body's checklist and verification results, and push. Then move the
-brief back to review:
+request body's checklist and verification results, and push. Then wait for the
+pull request's checks with \`gh pr checks ${pr.number} --watch\`. If any fail, fix
+them, push again, and watch again. If you can't make them pass, stop and ask
+Dan. Move the brief back to review only once they pass:
 \`gh issue edit ${brief.issue} --remove-label ${LABELS.working} --add-label ${LABELS.review}\`.
 
 ${ESCALATION}
