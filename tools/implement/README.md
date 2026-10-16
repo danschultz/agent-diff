@@ -38,6 +38,40 @@ adds the `agent:queued` label. A systemd user timer runs `implement tick` every
 
 4. **Prunes** worktrees deleted by hand, with `git worktree prune`.
 
+`implement` doesn't pass `--model` or `--effort`. The model and effort come from
+the project's [`.claude/settings.json`](../../.claude/settings.json), which
+applies to every agent session in the repo
+([decision 0028](../../docs/decisions/0028-the-project-defines-how-agent-sessions-work.md)).
+`implement` adds only what running unattended needs: the labels, the hooks,
+Remote Control, auto permission mode, and the prompt.
+
+### What the agent session does
+
+The prompts are in [`src/prompts.ts`](src/prompts.ts). A new agent session reads
+the brief's Context and the files the change touches before editing, writes a
+short plan for a brief with more than one step, and keeps the diff to the brief.
+When it's done
+([decision 0030](../../docs/decisions/0030-self-review-before-the-pull-request-opens.md)):
+
+1. It checks the acceptance criteria and runs the verification steps.
+2. **Self-review.** Before pushing, it starts the `self-review`
+   [sub-agent](../../docs/glossary.md#sub-agent), defined in
+   [`.claude/agents/self-review.md`](../../.claude/agents/self-review.md), and
+   gives it only the issue number and the diff range against
+   `origin/<base branch>`. The sub-agent can't edit files, and returns findings.
+   The agent session fixes the ones it agrees with, test-first, and reruns the
+   verification steps. After substantial fixes, a second, new `self-review`
+   sub-agent checks them, for at most 2 rounds.
+3. It pushes and opens a draft pull request, with a "Self-review" section
+   listing every finding as fixed, declined with the reason, or still open.
+4. **Waits for CI** with `gh pr checks <number> --watch`, fixing failures and
+   pushing again, and moves the brief to `agent:review` only once the checks
+   pass. If it can't make them pass, it asks Dan.
+
+A resumed agent session addresses the pull request review, pushes, and waits for
+CI the same way before moving the brief back to `agent:review`. It doesn't
+self-review.
+
 `implement` doesn't clear labels when it finishes with a brief. The workflow
 [`clear-agent-labels.yml`](../../.github/workflows/clear-agent-labels.yml) runs
 `implement clear-labels <issue>` when an issue is closed, whether by a merged

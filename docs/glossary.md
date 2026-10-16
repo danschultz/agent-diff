@@ -151,6 +151,12 @@ The local web app where the [reviewer](#reviewer) views a
 The human reviewing code and writing [comments](#comment) in the
 [review UI](#review-ui).
 
+### Self-review
+
+A review of an [agent session](#agent-session)'s changes by a
+[sub-agent](#sub-agent) that didn't write them, before the pull request opens.
+See [0030](decisions/0030-self-review-before-the-pull-request-opens.md).
+
 ### Sub-agent
 
 An agent started by another agent.
