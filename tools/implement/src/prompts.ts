@@ -56,10 +56,10 @@ ${ESCALATION}
 
 1. Check each acceptance criterion, and run every verification step,
    recording the results.
-2. Self-review, before pushing. Start the \`self-review\` sub-agent with the
-   Agent tool, and give it only the brief's issue number, #${issue.number}, and the
-   diff range \`origin/${baseBranch}...HEAD\`: not your summary or reasoning.
-   Commit everything first, so the diff range holds all of it. Fix the
+2. Self-review, before pushing. Commit everything, so the diff range holds all
+   of it. Then start the \`self-review\` sub-agent with the Agent tool, and
+   give it only the brief's issue number, #${issue.number}, and the diff range
+   \`origin/${baseBranch}...HEAD\`: not your summary or reasoning. Fix the
    findings you agree with, test-first, and rerun the verification steps.
    If the fixes were substantial, start a second, new \`self-review\` sub-agent,
    and give it the first round's findings and how you handled each, as well.
@@ -74,8 +74,9 @@ ${ESCALATION}
    - A "Self-review" section listing every finding as fixed, declined with the
      reason, or still open. Findings still open don't block the pull request.
 5. Wait for the pull request's checks with \`gh pr checks <number> --watch\`.
-   If any fail, fix them, push again, and watch again. If you can't make them
-   pass, stop and ask Dan.
+   If no checks are reported yet, wait a few seconds and run it again. If any
+   fail, fix them, push again, and watch again. If you can't make them pass,
+   stop and ask Dan.
 6. Move the brief to review only once they pass:
    \`gh issue edit ${issue.number} --remove-label ${LABELS.working} --add-label ${LABELS.review}\`.
 
@@ -104,9 +105,10 @@ Read the review's inline comments with
 
 Address the feedback, rerun the brief's verification steps, update the pull
 request body's checklist and verification results, and push. Then wait for the
-pull request's checks with \`gh pr checks ${pr.number} --watch\`. If any fail, fix
-them, push again, and watch again. If you can't make them pass, stop and ask
-Dan. Move the brief back to review only once they pass:
+pull request's checks with \`gh pr checks ${pr.number} --watch\`. If no checks
+are reported yet, wait a few seconds and run it again. If any fail, fix them,
+push again, and watch again. If you can't make them pass, stop and ask Dan.
+Move the brief back to review only once they pass:
 \`gh issue edit ${brief.issue} --remove-label ${LABELS.working} --add-label ${LABELS.review}\`.
 
 ${ESCALATION}

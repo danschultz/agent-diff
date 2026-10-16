@@ -75,9 +75,11 @@ test('the start prompt says to match the surrounding code, keep the diff to the 
 
 test('the start prompt runs the self-review sub-agent after verification and before pushing', () => {
   const verify = at(start, /run every verification step/);
+  const commit = at(start, /Commit everything/);
   const selfReview = at(start, /`self-review` sub-agent/);
   const push = at(start, 'git push -u origin brief/7-do-it');
-  assert.ok(verify < selfReview, 'self-review comes after verification');
+  assert.ok(verify < commit, 'committing comes after verification');
+  assert.ok(commit < selfReview, 'everything is committed before self-review');
   assert.ok(selfReview < push, 'self-review comes before pushing');
 });
 
@@ -100,10 +102,10 @@ test('the start prompt allows a second self-review round only after substantial 
 });
 
 test('the start prompt adds a Self-review section to the pull request body, with every finding', () => {
-  assert.match(start, /"Self-review" section/);
-  assert.match(start, /fixed/);
-  assert.match(start, /declined with the reason/);
-  assert.match(start, /still open/);
+  assert.match(
+    start,
+    /"Self-review" section listing every finding as fixed, declined with the reason, or still open/,
+  );
   assert.match(start, /don't block the pull request/);
 });
 
@@ -115,6 +117,7 @@ test('the start prompt waits for CI after opening the pull request, and moves th
   assert.ok(watch < label, 'the brief moves to review after CI');
   assert.match(start, /only once they pass/);
   assert.match(start, /can't make them pass, stop and ask Dan/);
+  assert.match(start, /no checks are reported yet, wait/);
 });
 
 test('the resume prompt waits for CI before moving the brief back to review', () => {
@@ -125,6 +128,7 @@ test('the resume prompt waits for CI before moving the brief back to review', ()
   assert.ok(watch < label, 'the brief moves to review after CI');
   assert.match(resume, /only once they pass/);
   assert.match(resume, /can't make them pass, stop and ask Dan/);
+  assert.match(resume, /no checks are reported yet, wait/);
 });
 
 test("the resume prompt doesn't run self-review", () => {
