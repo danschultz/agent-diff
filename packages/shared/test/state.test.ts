@@ -3,7 +3,12 @@ import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { readConfig, serverUrl, statePaths } from '../src/state.ts';
+import {
+  readConfig,
+  reviewUiUrl,
+  serverUrl,
+  statePaths,
+} from '../src/state.ts';
 
 function tempDir(): string {
   return mkdtempSync(path.join(os.tmpdir(), 'agent-diff-shared-'));
@@ -37,7 +42,14 @@ test('readConfig returns undefined before the first start', () => {
   );
 });
 
-test('readConfig returns the saved port', () => {
+test('readConfig returns the saved port and token', () => {
+  const paths = statePaths({ XDG_STATE_HOME: tempDir() });
+  mkdirSync(paths.dir);
+  writeFileSync(paths.config, '{ "port": 4321, "token": "abc" }');
+  assert.deepEqual(readConfig(paths), { port: 4321, token: 'abc' });
+});
+
+test('readConfig returns a saved port with no token, as #31 wrote it', () => {
   const paths = statePaths({ XDG_STATE_HOME: tempDir() });
   mkdirSync(paths.dir);
   writeFileSync(paths.config, '{ "port": 4321 }');
@@ -52,6 +64,7 @@ test('readConfig ignores a config file that is not valid', () => {
     '{}',
     '{ "port": "4321" }',
     '{ "port": 0 }',
+    '{ "port": 4321, "token": 5 }',
   ]) {
     writeFileSync(paths.config, text);
     assert.equal(readConfig(paths), undefined, text);
@@ -60,4 +73,15 @@ test('readConfig ignores a config file that is not valid', () => {
 
 test('serverUrl is on 127.0.0.1', () => {
   assert.equal(serverUrl(4321), 'http://127.0.0.1:4321/');
+});
+
+test('reviewUiUrl carries the token in the fragment', () => {
+  assert.equal(
+    reviewUiUrl(serverUrl(4321), 'a-b_c'),
+    'http://127.0.0.1:4321/#token=a-b_c',
+  );
+  assert.equal(
+    reviewUiUrl('http://localhost:5173/', 'a-b_c'),
+    'http://localhost:5173/#token=a-b_c',
+  );
 });
