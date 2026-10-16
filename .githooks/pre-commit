@@ -1,7 +1,10 @@
 #!/bin/sh
-# Runs the repo's checks before every commit. Installed by `npm install` at
-# the repo root, through the `prepare` script in package.json. To add a check,
-# add it to the `check` script in package.json, not here.
+# Runs the fast checks that don't run the repo's code, formatting and the doc
+# lint, before every commit. Installed by `npm install` at the repo root,
+# through the `prepare` script in package.json. The typecheck and the tests run
+# in `npm run check` and CI, not here. See
+# docs/decisions/0027-pre-commit-runs-only-fast-checks.md. To add a check to
+# the hook, add it to the `check:commit` script in package.json, not here.
 #
 # Git runs hooks from the top of the working tree, so this works in linked
 # worktrees too. Each worktree needs its own `npm install`.
@@ -12,13 +15,7 @@ if [ ! -x node_modules/.bin/prettier ] || [ ! -x node_modules/.bin/remark ]; the
   exit 1
 fi
 
-# Git points hooks at this repo with variables such as GIT_DIR and
-# GIT_INDEX_FILE. Tests that run git in temporary repos would inherit them and
-# change this repo instead, so they're cleared. The checks run on the working
-# tree, so they don't need them.
-unset $(git rev-parse --local-env-vars)
-
-if ! npm run --silent check; then
+if ! npm run --silent check:commit; then
   echo "pre-commit: checks failed. Run \`npm run format\` to fix formatting," >&2
   echo "pre-commit: fix any doc numbers and links listed above," >&2
   echo "pre-commit: then stage the changes and commit again." >&2
