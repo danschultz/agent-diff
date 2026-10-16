@@ -27,8 +27,7 @@ against cross-site request forgery.
   is 43 characters. `config.json` holds
   `{ "port": <number>, "token": "<token>" }` and stays mode `0600`. The first
   `server start` creates the token, and later starts reuse it. A `config.json`
-  with only a port keeps its port and gets a token added. A saved token in any
-  other format is replaced.
+  with only a port keeps its port and gets a token added.
 - **Every API call carries the token,** including `health`, as
   `Authorization: Bearer <token>`. A call with no token or the wrong one,
   including one to a path under `/api` that isn't a procedure, is rejected

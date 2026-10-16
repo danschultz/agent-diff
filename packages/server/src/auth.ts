@@ -9,12 +9,6 @@ export function createToken(): string {
   return randomBytes(32).toString('base64url');
 }
 
-// Whether a saved token looks like one createToken made. Anything else, such
-// as a short token typed in by hand, is replaced.
-export function isToken(token: string | undefined): token is string {
-  return token !== undefined && /^[A-Za-z0-9_-]{43}$/.test(token);
-}
-
 function digest(text: string): Buffer {
   return createHash('sha256').update(text).digest();
 }

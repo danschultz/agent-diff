@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   existsSync,
+  linkSync,
   readdirSync,
   mkdirSync,
   mkdtempSync,
@@ -134,6 +135,26 @@ test('the config file mode is corrected when it already exists', async (t) => {
   assert.equal(mode(paths.config), 0o600);
 });
 
+test('the token is never written into an existing config file that others can read', async (t) => {
+  const env = tempStateHome(t);
+  const paths = statePaths(env);
+  mkdirSync(paths.dir, { mode: 0o700 });
+  // A file others can read, which config.json is a hard link to, so writing
+  // into config.json in place would write into it too.
+  const other = path.join(env.XDG_STATE_HOME!, 'other.json');
+  writeFileSync(other, '{}', { mode: 0o644 });
+  linkSync(other, paths.config);
+  const server = await start(t, { env });
+  assert.equal(readFileSync(other, 'utf8'), '{}');
+  assert.equal(mode(other), 0o644);
+  assert.equal(savedConfig(env).token, server.token);
+  assert.equal(mode(paths.config), 0o600);
+  assert.deepEqual(readdirSync(paths.dir).sort(), [
+    'agent-diff.db',
+    'config.json',
+  ]);
+});
+
 test('later starts reuse the saved port and token', async (t) => {
   const env = tempStateHome(t);
   const first = await start(t, { env });
@@ -168,18 +189,22 @@ test('a config file with only a port keeps the port and gets a token', async (t)
   assert.equal(mode(paths.config), 0o600);
 });
 
-test('a saved token that is not 32 random bytes in base64url is replaced', async (t) => {
+test('any saved token is reused, and an empty one is replaced', async (t) => {
   const env = tempStateHome(t);
   const paths = statePaths(env);
   mkdirSync(paths.dir, { mode: 0o700 });
   const port = await freePort();
-  for (const token of ['', 'short', `${'a'.repeat(42)}=`, 'a'.repeat(44)]) {
+  for (const token of ['typed-by-hand', 'a'.repeat(44)]) {
     writeFileSync(paths.config, JSON.stringify({ port, token }));
     const server = await start(t, { env });
-    assert.match(server.token, tokenPattern, token);
-    assert.equal(savedConfig(env).token, server.token);
+    assert.equal(server.token, token);
+    assert.equal(savedConfig(env).token, token);
     await server.close();
   }
+  writeFileSync(paths.config, JSON.stringify({ port, token: '' }));
+  const server = await start(t, { env });
+  assert.match(server.token, tokenPattern);
+  assert.equal(savedConfig(env).token, server.token);
 });
 
 test('a saved port in use by another program is replaced and saved', async (t) => {

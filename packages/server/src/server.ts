@@ -8,7 +8,7 @@ import { ORPCError, ValidationError } from '@orpc/server';
 import { RPCHandler } from '@orpc/server/node';
 import { apiPrefix } from '@agent-diff/shared/contract';
 import { readConfig, serverUrl, statePaths } from '@agent-diff/shared/state';
-import { createToken, isAuthorized, isOwnHost, isToken } from './auth.ts';
+import { createToken, isAuthorized, isOwnHost } from './auth.ts';
 import { migrate } from './migrate.ts';
 import { createRouter } from './router.ts';
 import { ensureStateDir, writeConfig } from './state.ts';
@@ -83,7 +83,8 @@ export async function startReviewServer(
   ensureStateDir(paths);
   await migrate(paths.database);
   const saved = readConfig(paths);
-  const token = isToken(saved?.token) ? saved.token : createToken();
+  // Later starts reuse the token, and a config file without one gets one.
+  const token = saved?.token || createToken();
 
   const store = new Store(paths.database);
   const handler = new RPCHandler(createRouter(store), {

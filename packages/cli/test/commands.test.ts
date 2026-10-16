@@ -37,10 +37,6 @@ test('server start says so when the review server is already running', async (t)
     result.stdout,
     `The review server is already running at http://127.0.0.1:${server.port}/#token=${server.token}`,
   );
-  assert.equal(
-    result.stdout,
-    `The review server is already running at ${reviewUiUrl(server.url, server.token)}`,
-  );
   assert.deepEqual(readConfig(statePaths(env)), {
     port: server.port,
     token: server.token,
