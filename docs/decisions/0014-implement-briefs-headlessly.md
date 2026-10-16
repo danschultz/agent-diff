@@ -1,11 +1,18 @@
 # 0014: Briefs on GitHub are implemented by headless agent sessions
 
 - Status: Accepted, amended by [0015](0015-closing-a-brief-clears-its-labels.md)
+  and [0030](0030-self-review-before-the-pull-request-opens.md)
 - Date: 2026-10-12
 
 > Amended by [0015](0015-closing-a-brief-clears-its-labels.md): a GitHub Actions
 > workflow removes a brief's `agent:*` labels when its issue is closed, and
 > closing a pull request without merging leaves its issue open.
+>
+> Amended by [0030](0030-self-review-before-the-pull-request-opens.md): before
+> pushing, the agent session has a `self-review` sub-agent review its diff,
+> fixes the findings it agrees with, and lists every finding in the pull
+> request. After pushing, when started or resumed, it waits for CI to pass
+> before moving the brief to `agent:review`.
 
 ## Problem
 

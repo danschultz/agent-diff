@@ -21,6 +21,7 @@ in [docs/research](docs/research/README.md), and agreed terms are defined in
 | [`.rules/research.md`](.rules/research.md)     | When the user or a brief asks for options to be researched.                         |
 | [`.rules/formatting.md`](.rules/formatting.md) | When a change adds a file type the repo doesn't have yet.                           |
 | [`.rules/gitignore.md`](.rules/gitignore.md)   | When adding or changing ignore patterns.                                            |
+| [`.rules/testing.md`](.rules/testing.md)       | When changing code or tests.                                                        |
 
 ## Checks
 
