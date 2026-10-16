@@ -1,6 +1,6 @@
-# Runs the repo's checks (`npm run check`), the same ones the pre-commit hook
-# runs, and the end-to-end tests (`npm run test:e2e`), which only run here. See
-# the Checks section of AGENTS.md.
+# Runs everything in `npm run check`, which includes the tests the pre-commit
+# hook skips, and the end-to-end tests (`npm run test:e2e`), which only run
+# here. See the Checks section of AGENTS.md.
 name: Check
 
 on:

@@ -9,13 +9,18 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { suite, test } from 'node:test';
+import { suite, test, type TestContext } from 'node:test';
+import { gitTestEnv } from './git-env.ts';
 
 const lintDocs = path.join(import.meta.dirname, '..', 'lint-docs.ts');
 
 // Creates a git repo with no `origin` remote in a new temporary folder, which
-// also holds `outside.md`, a file outside the repo.
-function repo(files: Record<string, string>): string {
+// also holds `outside.md`, a file outside the repo. Returns the repo, and the
+// environment to run git and the lint in.
+function repo(
+  t: TestContext,
+  files: Record<string, string>,
+): { root: string; env: NodeJS.ProcessEnv } {
   const base = mkdtempSync(path.join(tmpdir(), 'lint-docs-'));
   writeFileSync(path.join(base, 'outside.md'), '# Outside\n');
   const root = path.join(base, 'repo');
@@ -31,16 +36,24 @@ function repo(files: Record<string, string>): string {
     mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
     writeFileSync(path.join(root, file), content);
   }
-  execFileSync('git', ['init', '-q'], { cwd: root });
-  return root;
+  const env = gitTestEnv(t);
+  execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: root, env });
+  return { root, env };
 }
 
-function lint(root: string): Promise<{ status: number; output: string }> {
+// Runs `lint-docs.ts` in a child process, which runs `git check-ignore`.
+function lint({
+  root,
+  env,
+}: {
+  root: string;
+  env: NodeJS.ProcessEnv;
+}): Promise<{ status: number; output: string }> {
   return new Promise((resolve) => {
     execFile(
       process.execPath,
       [lintDocs],
-      { cwd: root, encoding: 'utf8' },
+      { cwd: root, env, encoding: 'utf8' },
       (error, stdout, stderr) => {
         const status = error ? Number(error.code) : 0;
         resolve({ status, output: stdout + stderr });
@@ -62,8 +75,8 @@ function snapshot(root: string): Map<string, string> {
 
 // Each test runs the lint in its own repo, so they can run at the same time.
 suite('lint-docs', { concurrency: true }, () => {
-  test('passes on valid links, and ignores links in code and to other schemes', async () => {
-    const root = repo({
+  test('passes on valid links, and ignores links in code and to other schemes', async (t) => {
+    const { root, env } = repo(t, {
       'docs/research/0002-b.md': '# 0002: B\n',
       'docs/research/0002-b/notes.md': '# Notes\n',
       'docs/decisions/0002-b.md': '# 0002: B\n',
@@ -94,13 +107,13 @@ suite('lint-docs', { concurrency: true }, () => {
       'ignored/broken.md': '[broken](missing.md) [outside](../../outside.md)\n',
     });
     const before = snapshot(root);
-    const { status, output } = await lint(root);
+    const { status, output } = await lint({ root, env });
     assert.equal(output, '');
     assert.equal(status, 0);
     assert.deepEqual(snapshot(root), before);
   });
 
-  test('fails on broken links, links outside the repo, and ignored targets', async () => {
+  test('fails on broken links, links outside the repo, and ignored targets', async (t) => {
     const lines = [
       '# Bad',
       '',
@@ -122,13 +135,13 @@ suite('lint-docs', { concurrency: true }, () => {
       '[ref]: missing-ref.md',
       '',
     ];
-    const root = repo({
+    const { root, env } = repo(t, {
       'bad.md': lines.join('\n'),
       'other.md': '# Other\n',
       'ignored/exists.md': '# Exists\n',
     });
     const before = snapshot(root);
-    const { status, output } = await lint(root);
+    const { status, output } = await lint({ root, env });
     assert.equal(status, 1);
     assert.deepEqual(snapshot(root), before);
 
@@ -176,13 +189,13 @@ suite('lint-docs', { concurrency: true }, () => {
     assert.match(output, /10 warnings/);
   });
 
-  test('fails on shared numbers and broken links in the same run', async () => {
-    const root = repo({
+  test('fails on shared numbers and broken links in the same run', async (t) => {
+    const { root, env } = repo(t, {
       'docs/decisions/0001-b.md': '# 0001: B\n',
       'docs/research/1-b.md': '# 1: B\n',
       'README.md': '[missing](missing.md)\n',
     });
-    const { status, output } = await lint(root);
+    const { status, output } = await lint({ root, env });
     assert.equal(status, 1);
     assert.match(
       output,

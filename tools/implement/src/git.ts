@@ -36,18 +36,25 @@ export function githubOverHttps(): NodeJS.ProcessEnv {
  * Git never waits for input: SSH fails instead of asking for a passphrase or
  * host key, and HTTPS fails instead of asking for a password.
  */
-function gitEnv(): NodeJS.ProcessEnv {
+function gitEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   return {
-    ...process.env,
+    ...env,
     ...githubOverHttps(),
     GIT_SSH_COMMAND: 'ssh -o BatchMode=yes -o ConnectTimeout=30',
     GIT_TERMINAL_PROMPT: '0',
   };
 }
 
-export function cliGit(repoDir: string): Git {
+/**
+ * Runs git in `repoDir`, with `env` as the base environment. Tests pass one
+ * built from an allowlist, so they don't depend on where they're run from.
+ */
+export function cliGit(
+  repoDir: string,
+  env: NodeJS.ProcessEnv = process.env,
+): Git {
   const git = (...args: string[]) =>
-    run('git', args, { cwd: repoDir, env: gitEnv() });
+    run('git', args, { cwd: repoDir, env: gitEnv(env) });
   return {
     addWorktree(dir, branch, baseBranch) {
       git('fetch', '--quiet', 'origin', baseBranch);
