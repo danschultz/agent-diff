@@ -26,9 +26,9 @@ in [docs/research](docs/research/README.md), and agreed terms are defined in
 
 Run `npm install` at the repo root once per checkout or worktree. It installs
 every npm workspace, listed in the root `package.json`, and a pre-commit hook
-that runs `npm run check:commit`, the formatting check and the doc lint, and
-blocks the commit when it fails. The hook doesn't run the typecheck or the
-tests, so run `npm run check` before pushing. Agent sessions always do. CI runs
+that runs `npm run check:commit`, the formatting check, the doc lint and the
+typecheck, and blocks the commit when it fails. The hook doesn't run the tests,
+so run `npm run check` before pushing. Agent sessions always do. CI runs
 `npm run check` on pushes to `main` and on pull requests. The checks run on the
 working tree, not only what's staged. See
 [0027](docs/decisions/0027-pre-commit-runs-only-fast-checks.md).
@@ -65,13 +65,14 @@ working tree, not only what's staged. See
   `tools/implement/test/git-env.ts` or `scripts/test/git-env.ts`: `PATH`, a
   temporary `HOME`, no global or system git config, and nothing else they don't
   need. They never inherit `process.env`.
-- `npm run check:commit` runs `format:check` and `lint:docs`, the checks the
-  pre-commit hook runs. Only checks that are fast and don't run the repo's code
-  belong in it.
-- `npm run check` runs every check above, starting with `check:commit`. To add a
-  check, add an npm script for it and append it to the `check` script in the
-  root `package.json`, which today is
-  `npm run check:commit && npm run typecheck && npm test`.
+- `npm run check:commit` runs `format:check`, `lint:docs` and `typecheck`, the
+  checks the pre-commit hook runs. Only checks that are fast and don't run the
+  repo's code belong in it.
+- `npm run check` runs every check above: `check:commit`, then the tests. To add
+  a check, add an npm script for it and append it to the `check` script in the
+  root `package.json`, which today is `npm run check:commit && npm test`. A
+  check that's fast and doesn't run the repo's code goes in `check:commit`
+  instead, so the hook runs it too.
 - `npm run test:e2e` builds the review UI, then runs the Playwright tests in
   `e2e/`, configured in `playwright.config.ts`. It isn't part of `npm run check`
   or the pre-commit hook, and runs in its own CI job. Install Chromium for it

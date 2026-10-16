@@ -93,9 +93,9 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
   called through the same contract by the review UI and the CLI.
 - The code is split into npm workspaces on TypeScript 7. Only the review UI is
   built, and the review server serves it.
-- The pre-commit hook runs only formatting and the doc lint. The typecheck and
-  the tests run in `npm run check` and CI, and tests that run git use an
-  environment built from an allowlist.
+- The pre-commit hook runs only formatting, the doc lint and the typecheck. The
+  tests run in `npm run check` and CI, and tests that run git use an environment
+  built from an allowlist.
 
 ## Diff modes
 

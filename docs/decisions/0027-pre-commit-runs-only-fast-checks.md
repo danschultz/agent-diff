@@ -24,14 +24,17 @@ at commit, what runs elsewhere, and how tests that run git are isolated.
 ## Solution
 
 - **At commit, the hook runs only fast checks that don't run the repo's code.**
-  `.githooks/pre-commit` runs `npm run check:commit`, which is `format:check`
-  and `lint:docs`. `lint:docs` runs `git check-ignore` in this repo, which is
-  the repo the hook's variables point at, so it's safe there. The hook no longer
-  clears git's variables, since nothing it runs needs that.
+  `.githooks/pre-commit` runs `npm run check:commit`: formatting
+  (`format:check`), the doc lint (`lint:docs`) and the typecheck (`typecheck`).
+  `lint:docs` runs `git check-ignore` in this repo, which is the repo the hook's
+  variables point at, so it's safe there. `tsc` only reads the source and
+  doesn't run git, and the workspaces export their `src/*.ts` directly, so it
+  needs no build first. The hook no longer clears git's variables, since nothing
+  it runs needs that.
 - **`npm run check` and CI run everything.** `npm run check` runs
-  `check:commit`, then the typecheck, then the tests. CI runs it on pushes to
-  `main` and on pull requests, and agent sessions run it before pushing, as each
-  brief's verification asks.
+  `check:commit`, then the tests. CI runs it on pushes to `main` and on pull
+  requests, and agent sessions run it before pushing, as each brief's
+  verification asks.
 - **Tests that run git use a hermetic environment.** Every test that runs git,
   directly, through code under test, or through a child process, builds its
   environment from an allowlist instead of from `process.env`: `PATH`, a
@@ -62,8 +65,10 @@ Benefits:
 
 Costs:
 
-- A commit can break the typecheck or the tests. That's caught by
-  `npm run check` before pushing, or by CI, rather than at commit.
+- A commit can break the tests. That's caught by `npm run check` before pushing,
+  or by CI, rather than at commit.
+- A commit with type errors is blocked, even a work-in-progress one.
+  `git commit --no-verify` gets around it.
 - Each test that runs git has to remember to use the helper. A test that doesn't
   is only safe as long as nothing runs it inside a hook.
 

@@ -15,8 +15,8 @@
   ],
   "scripts": {
     "prepare": "git config core.hooksPath .githooks",
-    "check": "npm run check:commit && npm run typecheck && npm test",
-    "check:commit": "npm run format:check && npm run lint:docs",
+    "check": "npm run check:commit && npm test",
+    "check:commit": "npm run format:check && npm run lint:docs && npm run typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint:docs": "node scripts/lint-docs.ts",
