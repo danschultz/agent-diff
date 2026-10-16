@@ -4,11 +4,11 @@ import { createServer } from 'node:net';
 import type { AddressInfo } from 'node:net';
 import { test } from 'node:test';
 import { startReviewServer } from '@agent-diff/server';
-import { readConfig, statePaths } from '@agent-diff/shared/state';
+import { readConfig, reviewUiUrl, statePaths } from '@agent-diff/shared/state';
 import { captureExecute } from '@crustjs/testing';
 import { createApp } from '../src/app.ts';
-import { notRunningMessage } from '../src/client.ts';
-import { saveConfig, tempStateHome } from './helpers.ts';
+import { notRunningMessage, rejectedTokenMessage } from '../src/client.ts';
+import { otherToken, saveConfig, tempStateHome } from './helpers.ts';
 
 test('server start without --foreground fails', async (t) => {
   const env = tempStateHome(t);
@@ -35,9 +35,16 @@ test('server start says so when the review server is already running', async (t)
   assert.equal(result.exitCode, 0);
   assert.equal(
     result.stdout,
-    `The review server is already running at ${server.url}`,
+    `The review server is already running at http://127.0.0.1:${server.port}/#token=${server.token}`,
   );
-  assert.deepEqual(readConfig(statePaths(env)), { port: server.port });
+  assert.equal(
+    result.stdout,
+    `The review server is already running at ${reviewUiUrl(server.url, server.token)}`,
+  );
+  assert.deepEqual(readConfig(statePaths(env)), {
+    port: server.port,
+    token: server.token,
+  });
 });
 
 test('server hello prints the message and the count', async (t) => {
@@ -94,7 +101,7 @@ test('server hello fails when nothing listens on the saved port', async (t) => {
   await new Promise<void>((resolve) => probe.listen(0, '127.0.0.1', resolve));
   const port = (probe.address() as AddressInfo).port;
   await new Promise((resolve) => probe.close(resolve));
-  saveConfig(env, port);
+  saveConfig(env, { port, token: otherToken() });
 
   const result = await captureExecute(createApp({ env }), [
     'server',
@@ -106,4 +113,37 @@ test('server hello fails when nothing listens on the saved port', async (t) => {
     stderr: `Error: ${notRunningMessage}`,
     exitCode: 1,
   });
+});
+
+test('server hello fails when the config file has no token', async (t) => {
+  const env = tempStateHome(t);
+  const server = await startReviewServer({ env });
+  t.after(() => server.close());
+  saveConfig(env, { port: server.port });
+
+  assert.deepEqual(
+    await captureExecute(createApp({ env }), ['server', 'hello', 'Dan']),
+    { stdout: '', stderr: `Error: ${notRunningMessage}`, exitCode: 1 },
+  );
+});
+
+test('server hello says the token was rejected when the review server answers 401', async (t) => {
+  const env = tempStateHome(t);
+  const server = await startReviewServer({ env });
+  t.after(() => server.close());
+  saveConfig(env, { port: server.port, token: otherToken() });
+
+  const config = statePaths(env).config;
+  assert.equal(
+    rejectedTokenMessage(server.port, config),
+    `Something on port ${server.port} rejected the token in \`${config}\`. Start the review server with \`agent-diff server start\`.`,
+  );
+  assert.deepEqual(
+    await captureExecute(createApp({ env }), ['server', 'hello', 'Dan']),
+    {
+      stdout: '',
+      stderr: `Error: ${rejectedTokenMessage(server.port, config)}`,
+      exitCode: 1,
+    },
+  );
 });

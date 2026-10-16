@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { once } from 'node:events';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
@@ -15,10 +16,19 @@ export function tempStateHome(t: TestContext): NodeJS.ProcessEnv {
   return { XDG_STATE_HOME: dir };
 }
 
-export function saveConfig(env: NodeJS.ProcessEnv, port: number): void {
+export function saveConfig(
+  env: NodeJS.ProcessEnv,
+  config: { port: number; token?: string },
+): void {
   const paths = statePaths(env);
   mkdirSync(paths.dir, { recursive: true, mode: 0o700 });
-  writeFileSync(paths.config, JSON.stringify({ port }), { mode: 0o600 });
+  writeFileSync(paths.config, JSON.stringify(config), { mode: 0o600 });
+}
+
+// A token in the format the review server creates, which no review server
+// has.
+export function otherToken(): string {
+  return randomBytes(32).toString('base64url');
 }
 
 export interface Result {
@@ -46,13 +56,16 @@ export async function runCli(
 export interface ForegroundServer {
   child: ChildProcess;
   port: number;
+  token: string;
+  // The review UI's URL with the token, as printed.
+  url: string;
   output(): string;
   // Sends the signal and resolves with the exit code.
   stop(signal: NodeJS.Signals): Promise<number | null>;
 }
 
 // Runs `agent-diff server start --foreground` in a child process, and waits
-// for it to print its URL.
+// for it to print the review UI's URL with the token.
 export async function startForeground(
   t: TestContext,
   env: NodeJS.ProcessEnv,
@@ -68,17 +81,22 @@ export async function startForeground(
   });
   let output = '';
   child.stderr.setEncoding('utf8').on('data', (text) => (output += text));
-  const port = await new Promise<number>((resolve, reject) => {
+  const match = await new Promise<RegExpExecArray>((resolve, reject) => {
     child.stdout.setEncoding('utf8').on('data', (text) => {
       output += text;
-      const match = /running at http:\/\/127\.0\.0\.1:(\d+)\//.exec(output);
-      if (match) resolve(Number(match[1]));
+      const match =
+        /running at (http:\/\/127\.0\.0\.1:(\d+)\/#token=([A-Za-z0-9_-]{43}))\n/.exec(
+          output,
+        );
+      if (match) resolve(match);
     });
     exited.then(() => reject(new Error(`Exited early:\n${output}`)));
   });
   return {
     child,
-    port,
+    url: match[1]!,
+    port: Number(match[2]),
+    token: match[3]!,
     output: () => output,
     stop: (signal) => {
       child.kill(signal);
