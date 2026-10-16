@@ -2,15 +2,17 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { test } from 'node:test';
 import { cleanEnv, inOwnScope } from '../src/claude.ts';
+import { gitTestEnv } from './git-env.ts';
 
-test('agent sessions reach GitHub over HTTPS with gh credentials, not SSH', () => {
-  const env = {
-    ...cleanEnv({ HOME: '/home/dan', PATH: '/usr/bin' }),
-    GIT_CONFIG_GLOBAL: '/dev/null',
-    GIT_CONFIG_SYSTEM: '/dev/null',
-  };
+test('agent sessions reach GitHub over HTTPS with gh credentials, not SSH', (t) => {
+  // The git config that cleanEnv adds, on top of the test's own environment.
+  const base = gitTestEnv(t);
+  const env = { ...cleanEnv({ HOME: base.HOME }), ...base };
+  // Outside any repo, so no repo's own config applies.
+  const cwd = base.HOME;
   const url = (remote: string) =>
     execFileSync('git', ['ls-remote', '--get-url', remote], {
+      cwd,
       env,
       encoding: 'utf8',
     }).trim();
@@ -25,7 +27,7 @@ test('agent sessions reach GitHub over HTTPS with gh credentials, not SSH', () =
   const helper = execFileSync(
     'git',
     ['config', '--get-urlmatch', 'credential.helper', 'https://github.com'],
-    { env, encoding: 'utf8' },
+    { cwd, env, encoding: 'utf8' },
   ).trim();
   assert.equal(helper, '!gh auth git-credential');
 });
