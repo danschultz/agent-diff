@@ -84,8 +84,7 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
   is the only process that opens their database.
 - A config file in `$XDG_STATE_HOME/agent-diff` (or `~/.local/state/agent-diff`)
   holds the user's review server port and token, and only the user can read it.
-  The database is a file beside it, and the browser swaps the token for a
-  cookie.
+  The database is a file beside it.
 - The review server's API is built with oRPC, and validated with Valibot.
 - Review state is stored with `node:sqlite` and plain SQL, and dbmate applies
   migrations when the review server starts.
@@ -106,6 +105,10 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
   `self-review` sub-agent review their diff, including its performance against
   the sizes agent-diff designs for, and they wait for CI to pass before handing
   the brief to Dan.
+- Every API call carries the token, and every request must name the review
+  server in its `Host` header. `server start` prints a URL with the token in its
+  fragment, and the review UI keeps the token in `localStorage` and sends it in
+  a header. There's no cookie.
 
 ## Diff modes
 

@@ -1,7 +1,12 @@
 // `agent-diff server` commands, from decisions 0019 and 0020.
 import { once } from 'node:events';
 import { defineCommand } from '@crustjs/core';
-import { readConfig, serverUrl, statePaths } from '@agent-diff/shared/state';
+import {
+  readConfig,
+  reviewUiUrl,
+  serverUrl,
+  statePaths,
+} from '@agent-diff/shared/state';
 import { callReviewServer, isRunning } from '../client.ts';
 
 export interface ServerCommandOptions {
@@ -39,10 +44,13 @@ export function serverCommand({ env }: ServerCommandOptions) {
               'Only `agent-diff server start --foreground` is supported for now.',
             );
           }
+          // Something that answers on the saved port but rejects the token,
+          // such as another user's review server, doesn't count, and the
+          // review server started below moves to a new port (0024).
           const saved = readConfig(statePaths(env));
-          if (saved && (await isRunning(saved.port))) {
+          if (saved?.token && (await isRunning(saved.port, saved.token))) {
             stdout(
-              `The review server is already running at ${serverUrl(saved.port)}`,
+              `The review server is already running at ${reviewUiUrl(serverUrl(saved.port), saved.token)}`,
             );
             return;
           }
@@ -51,7 +59,7 @@ export function serverCommand({ env }: ServerCommandOptions) {
           const { startReviewServer } = await import('@agent-diff/server');
           const server = await startReviewServer({ env });
           stdout(
-            `The review server is running at ${server.url}\nPress Ctrl-C to stop it.`,
+            `The review server is running at ${reviewUiUrl(server.url, server.token)}\nPress Ctrl-C to stop it.`,
           );
           await stopRequested(signal);
           await server.close();

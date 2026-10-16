@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   existsSync,
+  linkSync,
   readdirSync,
   mkdirSync,
   mkdtempSync,
@@ -9,7 +10,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { get } from 'node:http';
+import { get, request, type IncomingHttpHeaders } from 'node:http';
 import { createServer } from 'node:net';
 import type { AddressInfo } from 'node:net';
 import os from 'node:os';
@@ -17,15 +18,79 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { test, type TestContext } from 'node:test';
 import { ORPCError } from '@orpc/client';
+import { contract } from '@agent-diff/shared/contract';
 import { statePaths } from '@agent-diff/shared/state';
+import type { ReviewServer } from '../src/server.ts';
 import { client, start, tempStateHome } from './helpers.ts';
+
+const tokenPattern = /^[A-Za-z0-9_-]{43}$/;
 
 function mode(file: string): number {
   return statSync(file).mode & 0o777;
 }
 
+function savedConfig(env: NodeJS.ProcessEnv): { port: number; token: string } {
+  return JSON.parse(readFileSync(statePaths(env).config, 'utf8'));
+}
+
 function savedPort(env: NodeJS.ProcessEnv): number {
-  return JSON.parse(readFileSync(statePaths(env).config, 'utf8')).port;
+  return savedConfig(env).port;
+}
+
+interface RawResponse {
+  status: number;
+  headers: IncomingHttpHeaders;
+  body: string;
+}
+
+// Sends a request with node:http, which, unlike fetch, can set the Host
+// header, or leave it out when host is null. Host defaults to the review
+// server's own.
+function send(
+  server: ReviewServer,
+  options: {
+    method?: string;
+    path: string;
+    host?: string | null;
+    headers?: Record<string, string>;
+  },
+): Promise<RawResponse> {
+  const { method = 'GET', path: pathname, host, headers = {} } = options;
+  return new Promise((resolve, reject) => {
+    const req = request(
+      {
+        host: '127.0.0.1',
+        port: server.port,
+        method,
+        path: pathname,
+        setHost: host !== null,
+        headers: host ? { ...headers, host } : headers,
+      },
+      (res) => {
+        res.setEncoding('utf8');
+        let body = '';
+        res.on('data', (chunk) => (body += chunk));
+        res.on('end', () =>
+          resolve({ status: res.statusCode!, headers: res.headers, body }),
+        );
+      },
+    );
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+// A port that was free a moment ago.
+async function freePort(): Promise<number> {
+  const probe = createServer();
+  await new Promise<void>((resolve) => probe.listen(0, '127.0.0.1', resolve));
+  const { port } = probe.address() as AddressInfo;
+  await new Promise((resolve) => probe.close(resolve));
+  return port;
+}
+
+function bearer(server: ReviewServer): Record<string, string> {
+  return { authorization: `Bearer ${server.token}` };
 }
 
 function uiDir(t: TestContext): string {
@@ -44,9 +109,11 @@ test('the first start creates the state directory and config file with their mod
 
   assert.equal(mode(paths.dir), 0o700);
   assert.equal(mode(paths.config), 0o600);
-  assert.deepEqual(JSON.parse(readFileSync(paths.config, 'utf8')), {
+  assert.deepEqual(savedConfig(env), {
     port: server.port,
+    token: server.token,
   });
+  assert.match(server.token, tokenPattern);
   assert.ok(server.port > 0);
   assert.equal(server.url, `http://127.0.0.1:${server.port}/`);
   assert.ok(existsSync(paths.database));
@@ -68,13 +135,76 @@ test('the config file mode is corrected when it already exists', async (t) => {
   assert.equal(mode(paths.config), 0o600);
 });
 
-test('later starts reuse the saved port', async (t) => {
+test('the token is never written into an existing config file that others can read', async (t) => {
+  const env = tempStateHome(t);
+  const paths = statePaths(env);
+  mkdirSync(paths.dir, { mode: 0o700 });
+  // A file others can read, which config.json is a hard link to, so writing
+  // into config.json in place would write into it too.
+  const other = path.join(env.XDG_STATE_HOME!, 'other.json');
+  writeFileSync(other, '{}', { mode: 0o644 });
+  linkSync(other, paths.config);
+  const server = await start(t, { env });
+  assert.equal(readFileSync(other, 'utf8'), '{}');
+  assert.equal(mode(other), 0o644);
+  assert.equal(savedConfig(env).token, server.token);
+  assert.equal(mode(paths.config), 0o600);
+  assert.deepEqual(readdirSync(paths.dir).sort(), [
+    'agent-diff.db',
+    'config.json',
+  ]);
+});
+
+test('later starts reuse the saved port and token', async (t) => {
   const env = tempStateHome(t);
   const first = await start(t, { env });
   await first.close();
   const second = await start(t, { env });
   assert.equal(second.port, first.port);
-  assert.equal(savedPort(env), first.port);
+  assert.equal(second.token, first.token);
+  assert.deepEqual(savedConfig(env), {
+    port: first.port,
+    token: first.token,
+  });
+});
+
+test('each state directory gets its own token', async (t) => {
+  const first = await start(t, { env: tempStateHome(t) });
+  const second = await start(t, { env: tempStateHome(t) });
+  assert.notEqual(first.token, second.token);
+});
+
+test('a config file with only a port keeps the port and gets a token', async (t) => {
+  const env = tempStateHome(t);
+  const port = await freePort();
+
+  const paths = statePaths(env);
+  mkdirSync(paths.dir, { mode: 0o700 });
+  writeFileSync(paths.config, JSON.stringify({ port }), { mode: 0o600 });
+
+  const server = await start(t, { env });
+  assert.equal(server.port, port);
+  assert.match(server.token, tokenPattern);
+  assert.deepEqual(savedConfig(env), { port, token: server.token });
+  assert.equal(mode(paths.config), 0o600);
+});
+
+test('any saved token is reused, and an empty one is replaced', async (t) => {
+  const env = tempStateHome(t);
+  const paths = statePaths(env);
+  mkdirSync(paths.dir, { mode: 0o700 });
+  const port = await freePort();
+  for (const token of ['typed-by-hand', 'a'.repeat(44)]) {
+    writeFileSync(paths.config, JSON.stringify({ port, token }));
+    const server = await start(t, { env });
+    assert.equal(server.token, token);
+    assert.equal(savedConfig(env).token, token);
+    await server.close();
+  }
+  writeFileSync(paths.config, JSON.stringify({ port, token: '' }));
+  const server = await start(t, { env });
+  assert.match(server.token, tokenPattern);
+  assert.equal(savedConfig(env).token, server.token);
 });
 
 test('a saved port in use by another program is replaced and saved', async (t) => {
@@ -128,6 +258,147 @@ test('every migration has dbmate up and down sections', () => {
 test('health returns ok', async (t) => {
   const server = await start(t, { env: tempStateHome(t) });
   assert.deepEqual(await client(server).health(), { ok: true });
+});
+
+test('every procedure rejects a call without the right token with 401', async (t) => {
+  const server = await start(t, { env: tempStateHome(t) });
+  const calls: Record<
+    keyof typeof contract,
+    (api: ReturnType<typeof client>) => Promise<unknown>
+  > = {
+    health: (api) => api.health(),
+    hello: (api) => api.hello({ name: 'Dan' }),
+  };
+  for (const [procedure, call] of Object.entries(calls)) {
+    for (const token of [null, '', 'wrong', `${server.token}x`]) {
+      await assert.rejects(call(client(server, token)), (error) => {
+        assert.ok(error instanceof ORPCError, `${procedure} ${token}`);
+        assert.equal(error.status, 401);
+        assert.equal(error.code, 'UNAUTHORIZED');
+        return true;
+      });
+    }
+  }
+  // Nothing was written by the rejected calls.
+  assert.equal((await client(server).hello({ name: 'Dan' })).count, 1);
+});
+
+test('the token is only accepted as a bearer token in the Authorization header', async (t) => {
+  const server = await start(t, { env: tempStateHome(t) });
+  for (const authorization of [
+    server.token,
+    `Basic ${server.token}`,
+    `Bearer  ${server.token}`,
+    `Bearer ${server.token} x`,
+  ]) {
+    const response = await send(server, {
+      method: 'POST',
+      path: '/api/health',
+      headers: { authorization },
+    });
+    assert.equal(response.status, 401, authorization);
+  }
+  for (const scheme of ['Bearer', 'bearer']) {
+    const response = await send(server, {
+      method: 'POST',
+      path: '/api/health',
+      headers: { authorization: `${scheme} ${server.token}` },
+    });
+    assert.equal(response.status, 200, scheme);
+  }
+});
+
+test('paths under /api that are not procedures need the token too', async (t) => {
+  const server = await start(t, { env: tempStateHome(t), uiDir: uiDir(t) });
+  for (const pathname of ['/api', '/api/', '/api/nothing', '/api/a/b']) {
+    const response = await send(server, { path: pathname });
+    assert.equal(response.status, 401, pathname);
+  }
+});
+
+test('requests whose Host is not the review server are rejected with 403', async (t) => {
+  const server = await start(t, { env: tempStateHome(t), uiDir: uiDir(t) });
+  const { port } = server;
+  const requests = [
+    { method: 'POST', path: '/api/health', headers: bearer(server) },
+    { method: 'POST', path: '/api/hello', headers: bearer(server) },
+    { path: '/' },
+    { path: '/review-sessions/1' },
+    { path: '/assets/app.js' },
+  ];
+  for (const host of [
+    'evil.example',
+    `evil.example:${port}`,
+    `localhost.evil.example:${port}`,
+    '127.0.0.1',
+    'localhost',
+    `127.0.0.1:${port + 1}`,
+    `localhost:${port + 1}`,
+    `[::1]:${port}`,
+    `0.0.0.0:${port}`,
+    null,
+  ]) {
+    for (const options of requests) {
+      const response = await send(server, { ...options, host });
+      assert.equal(response.status, 403, `${host} ${options.path}`);
+      assert.equal(response.body, '', `${host} ${options.path}`);
+    }
+  }
+});
+
+test('requests to 127.0.0.1 or localhost on its port are served', async (t) => {
+  const server = await start(t, { env: tempStateHome(t), uiDir: uiDir(t) });
+  for (const host of [
+    `127.0.0.1:${server.port}`,
+    `localhost:${server.port}`,
+    `LOCALHOST:${server.port}`,
+  ]) {
+    const health = await send(server, {
+      method: 'POST',
+      path: '/api/health',
+      host,
+      headers: bearer(server),
+    });
+    assert.equal(health.status, 200, host);
+    const page = await send(server, { path: '/', host });
+    assert.equal(page.status, 200, host);
+    assert.equal(page.body, '<h1>review UI</h1>');
+  }
+});
+
+test('the review server sends no CORS headers', async (t) => {
+  const server = await start(t, { env: tempStateHome(t), uiDir: uiDir(t) });
+  const origin = { origin: 'https://evil.example' };
+  const preflight = {
+    ...origin,
+    'access-control-request-method': 'POST',
+    'access-control-request-headers': 'authorization',
+  };
+  const responses = await Promise.all([
+    send(server, { path: '/', headers: origin }),
+    send(server, { path: '/assets/app.js', headers: origin }),
+    send(server, {
+      method: 'POST',
+      path: '/api/health',
+      headers: { ...origin, ...bearer(server) },
+    }),
+    send(server, { method: 'POST', path: '/api/health', headers: origin }),
+    send(server, {
+      method: 'OPTIONS',
+      path: '/api/health',
+      headers: preflight,
+    }),
+    send(server, { method: 'OPTIONS', path: '/', headers: preflight }),
+    send(server, { path: '/', host: 'evil.example', headers: origin }),
+  ]);
+  for (const response of responses) {
+    assert.deepEqual(
+      Object.keys(response.headers).filter((name) =>
+        name.startsWith('access-control-'),
+      ),
+      [],
+    );
+  }
 });
 
 test('hello greets the trimmed name and counts the greetings', async (t) => {
