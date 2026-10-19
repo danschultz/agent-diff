@@ -327,6 +327,20 @@ test('requests whose Host is not the review server are rejected with 403', async
   }
 });
 
+test('a Host header that is not a valid host is rejected with 400 by the adapter', async (t) => {
+  const server = await start(t, { env: tempStateHome(t), uiDir: uiDir(t) });
+  for (const host of ['a b', 'evil.example:99999', '[bad']) {
+    for (const options of [
+      { method: 'POST', path: '/api/health', headers: bearer(server) },
+      { path: '/' },
+    ]) {
+      const response = await send(server, { ...options, host });
+      assert.equal(response.status, 400, `${host} ${options.path}`);
+      assert.doesNotMatch(response.body, /review UI|"ok"/, host);
+    }
+  }
+});
+
 test('requests to 127.0.0.1 or localhost on its port are served', async (t) => {
   const server = await start(t, { env: tempStateHome(t), uiDir: uiDir(t) });
   for (const host of [

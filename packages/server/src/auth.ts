@@ -3,7 +3,12 @@
 // config file, and every request names the review server in its Host header.
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { IncomingHttpHeaders } from 'node:http';
-import { ORPCError } from '@orpc/server';
+import { type Context, ORPCError } from '@orpc/server';
+import type {
+  StandardHandleResult,
+  StandardHandlerInterceptorOptions,
+} from '@orpc/server/standard';
+import type { Interceptor } from '@orpc/shared';
 
 // 32 random bytes in base64url, which is 43 characters with no padding.
 export function createToken(): string {
@@ -37,14 +42,13 @@ export function isOwnHost(headers: IncomingHttpHeaders, port: number): boolean {
 // 401. It runs for every request under the API's prefix, before the procedure
 // is matched or its input decoded, so paths that aren't procedures need the
 // token too.
-export function requireToken(token: string) {
-  return <T>({
-    request,
-    next,
-  }: {
-    request: { headers: Record<string, string | string[] | undefined> };
-    next: () => T;
-  }): T => {
+export function requireToken(
+  token: string,
+): Interceptor<
+  StandardHandlerInterceptorOptions<Context>,
+  Promise<StandardHandleResult>
+> {
+  return ({ request, next }) => {
     const { authorization } = request.headers;
     if (
       typeof authorization === 'string' &&

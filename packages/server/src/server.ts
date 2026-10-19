@@ -3,9 +3,9 @@
 // else, on 127.0.0.1, with Hono (decision 0032). Every request must name the
 // review server in its Host header, and every API call must carry the token
 // (0031).
-import { createServer, type Server } from 'node:http';
+import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { getRequestListener } from '@hono/node-server';
+import { createAdaptorServer, type HttpBindings } from '@hono/node-server';
 import { ORPCError, ValidationError } from '@orpc/server';
 import { RPCHandler } from '@orpc/server/fetch';
 import { Hono } from 'hono';
@@ -93,7 +93,15 @@ export async function startReviewServer(
     interceptors: [requireToken(token)],
     clientInterceptors: [({ next }) => next().catch(readableValidationErrors)],
   });
-  const app = new Hono()
+  // Set once the review server is listening, before any request arrives.
+  let port = 0;
+  const app = new Hono<{ Bindings: HttpBindings }>()
+    .use(async (c, next) => {
+      if (!isOwnHost(c.env.incoming.headers, port)) {
+        return c.body(null, 403);
+      }
+      await next();
+    })
     .use(async (c, next) => {
       const { matched, response } = await handler.handle(c.req.raw, {
         prefix: apiPrefix,
@@ -102,24 +110,16 @@ export async function startReviewServer(
       await next();
     })
     .route('/', reviewUi(uiDir));
-  // Without replacing the global Request and Response, which the CLI uses
-  // too when it runs the review server in its own process.
-  const listener = getRequestListener(app.fetch, {
+  const server = createAdaptorServer({
+    fetch: app.fetch,
+    // Without replacing the global Request and Response, which the CLI uses
+    // too when it runs the review server in its own process.
     overrideGlobalObjects: false,
-  });
-
-  // Set once the review server is listening, before any request arrives.
-  let port = 0;
-  // The Host check runs before Hono, which builds each request's URL from
-  // the Host header and would answer a missing one with 400 itself. Node
-  // would too, so every Host that isn't the review server gets 403.
-  const server = createServer({ requireHostHeader: false }, (req, res) => {
-    if (!isOwnHost(req.headers, port)) {
-      res.writeHead(403).end();
-      return;
-    }
-    void listener(req, res);
-  });
+    // A request with no Host reaches the Host check above, and gets 403,
+    // instead of 400 from Node or the adapter.
+    serverOptions: { requireHostHeader: false },
+    hostname: '127.0.0.1',
+  }) as Server;
 
   try {
     port = await listenOnSavedPort(server, saved?.port);
