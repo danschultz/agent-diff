@@ -1,18 +1,21 @@
 // Starts the review server: it creates the state directory, migrates the
 // database, then serves the API under /api and the built review UI everywhere
-// else, on 127.0.0.1. Every request must name the review server in its Host
-// header, and every API call must carry the token (decision 0031).
+// else, on 127.0.0.1, with Hono (decision 0032). Every request must name the
+// review server in its Host header, and every API call must carry the token
+// (0031).
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { getRequestListener } from '@hono/node-server';
 import { ORPCError, ValidationError } from '@orpc/server';
-import { RPCHandler } from '@orpc/server/node';
+import { RPCHandler } from '@orpc/server/fetch';
+import { Hono } from 'hono';
 import { apiPrefix } from '@agent-diff/shared/contract';
 import { readConfig, serverUrl, statePaths } from '@agent-diff/shared/state';
-import { createToken, isAuthorized, isOwnHost } from './auth.ts';
+import { createToken, isOwnHost, requireToken } from './auth.ts';
 import { migrate } from './migrate.ts';
 import { createRouter } from './router.ts';
 import { ensureStateDir, writeConfig } from './state.ts';
-import { defaultUiDir, serveUi } from './static.ts';
+import { defaultUiDir, reviewUi } from './static.ts';
 import { Store } from './store.ts';
 
 export interface StartOptions {
@@ -88,48 +91,36 @@ export async function startReviewServer(
 
   const store = new Store(paths.database);
   const handler = new RPCHandler(createRouter(store), {
-    // Runs for every request under the prefix, before the procedure is
-    // matched or its input decoded, so paths that aren't procedures need the
-    // token too. oRPC answers the error with 401.
-    interceptors: [
-      ({ request, next }) => {
-        const { authorization } = request.headers;
-        if (
-          typeof authorization === 'string' &&
-          isAuthorized(authorization, token)
-        ) {
-          return next();
-        }
-        throw new ORPCError('UNAUTHORIZED', {
-          message: 'The token is missing or wrong.',
-        });
-      },
-    ],
+    interceptors: [requireToken(token)],
     clientInterceptors: [({ next }) => next().catch(readableValidationErrors)],
   });
+  const app = new Hono()
+    .use(async (c, next) => {
+      const { matched, response } = await handler.handle(c.req.raw, {
+        prefix: apiPrefix,
+      });
+      if (matched) return c.newResponse(response.body, response);
+      await next();
+    })
+    .route('/', reviewUi(uiDir));
+  // Without replacing the global Request and Response, which the CLI uses
+  // too when it runs the review server in its own process.
+  const listener = getRequestListener(app.fetch, {
+    overrideGlobalObjects: false,
+  });
+
   // Set once the review server is listening, before any request arrives.
   let port = 0;
-  // Node would answer a request with no Host header with 400 itself. It's
-  // rejected with 403 like any other Host that isn't the review server.
-  const server = createServer(
-    { requireHostHeader: false },
-    async (req, res) => {
-      if (!isOwnHost(req.headers, port)) {
-        res.writeHead(403).end();
-        return;
-      }
-      try {
-        const { matched } = await handler.handle(req, res, {
-          prefix: apiPrefix,
-        });
-        if (!matched) await serveUi(uiDir, req, res);
-      } catch (error) {
-        console.error(error);
-        if (!res.headersSent) res.writeHead(500);
-        res.end();
-      }
-    },
-  );
+  // The Host check runs before Hono, which builds each request's URL from
+  // the Host header and would answer a missing one with 400 itself. Node
+  // would too, so every Host that isn't the review server gets 403.
+  const server = createServer({ requireHostHeader: false }, (req, res) => {
+    if (!isOwnHost(req.headers, port)) {
+      res.writeHead(403).end();
+      return;
+    }
+    void listener(req, res);
+  });
 
   try {
     port = await listenOnSavedPort(server, saved?.port);
