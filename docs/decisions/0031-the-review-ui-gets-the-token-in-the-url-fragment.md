@@ -27,7 +27,8 @@ against cross-site request forgery.
   is 43 characters. `config.json` holds
   `{ "port": <number>, "token": "<token>" }` and stays mode `0600`. The first
   `server start` creates the token, and later starts reuse it. A `config.json`
-  with only a port keeps its port and gets a token added.
+  without a token isn't valid, so `server start` replaces it with a new port and
+  token ([0033](0033-breaking-changes-are-allowed-during-early-development.md)).
 - **Every API call carries the token,** including `health`, as
   `Authorization: Bearer <token>`. A call with no token or the wrong one,
   including one to a path under `/api` that isn't a procedure, is rejected
@@ -60,8 +61,7 @@ against cross-site request forgery.
   `<port>` rejected the token in `<path to config.json>`. Start the review
   server with `agent-diff server start`.", which is different from
   [0019](0019-cli-does-not-start-the-server.md)'s not-running error, so a wrong
-  token isn't reported as a refused connection. A config file with no token is
-  reported as not running.
+  token isn't reported as a refused connection.
 - **Development.** `npm run dev:ui` prints the Vite dev server's URL with the
   token, such as `http://localhost:5173/#token=…`. Vite's proxy sets
   `changeOrigin`, so API calls reach the review server with its own `Host`

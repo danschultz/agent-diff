@@ -11,6 +11,11 @@ in [docs/research](docs/research/README.md), and agreed terms are defined in
 - The project is in the planning stage. Don't start implementing until a design
   or task has been agreed with the user.
 - Keep `README.md` as the source of truth for product intent.
+- The project is in early development, and breaking changes are fine for the
+  foreseeable future. Don't write fallbacks, conversions, or tests to keep
+  working with what earlier versions wrote or accepted, such as config files,
+  API calls, or CLI usage, unless a brief asks for them. See
+  [0033](docs/decisions/0033-breaking-changes-are-allowed-during-early-development.md).
 
 ## Rules
 
