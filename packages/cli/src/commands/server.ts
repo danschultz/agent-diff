@@ -48,7 +48,7 @@ export function serverCommand({ env }: ServerCommandOptions) {
           // such as another user's review server, doesn't count, and the
           // review server started below moves to a new port (0024).
           const saved = readConfig(statePaths(env));
-          if (saved?.token && (await isRunning(saved.port, saved.token))) {
+          if (saved && (await isRunning(saved.port, saved.token))) {
             stdout(
               `The review server is already running at ${reviewUiUrl(serverUrl(saved.port), saved.token)}`,
             );

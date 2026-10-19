@@ -35,7 +35,7 @@ function printUrlWithToken(token: string): Plugin {
 export default defineConfig(({ command }) => {
   if (command === 'build') return { plugins: [react()] };
   const config = readConfig(statePaths());
-  if (!config?.token) {
+  if (!config) {
     throw new Error(
       "The review server hasn't been started, so there's no port to proxy API calls to or token to send. Start it with `npx agent-diff server start --foreground`.",
     );

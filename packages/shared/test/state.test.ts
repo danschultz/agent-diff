@@ -49,13 +49,6 @@ test('readConfig returns the saved port and token', () => {
   assert.deepEqual(readConfig(paths), { port: 4321, token: 'abc' });
 });
 
-test('readConfig returns a saved port with no token, as #31 wrote it', () => {
-  const paths = statePaths({ XDG_STATE_HOME: tempDir() });
-  mkdirSync(paths.dir);
-  writeFileSync(paths.config, '{ "port": 4321 }');
-  assert.deepEqual(readConfig(paths), { port: 4321 });
-});
-
 test('readConfig ignores a config file that is not valid', () => {
   const paths = statePaths({ XDG_STATE_HOME: tempDir() });
   mkdirSync(paths.dir);
@@ -64,6 +57,8 @@ test('readConfig ignores a config file that is not valid', () => {
     '{}',
     '{ "port": "4321" }',
     '{ "port": 0 }',
+    '{ "port": 4321 }',
+    '{ "port": 4321, "token": "" }',
     '{ "port": 4321, "token": 5 }',
   ]) {
     writeFileSync(paths.config, text);

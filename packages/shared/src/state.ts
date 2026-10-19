@@ -28,11 +28,9 @@ export function statePaths(env: NodeJS.ProcessEnv = process.env): StatePaths {
   };
 }
 
-// The token is missing from a config file written before tokens were added,
-// and the review server adds one when it starts.
 export const Config = v.object({
   port: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(65535)),
-  token: v.optional(v.string()),
+  token: v.pipe(v.string(), v.minLength(1)),
 });
 
 export type Config = v.InferOutput<typeof Config>;

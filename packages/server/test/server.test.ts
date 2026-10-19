@@ -174,22 +174,7 @@ test('each state directory gets its own token', async (t) => {
   assert.notEqual(first.token, second.token);
 });
 
-test('a config file with only a port keeps the port and gets a token', async (t) => {
-  const env = tempStateHome(t);
-  const port = await freePort();
-
-  const paths = statePaths(env);
-  mkdirSync(paths.dir, { mode: 0o700 });
-  writeFileSync(paths.config, JSON.stringify({ port }), { mode: 0o600 });
-
-  const server = await start(t, { env });
-  assert.equal(server.port, port);
-  assert.match(server.token, tokenPattern);
-  assert.deepEqual(savedConfig(env), { port, token: server.token });
-  assert.equal(mode(paths.config), 0o600);
-});
-
-test('any saved token is reused, and an empty one is replaced', async (t) => {
+test('a saved token is reused whatever its format', async (t) => {
   const env = tempStateHome(t);
   const paths = statePaths(env);
   mkdirSync(paths.dir, { mode: 0o700 });
@@ -201,10 +186,6 @@ test('any saved token is reused, and an empty one is replaced', async (t) => {
     assert.equal(savedConfig(env).token, token);
     await server.close();
   }
-  writeFileSync(paths.config, JSON.stringify({ port, token: '' }));
-  const server = await start(t, { env });
-  assert.match(server.token, tokenPattern);
-  assert.equal(savedConfig(env).token, server.token);
 });
 
 test('a saved port in use by another program is replaced and saved', async (t) => {

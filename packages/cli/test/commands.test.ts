@@ -111,7 +111,7 @@ test('server hello fails when nothing listens on the saved port', async (t) => {
   });
 });
 
-test('server hello fails when the config file has no token', async (t) => {
+test('server hello fails when the config file is not valid', async (t) => {
   const env = tempStateHome(t);
   const server = await startReviewServer({ env });
   t.after(() => server.close());

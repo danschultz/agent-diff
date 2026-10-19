@@ -43,7 +43,7 @@ export async function isRunning(port: number, token: string): Promise<boolean> {
 }
 
 // Calls the API on the saved port with the saved token. Fails with 0019's
-// error when there's no saved port and token or nothing answers on the port,
+// error when there's no valid config file or nothing answers on the port,
 // with 0031's error when the token is rejected, and with the review server's
 // message, such as a validation error, when it rejects the call.
 export async function callReviewServer<T>(
@@ -52,7 +52,7 @@ export async function callReviewServer<T>(
 ): Promise<T> {
   const paths = statePaths(env);
   const config = readConfig(paths);
-  if (!config?.token) throw new Error(notRunningMessage);
+  if (!config) throw new Error(notRunningMessage);
   try {
     return await call(createClient(config.port, config.token));
   } catch (error) {

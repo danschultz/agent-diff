@@ -86,8 +86,7 @@ export async function startReviewServer(
   ensureStateDir(paths);
   await migrate(paths.database);
   const saved = readConfig(paths);
-  // Later starts reuse the token, and a config file without one gets one.
-  const token = saved?.token || createToken();
+  const token = saved?.token ?? createToken();
 
   const store = new Store(paths.database);
   const handler = new RPCHandler(createRouter(store), {
