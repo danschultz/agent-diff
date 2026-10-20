@@ -22,10 +22,10 @@ session fails, an error on start, and the question when an agent session needs
 input.
 
 Nothing on GitHub identifies the task. Branches are named
-`brief/<slug>-<suffix>`, from the task's title and a random verb-noun suffix,
-such as `brief/add-a-version-flag-chase-otter`, and the pull request has no
-"Closes" line. The agent session is told to keep the task's ref out of branch
-names, commits, and pull requests.
+`brief/<slug>-<suffix>`, from the task's title and a short random hex suffix,
+such as `brief/add-a-version-flag-3f9a2c`, and the pull request has no "Closes"
+line. The agent session is told to keep the task's ref out of branch names,
+commits, and pull requests.
 
 A systemd user timer runs `implement tick` every 2 minutes. Each tick:
 
@@ -226,9 +226,9 @@ URL once it's been noted on the task. The task holds everything else:
       "ref": "AD-5M82",
       "repo": "danschultz/agent-diff",
       "title": "Take briefs from Aven instead of GitHub issues",
-      "branch": "brief/take-briefs-from-aven-instead-of-github-chase-otter",
-      "worktree": "/home/dan/agent-diff/.claude/worktrees/brief-take-briefs-from-aven-instead-of-github-chase-otter",
-      "sessionName": "brief-take-briefs-from-aven-instead-of-github-chase-otter",
+      "branch": "brief/take-briefs-from-aven-instead-of-github-3f9a2c",
+      "worktree": "/home/dan/agent-diff/.claude/worktrees/brief-take-briefs-from-aven-instead-of-github-3f9a2c",
+      "sessionName": "brief-take-briefs-from-aven-instead-of-github-3f9a2c",
       "sessionId": "0b7c2f1e-6a4d-4c8e-9f3a-2d5e8b1c7a90",
       "launchedAt": 1792468800000,
       "handledReviewIds": ["PRR_kwDOexample"],

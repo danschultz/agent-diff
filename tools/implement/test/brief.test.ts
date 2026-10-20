@@ -2,11 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   missingFields,
-  NOUNS,
   parseBrief,
   randomSuffix,
   slugify,
-  VERBS,
 } from '../src/brief.ts';
 
 const complete = `### Goal
@@ -78,22 +76,8 @@ test('slugify makes short branch-safe slugs', () => {
   assert.equal(long, 'render-the-file-view-as-a-tree-grouped');
 });
 
-test('random suffixes are a memorable verb-noun pair', () => {
-  const [verb, noun, ...rest] = randomSuffix().split('-');
-  assert.ok(VERBS.includes(verb), verb);
-  assert.ok(NOUNS.includes(noun), noun);
-  assert.deepEqual(rest, []);
-});
-
-test('random suffixes vary', () => {
-  const seen = new Set(Array.from({ length: 50 }, () => randomSuffix()));
-  assert.ok(seen.size > 40, `only ${seen.size} different suffixes in 50`);
-});
-
-test('the word lists are branch-safe and have no repeats', () => {
-  for (const words of [VERBS, NOUNS]) {
-    assert.ok(words.length >= 64);
-    assert.equal(new Set(words).size, words.length);
-    for (const word of words) assert.match(word, /^[a-z]{3,8}$/);
-  }
+test('random suffixes are short, branch-safe, and differ each time', () => {
+  const a = randomSuffix();
+  assert.match(a, /^[0-9a-f]{6}$/);
+  assert.notEqual(randomSuffix(), a);
 });

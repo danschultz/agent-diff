@@ -44,11 +44,10 @@ close, and how the briefs already on GitHub move over.
 - **Aven refs stay off GitHub.** A ref identifies Dan's local task, so it never
   appears in a branch name, commit, pull request title, or pull request body.
   Branches are `brief/<slug>-<suffix>`, where the slug comes from the task's
-  title and the suffix is a random verb-noun pair, such as `chase-otter`, that's
-  easy to remember and not derived from the task. The worktree and agent session
-  name follow the branch. The pull request has no "Closes" line, and the prompts
-  tell the agent session to keep the ref and the task's ID out of branch names,
-  commits, and pull requests.
+  title and the suffix is short and random, such as `3f9a2c`, not derived from
+  the task. The worktree and agent session name follow the branch. The pull
+  request has no "Closes" line, and the prompts tell the agent session to keep
+  the ref and the task's ID out of branch names, commits, and pull requests.
 - **The task's ID is the identity.** `state.json` is keyed by the stable ID from
   `aven --json` output, not by the ref, since a ref's project prefix changes
   when the task moves project. The ref is kept only for prompts, logs, and

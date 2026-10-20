@@ -189,13 +189,13 @@ test(
       },
       state,
       settingsFile: '/state/settings.json',
-      randomSuffix: () => 'chase-otter',
+      randomSuffix: () => '3f9a2c',
       now: () => 0,
       sleep() {},
       log() {},
     });
 
-    assert.deepEqual(started, ['brief-ready-brief-chase-otter']);
+    assert.deepEqual(started, ['brief-ready-brief-3f9a2c']);
     const task = cliAven(avenBin!, 'agent-diff', s.env).task(ready);
     assert.equal(task.status, 'active');
     assert.equal(task.agent, 'working');
