@@ -1,33 +1,36 @@
 // One tick: reap, resume, start, prune. Run every 2 minutes by the systemd timer.
 
 import path from 'node:path';
-import { missingFields, slugify } from './brief.ts';
-import { isWorking, type AgentSessionInfo, type Claude } from './claude.ts';
-import { LABELS, type Config } from './config.ts';
-import type { Git } from './git.ts';
 import {
+  AGENT,
+  isClosed,
   moveTo,
-  type GitHub,
-  type Issue,
-  type PullRequest,
-  type Review,
-} from './github.ts';
+  type Aven,
+  type Task,
+  type TaskChanges,
+} from './aven.ts';
+import { slugify } from './brief.ts';
+import { isWorking, type AgentSessionInfo, type Claude } from './claude.ts';
+import type { Config } from './config.ts';
+import type { Git } from './git.ts';
+import type { GitHub, PullRequest, Review } from './github.ts';
 import { resumePrompt, startPrompt } from './prompts.ts';
 import type { BriefState, State } from './state.ts';
-
-const ALL_LABELS = Object.values(LABELS);
 
 /** How long a just-launched agent session may be missing from `claude agents` before it counts as exited. */
 export const LAUNCH_GRACE_MS = 3 * 60 * 1000;
 
 export interface Deps {
   config: Config;
+  aven: Aven;
   github: GitHub;
   git: Git;
   claude: Claude;
   state: State;
   /** The settings file with implement's hooks, passed to new agent sessions. */
   settingsFile: string;
+  /** Keeps branch names unique without deriving them from the task. */
+  randomSuffix: () => string;
   now: () => number;
   sleep: (ms: number) => void;
   log: (message: string) => void;
@@ -35,7 +38,7 @@ export interface Deps {
 
 interface Tracked {
   brief: BriefState;
-  issue: Issue;
+  task: Task;
   pr: PullRequest | undefined;
   session: AgentSessionInfo | undefined;
   /** Uses a concurrency slot: running, or launched too recently to show up yet. */
@@ -48,25 +51,25 @@ export function tick(deps: Deps): void {
   const running = deps.claude.running();
   const tracked: Tracked[] = [];
   for (const brief of Object.values(deps.state.briefs)) {
-    const result = guard(deps, brief.issue, () => reap(deps, brief, running));
+    const result = guard(deps, brief.ref, () => reap(deps, brief, running));
     if (result) tracked.push(result);
   }
   let slots =
     deps.config.concurrency - tracked.filter((t) => t.occupiesSlot).length;
   for (const t of tracked) {
     if (slots <= 0) break;
-    if (guard(deps, t.brief.issue, () => resume(deps, t))) slots--;
+    if (guard(deps, t.brief.ref, () => resume(deps, t))) slots--;
   }
   startQueued(deps, slots, running);
   deps.git.prune();
 }
 
 /** Runs one brief's step, so a failure on one brief doesn't stop the others. */
-function guard<T>(deps: Deps, issue: number, step: () => T): T | undefined {
+function guard<T>(deps: Deps, ref: string, step: () => T): T | undefined {
   try {
     return step();
   } catch (error) {
-    deps.log(`#${issue}: ${(error as Error).message}`);
+    deps.log(`${ref}: ${(error as Error).message}`);
     return undefined;
   }
 }
@@ -80,8 +83,21 @@ function findSession(
     : running.find((s) => s.cwd === brief.worktree);
 }
 
+/** Why a brief should be let go, or undefined while `implement` keeps it. */
+function letGoReason(
+  task: Task,
+  pr: PullRequest | undefined,
+): string | undefined {
+  if (pr?.state === 'MERGED') return `pull request #${pr.number} merged`;
+  if (pr?.state === 'CLOSED')
+    return `pull request #${pr.number} closed without merging`;
+  if (isClosed(task)) return `task ${task.status}`;
+  if (task.agent === undefined) return 'agent metadata removed';
+  return undefined;
+}
+
 /**
- * Brings one started brief up to date: cleans up finished ones, reports agent
+ * Brings one started brief up to date: lets finished ones go, reports agent
  * sessions that exited without a pull request, and stops agent sessions whose
  * brief is in review. Returns undefined once the brief is no longer tracked.
  */
@@ -90,72 +106,94 @@ function reap(
   brief: BriefState,
   running: AgentSessionInfo[],
 ): Tracked | undefined {
-  const { github, claude, state } = deps;
-  const issue = github.issue(brief.issue);
+  const { aven, github, claude } = deps;
+  const task = aven.task(brief.taskId);
+  brief.ref = task.ref;
   const pr = github.pullRequestForBranch(brief.branch);
   const session = findSession(running, brief);
   if (session && !brief.sessionId) brief.sessionId = session.sessionId;
 
-  // Finished: the pull request is merged or closed, or the issue was closed
-  // without one (a failed brief Dan is done with, or a brief Dan called off).
-  if ((pr && pr.state !== 'OPEN') || (!pr && issue.state === 'CLOSED')) {
-    if (session) claude.stop(session.id);
-    deps.git.removeWorktree(brief.worktree, brief.branch);
-    delete state.briefs[brief.issue];
-    deps.log(
-      `#${brief.issue}: ${pr ? `pull request #${pr.number} ${pr.state.toLowerCase()}` : 'issue closed'}, removed ${brief.worktree}`,
-    );
+  if (pr && brief.pullRequestUrl !== pr.url) {
+    aven.note(task.id, `Pull request: ${pr.url}`);
+    brief.pullRequestUrl = pr.url;
+  }
+
+  const reason = letGoReason(task, pr);
+  if (reason) {
+    letGo(deps, brief, task, session, pr?.state === 'MERGED');
+    deps.log(`${task.ref}: ${reason}, let go and removed ${brief.worktree}`);
     return undefined;
   }
 
-  const has = (label: string) => issue.labels.includes(label);
   const launchedRecently = deps.now() - brief.launchedAt < LAUNCH_GRACE_MS;
 
   if (!session) {
     if (launchedRecently)
-      return { brief, issue, pr, session, occupiesSlot: true };
-    if (has(LABELS.working) || has(LABELS.needsInput)) {
+      return { brief, task, pr, session, occupiesSlot: true };
+    if (task.agent === AGENT.working || task.agent === AGENT.needsInput) {
       if (pr) {
-        moveTo(github, issue, LABELS.review, ALL_LABELS);
-        github.comment(
-          issue.number,
-          `The agent session exited while working, after opening #${pr.number}. Moved to \`${LABELS.review}\`.`,
+        moveTo(aven, task, AGENT.review);
+        aven.note(
+          task.id,
+          `The agent session exited while working, after opening pull request #${pr.number}: ${pr.url}. Moved to \`agent=${AGENT.review}\`.`,
         );
-        deps.log(`#${brief.issue}: agent session exited, moved to review`);
+        deps.log(`${task.ref}: agent session exited, moved to review`);
       } else {
         const tail = claude.logTail(brief.sessionName, brief.sessionId);
-        moveTo(github, issue, LABELS.failed, ALL_LABELS);
-        github.comment(
-          issue.number,
-          `The agent session exited without opening a pull request. The worktree \`${brief.worktree}\` is kept until this issue is closed.\n\nEnd of the agent session's output:\n\n\`\`\`\`\n${tail}\n\`\`\`\``,
+        moveTo(aven, task, AGENT.failed);
+        aven.note(
+          task.id,
+          `The agent session exited without opening a pull request. The worktree \`${brief.worktree}\` is kept until the brief is let go or queued again.\n\nEnd of the agent session's output:\n\n\`\`\`\`\n${tail}\n\`\`\`\``,
         );
         deps.log(
-          `#${brief.issue}: agent session exited without a pull request, marked failed`,
+          `${task.ref}: agent session exited without a pull request, marked failed`,
         );
       }
     }
-    return { brief, issue, pr, session, occupiesSlot: false };
+    return { brief, task, pr, session, occupiesSlot: false };
   }
 
-  if (has(LABELS.review) && !isWorking(session)) {
+  if (task.agent === AGENT.review && !isWorking(session)) {
     claude.stop(session.id);
     deps.log(
-      `#${brief.issue}: in review, stopped agent session ${brief.sessionName}`,
+      `${task.ref}: in review, stopped agent session ${brief.sessionName}`,
     );
     return {
       brief,
-      issue,
+      task,
       pr,
       session: undefined,
       occupiesSlot: false,
       stopped: true,
     };
   }
-  if (has(LABELS.needsInput) && isWorking(session)) {
+  if (task.agent === AGENT.needsInput && isWorking(session)) {
     // Dan answered through Remote Control and the agent session is working again.
-    moveTo(github, issue, LABELS.working, ALL_LABELS);
+    moveTo(aven, task, AGENT.working);
   }
-  return { brief, issue, pr, session, occupiesSlot: true };
+  return { brief, task, pr, session, occupiesSlot: true };
+}
+
+/**
+ * Stops tracking a brief: stops its agent session, removes its worktree and
+ * local branch, and removes the `agent` metadata. A merged brief's task is set
+ * to done. A brief Dan has queued again keeps `agent=queued`, so it starts over.
+ */
+function letGo(
+  deps: Deps,
+  brief: BriefState,
+  task: Task,
+  session: AgentSessionInfo | undefined,
+  merged: boolean,
+): void {
+  if (session) deps.claude.stop(session.id);
+  deps.git.removeWorktree(brief.worktree, brief.branch);
+  const changes: TaskChanges = {};
+  if (merged) changes.status = 'done';
+  if (task.agent !== undefined && (merged || task.agent !== AGENT.queued))
+    changes.agent = null;
+  if (Object.keys(changes).length > 0) deps.aven.edit(task.id, changes);
+  delete deps.state.briefs[brief.taskId];
 }
 
 /** Reviews from Dan that haven't been handed to the agent session yet. */
@@ -177,14 +215,14 @@ export function newReviews(
 
 /** Resumes a stopped agent session when its pull request has new reviews. Returns whether it resumed. */
 function resume(deps: Deps, t: Tracked): boolean {
-  const { brief, issue, pr, session } = t;
+  const { brief, task, pr, session } = t;
   if (
     session ||
     t.occupiesSlot ||
     t.stopped ||
     !pr ||
     pr.state !== 'OPEN' ||
-    !issue.labels.includes(LABELS.review)
+    task.agent !== AGENT.review
   )
     return false;
   const reviews = newReviews(
@@ -195,7 +233,7 @@ function resume(deps: Deps, t: Tracked): boolean {
   if (reviews.length === 0) return false;
   if (!brief.sessionId)
     throw new Error('has new reviews but no session id to resume');
-  moveTo(deps.github, issue, LABELS.working, ALL_LABELS);
+  moveTo(deps.aven, task, AGENT.working);
   deps.claude.resume(
     brief.worktree,
     brief.sessionId,
@@ -204,7 +242,7 @@ function resume(deps: Deps, t: Tracked): boolean {
   brief.handledReviewIds.push(...reviews.map((r) => r.id));
   brief.launchedAt = deps.now();
   deps.log(
-    `#${brief.issue}: resumed ${brief.sessionName} for ${reviews.length} review(s) on #${pr.number}`,
+    `${task.ref}: resumed ${brief.sessionName} for ${reviews.length} review(s) on #${pr.number}`,
   );
   return true;
 }
@@ -215,87 +253,70 @@ function startQueued(
   slots: number,
   running: AgentSessionInfo[],
 ): number {
-  const { config, github } = deps;
   let started = 0;
-  for (const issue of github.queuedIssues(LABELS.queued)) {
-    if (issue.author !== config.author) {
-      github.setLabels(issue.number, [], [LABELS.queued]);
-      github.comment(
-        issue.number,
-        `Only briefs written by @${config.author} are accepted, so this one won't be started.`,
-      );
-      deps.log(`#${issue.number}: written by @${issue.author}, not accepted`);
-      continue;
-    }
-    const missing = missingFields(issue.body);
-    if (missing.length > 0) {
-      github.setLabels(issue.number, [], [LABELS.queued]);
-      github.comment(
-        issue.number,
-        `This brief is missing required fields, so it won't be started:\n\n${missing.map((m) => `- ${m}`).join('\n')}\n\nFill them in using the brief template's headings, then add \`${LABELS.queued}\` again.`,
-      );
-      deps.log(`#${issue.number}: missing ${missing.join(', ')}, sent back`);
-      continue;
-    }
+  for (const task of deps.aven.queuedTasks()) {
     if (started >= slots) break;
-    const previous = deps.state.briefs[issue.number];
+    const previous = deps.state.briefs[task.id];
     if (previous && findSession(running, previous)) {
       deps.log(
-        `#${issue.number}: queued again while its agent session is running; waiting for it to exit`,
+        `${task.ref}: queued again while its agent session is running; waiting for it to exit`,
       );
       continue;
     }
-    guard(deps, issue.number, () => {
+    guard(deps, task.ref, () => {
       if (previous) {
         // Queued again after failing: start over from a fresh worktree.
         deps.git.removeWorktree(previous.worktree, previous.branch);
-        delete deps.state.briefs[issue.number];
+        delete deps.state.briefs[task.id];
         deps.log(
-          `#${issue.number}: queued again, removed the previous worktree ${previous.worktree}`,
+          `${task.ref}: queued again, removed the previous worktree ${previous.worktree}`,
         );
       }
-      start(deps, issue);
+      start(deps, task);
     });
     started++;
   }
   return started;
 }
 
-function start(deps: Deps, issue: Issue): void {
-  const { config, github, claude } = deps;
-  const slug = slugify(issue.title);
+function start(deps: Deps, task: Task): void {
+  const { config, aven, claude } = deps;
+  // Nothing in the name comes from the task's ref or ID, since branch names
+  // end up on GitHub.
+  const name = `${slugify(task.title)}-${deps.randomSuffix()}`;
   const brief: BriefState = {
-    issue: issue.number,
+    taskId: task.id,
+    ref: task.ref,
     repo: config.repo,
-    title: issue.title,
-    branch: `brief/${issue.number}-${slug}`,
-    worktree: path.join(config.worktreesDir, `brief-${issue.number}-${slug}`),
-    sessionName: `brief-${issue.number}-${slug}`,
+    title: task.title,
+    branch: `brief/${name}`,
+    worktree: path.join(config.worktreesDir, `brief-${name}`),
+    sessionName: `brief-${name}`,
     launchedAt: deps.now(),
     handledReviewIds: [],
   };
-  moveTo(github, issue, LABELS.working, ALL_LABELS);
+  aven.edit(task.id, { status: 'active', agent: AGENT.working });
+  task.status = 'active';
+  task.agent = AGENT.working;
   try {
     deps.git.addWorktree(brief.worktree, brief.branch, config.baseBranch);
-    deps.state.briefs[issue.number] = brief;
+    deps.state.briefs[task.id] = brief;
     claude.start({
       cwd: brief.worktree,
       name: brief.sessionName,
       settingsFile: deps.settingsFile,
-      prompt: startPrompt(brief, issue, config.baseBranch),
+      prompt: startPrompt(brief, task, config.baseBranch),
     });
     brief.launchedAt = deps.now();
   } catch (error) {
-    moveTo(github, issue, LABELS.failed, ALL_LABELS);
-    github.comment(
-      issue.number,
+    moveTo(aven, task, AGENT.failed);
+    aven.note(
+      task.id,
       `Couldn't start an agent session for this brief:\n\n\`\`\`\n${(error as Error).message}\n\`\`\``,
     );
     throw error;
   }
-  deps.log(
-    `#${issue.number}: started ${brief.sessionName} in ${brief.worktree}`,
-  );
+  deps.log(`${task.ref}: started ${brief.sessionName} in ${brief.worktree}`);
   brief.sessionId = waitForSessionId(deps, brief.worktree);
 }
 

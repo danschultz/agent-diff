@@ -59,6 +59,8 @@ const KEEP_ENV = [
   'XDG_CACHE_HOME',
   'SSH_AUTH_SOCK',
   'DBUS_SESSION_BUS_ADDRESS',
+  // So agent sessions, and their hooks, use the same Aven database as implement.
+  'AVEN_DB',
 ];
 
 /**

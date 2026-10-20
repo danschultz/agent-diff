@@ -74,9 +74,10 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
 - Review sessions cover working directories, which don't have to use git. Only
   files under the working directory are shown, and the branch is whatever `HEAD`
   points to.
-- Briefs written as GitHub issues are implemented by `implement`, which starts a
-  headless agent session per brief and opens a pull request. When an agent
-  session needs input, Dan is alerted and answers through Remote Control.
+- Briefs written as tasks in Aven, Dan's local task manager, are implemented by
+  `implement`, which starts a headless agent session per brief and opens a pull
+  request on GitHub. Aven refs never appear on GitHub. When an agent session
+  needs input, Dan is alerted and answers through Remote Control.
 - The `agent-diff` CLI is built with Crust. Its commands are noun then verb,
   such as `session new` and `comment list`, and it doesn't start the review
   server unless told to with `server start`.

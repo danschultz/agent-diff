@@ -11,20 +11,12 @@ export const toolDir = path.resolve(
 );
 export const mainScript = path.join(toolDir, 'src', 'main.ts');
 
-export const LABELS = {
-  queued: 'agent:queued',
-  working: 'agent:working',
-  needsInput: 'agent:needs-input',
-  review: 'agent:review',
-  failed: 'agent:failed',
-} as const;
-
 export interface Config {
   /** The main checkout that worktrees are created from. */
   repoDir: string;
   /** owner/name on GitHub. */
   repo: string;
-  /** GitHub login whose briefs and pull request reviews are accepted. */
+  /** GitHub login whose pull request reviews are handed to agent sessions. */
   author: string;
   /** Where brief worktrees are created. Must be a folder Claude Code trusts. */
   worktreesDir: string;
@@ -33,6 +25,9 @@ export interface Config {
   baseBranch: string;
   concurrency: number;
   claudeBin: string;
+  avenBin: string;
+  /** The Aven project, by key or name, whose tasks are briefs. */
+  avenProject: string;
 }
 
 /**
@@ -68,6 +63,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     claudeBin:
       env.IMPLEMENT_CLAUDE ??
       (existsSync(localClaude) ? localClaude : 'claude'),
+    ...avenConfig(env),
+  };
+}
+
+/** The Aven part of the configuration. Needs nothing from git or `gh`, so hooks use it too. */
+export function avenConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): Pick<Config, 'avenBin' | 'avenProject'> {
+  const localAven = path.join(os.homedir(), '.local', 'bin', 'aven');
+  return {
+    avenBin: env.IMPLEMENT_AVEN ?? (existsSync(localAven) ? localAven : 'aven'),
+    avenProject: env.IMPLEMENT_AVEN_PROJECT ?? 'agent-diff',
   };
 }
 

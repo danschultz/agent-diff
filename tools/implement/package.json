@@ -2,7 +2,7 @@
   "name": "implement",
   "version": "0.0.0",
   "private": true,
-  "description": "Starts headless agent sessions for briefs written as GitHub issues. See README.md.",
+  "description": "Starts headless agent sessions for briefs written as Aven tasks. See README.md.",
   "type": "module",
   "engines": {
     "node": ">=24"
