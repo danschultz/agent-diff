@@ -1,5 +1,7 @@
 # agent-diff
 
+Hello World
+
 A code review tool for humans reviewing the output of coding agents.
 
 > Status: planning. Nothing is implemented yet. This document describes the
