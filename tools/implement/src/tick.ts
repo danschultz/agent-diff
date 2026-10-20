@@ -177,7 +177,8 @@ function reap(
 /**
  * Stops tracking a brief: stops its agent session, removes its worktree and
  * local branch, and removes the `agent` metadata. A merged brief's task is set
- * to done. A brief Dan has queued again keeps `agent=queued`, so it starts over.
+ * to done. An open brief Dan has queued again keeps `agent=queued`, so it
+ * starts over.
  */
 function letGo(
   deps: Deps,
@@ -190,7 +191,8 @@ function letGo(
   deps.git.removeWorktree(brief.worktree, brief.branch);
   const changes: TaskChanges = {};
   if (merged) changes.status = 'done';
-  if (task.agent !== undefined && (merged || task.agent !== AGENT.queued))
+  const queuedAgain = task.agent === AGENT.queued && !isClosed(task);
+  if (task.agent !== undefined && (merged || !queuedAgain))
     changes.agent = null;
   if (Object.keys(changes).length > 0) deps.aven.edit(task.id, changes);
   delete deps.state.briefs[brief.taskId];

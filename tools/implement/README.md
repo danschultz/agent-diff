@@ -142,8 +142,11 @@ starts, so Dan's own agent sessions never run these hooks.
   the agent session working again.
 
 The hooks are told which `aven` to run through the settings file. Agent sessions
-and their hooks keep `AVEN_DB` from `implement`'s environment, so they all use
-the same Aven database.
+and the `self-review` sub-agent run `aven` from their `PATH`, which `implement`
+limits to Node's folder, `~/.local/bin`, `/usr/local/bin`, `/usr/bin`, and
+`/bin`, so `IMPLEMENT_AVEN` should be the `aven` found there. Agent sessions and
+their hooks keep `AVEN_DB` from `implement`'s environment, so they all use the
+same Aven database.
 
 The prompt also tells the agent session to send Dan a push notification when it
 stops to ask.
@@ -184,7 +187,7 @@ the service:
 | `IMPLEMENT_BASE_BRANCH`   | `main`                                                               |
 | `IMPLEMENT_CONCURRENCY`   | `2`                                                                  |
 | `IMPLEMENT_CLAUDE`        | `~/.local/bin/claude`                                                |
-| `IMPLEMENT_AVEN`          | `~/.local/bin/aven`                                                  |
+| `IMPLEMENT_AVEN`          | `~/.local/bin/aven`. Agent sessions run the `aven` on their `PATH`.  |
 | `IMPLEMENT_AVEN_PROJECT`  | `agent-diff`. Passed to `aven list` explicitly, never inferred.      |
 
 ## Commands

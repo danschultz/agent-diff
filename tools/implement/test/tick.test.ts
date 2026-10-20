@@ -493,6 +493,17 @@ test('only a merged pull request sets the task done', () => {
   );
 });
 
+test("letting go of a done or canceled task removes agent=queued, so reopening it doesn't start it", () => {
+  const h = harness({
+    tasks: [task('9A', 'queued', { status: 'canceled' })],
+    state: stateOf(tracked('9A')),
+  });
+  tick(h.deps);
+  assert.deepEqual(h.removed, [tracked('9A').worktree]);
+  assert.equal(h.tasks.get('9ATASKID0000')!.agent, undefined);
+  assert.equal(h.started.length, 0);
+});
+
 test('a failed brief queued again starts over from a fresh worktree', () => {
   const h = harness({
     tasks: [task('5A', 'queued')],
@@ -563,8 +574,12 @@ test('the Notification hook moves the brief to needs-input and notes the questio
 
 test("the Notification hook ignores agent sessions it didn't start, briefs in review, and let-go briefs", () => {
   const h = harness({
-    tasks: [task('5A', 'review'), task('6A', 'working', { status: 'done' })],
-    state: stateOf(tracked('5A'), tracked('6A')),
+    tasks: [
+      task('5A', 'review'),
+      task('6A', 'working', { status: 'done' }),
+      task('7A', undefined),
+    ],
+    state: stateOf(tracked('5A'), tracked('6A'), tracked('7A')),
   });
   const deps = { state: h.state, aven: h.deps.aven, log() {} };
   onNotification(
@@ -581,6 +596,11 @@ test("the Notification hook ignores agent sessions it didn't start, briefs in re
   );
   onNotification(
     { session_id: 'session-6A', notification_type: 'permission_prompt' },
+    deps,
+  );
+  // Dan removed the agent metadata, and the next tick lets the brief go.
+  onNotification(
+    { session_id: 'session-7A', notification_type: 'permission_prompt' },
     deps,
   );
   assert.deepEqual(h.notes, []);
