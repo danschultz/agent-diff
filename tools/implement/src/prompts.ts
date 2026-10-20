@@ -1,7 +1,7 @@
 // The prompts `implement` gives agent sessions.
 
-import { LABELS } from './config.ts';
-import type { Issue, PullRequest, Review } from './github.ts';
+import { AGENT, AGENT_KEY, type Task } from './aven.ts';
+import type { PullRequest, Review } from './github.ts';
 import type { BriefState } from './state.ts';
 
 const ESCALATION = `## When to stop and ask Dan
@@ -15,8 +15,8 @@ Stop and ask Dan instead of deciding alone when any of these is true:
 
 To ask: send Dan a push notification with a one-line summary, then end your
 turn with the question as your last message. Don't guess and carry on. Dan
-answers through Remote Control, and \`implement\` posts your question on the
-issue for you.`;
+answers through Remote Control, and \`implement\` adds your question to the
+brief as a note for you.`;
 
 const GITHUB_ETIQUETTE = `## GitHub
 
@@ -24,18 +24,34 @@ You act on GitHub as Dan's account. Never submit pull request reviews or reply
 in review threads, since those look like Dan reviewing. To say something on
 the pull request, use \`gh pr comment\`.`;
 
+/** How the agent session reads the brief, and what it keeps out of GitHub and git. */
+function avenSection(ref: string): string {
+  return `## The brief in Aven
+
+The brief is the task ${ref} in Aven, Dan's local task manager. Read it, with
+its latest notes, with \`aven context ${ref}\`. Change it in Aven only as these
+instructions say.
+
+${ref} is local to this server. Keep ${ref}, and anything else that identifies
+the brief, such as the task's ID, out of branch names, commits, and pull
+requests.`;
+}
+
+/** The command that moves the brief to review. */
+function toReview(ref: string): string {
+  return `aven edit ${ref} --metadata ${AGENT_KEY}=${AGENT.review}`;
+}
+
 export function startPrompt(
   brief: BriefState,
-  issue: Issue,
+  task: Task,
   baseBranch: string,
 ): string {
-  return `You're implementing brief #${issue.number} in ${brief.repo}, unattended on a headless server. Nobody is watching this terminal.
+  return `You're implementing brief ${task.ref} in ${brief.repo}, unattended on a headless server. Nobody is watching this terminal.
 
-# Brief #${issue.number}: ${issue.title}
+# Brief ${task.ref}: ${task.title}
 
-${issue.url}
-
-${issue.body.trim()}
+${task.description.trim()}
 
 # How to work
 
@@ -50,6 +66,8 @@ ${issue.body.trim()}
   code alone.
 - Commit as you go.
 
+${avenSection(task.ref)}
+
 ${ESCALATION}
 
 ## When you're done
@@ -58,7 +76,7 @@ ${ESCALATION}
    recording the results.
 2. Self-review, before pushing. Commit everything, so the diff range holds all
    of it. Then start the \`self-review\` sub-agent with the Agent tool, and
-   give it only the brief's issue number, #${issue.number}, and the diff range
+   give it only the brief's ref, ${task.ref}, and the diff range
    \`origin/${baseBranch}...HEAD\`: not your summary or reasoning. Fix the
    findings you agree with, test-first, and rerun the verification steps.
    If the fixes were substantial, start a second, new \`self-review\` sub-agent,
@@ -66,8 +84,7 @@ ${ESCALATION}
    Run at most 2 rounds.
 3. Push the branch: \`git push -u origin ${brief.branch}\`.
 4. Open a draft pull request against \`${baseBranch}\` with
-   \`gh pr create --draft\`. Its body must contain:
-   - "Closes #${issue.number}".
+   \`gh pr create --draft\`. Its body has no "Closes" line, and must contain:
    - The acceptance criteria as a checklist, each checked if met, or left
      unchecked with the reason it's not met.
    - The verification results.
@@ -78,7 +95,7 @@ ${ESCALATION}
    fail, fix them, push again, and watch again. If you can't make them pass,
    stop and ask Dan.
 6. Move the brief to review only once they pass:
-   \`gh issue edit ${issue.number} --remove-label ${LABELS.working} --add-label ${LABELS.review}\`.
+   \`${toReview(task.ref)}\`.
 
 ${GITHUB_ETIQUETTE}
 `;
@@ -95,7 +112,7 @@ export function resumePrompt(
         `- Review ${r.id} by @${r.author} (${r.state}, ${r.submittedAt})${r.body.trim() ? `:\n\n${indent(r.body.trim())}` : ''}`,
     )
     .join('\n');
-  return `Dan reviewed pull request #${pr.number} (${pr.url}) for brief #${brief.issue}.
+  return `Dan reviewed pull request #${pr.number} (${pr.url}) for brief ${brief.ref}.
 
 ${summaries}
 
@@ -109,7 +126,9 @@ pull request's checks with \`gh pr checks ${pr.number} --watch\`. If no checks
 are reported yet, wait a few seconds and run it again. If any fail, fix them,
 push again, and watch again. If you can't make them pass, stop and ask Dan.
 Move the brief back to review only once they pass:
-\`gh issue edit ${brief.issue} --remove-label ${LABELS.working} --add-label ${LABELS.review}\`.
+\`${toReview(brief.ref)}\`.
+
+${avenSection(brief.ref)}
 
 ${ESCALATION}
 

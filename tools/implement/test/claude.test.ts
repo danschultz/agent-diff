@@ -44,6 +44,12 @@ test("the clean environment drops the caller's variables", () => {
   assert.doesNotMatch(env.PATH!, /\/opt\/wrapper/);
 });
 
+test('agent sessions use the same Aven database as implement', () => {
+  const env = cleanEnv({ HOME: '/home/dan', AVEN_DB: '/tmp/scratch.db' });
+  assert.equal(env.AVEN_DB, '/tmp/scratch.db');
+  assert.equal(cleanEnv({ HOME: '/home/dan' }).AVEN_DB, undefined);
+});
+
 test("background agent sessions start in their own systemd scope, so a tick exiting doesn't kill them", () => {
   const [cmd, args] = inOwnScope('/home/dan/.local/bin/claude', [
     '--bg',

@@ -9,9 +9,12 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 
-/** What `implement` remembers about a brief it started. GitHub labels hold the rest. */
+/** What `implement` remembers about a brief it started. The Aven task holds the rest. */
 export interface BriefState {
-  issue: number;
+  /** The Aven task's ID, which state.json is keyed by. Stable, unlike its ref. */
+  taskId: string;
+  /** The task's ref when last seen, for prompts, logs, and `status`. */
+  ref: string;
   repo: string;
   title: string;
   branch: string;
@@ -24,9 +27,12 @@ export interface BriefState {
   launchedAt: number;
   /** Pull request reviews that have already been handed to the agent session. */
   handledReviewIds: string[];
+  /** The pull request's URL, once it's been added to the task as a note. */
+  pullRequestUrl?: string;
 }
 
 export interface State {
+  /** Keyed by task ID. */
   briefs: Record<string, BriefState>;
 }
 

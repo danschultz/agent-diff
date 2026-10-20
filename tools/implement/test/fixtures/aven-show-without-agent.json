@@ -1,0 +1,40 @@
+{
+  "task": {
+    "ref": "AD-MTRG",
+    "id": "MTRGJPGR0WW6RN3Z",
+    "title": "A draft brief",
+    "project": "agent-diff",
+    "status": "canceled",
+    "priority": "none",
+    "labels": [],
+    "deleted": false,
+    "is_epic": false,
+    "epic_parent": null,
+    "epic_children": [],
+    "has_conflict": false,
+    "blocked_by": 0,
+    "blocks": 0,
+    "available_at": "",
+    "due_on": "",
+    "recurrence": null,
+    "recurrence_group": null,
+    "created_at": "2026-10-20T04:28:25Z",
+    "updated_at": "2026-10-20T04:28:26Z"
+  },
+  "project_prefix": "AD",
+  "description": "Not ready yet.",
+  "metadata": {},
+  "metadata_details": [],
+  "dependencies": {
+    "depends_on_open": 0,
+    "depends_on_total": 0,
+    "blocks_open": 0,
+    "blocks_total": 0,
+    "depends_on": [],
+    "blocks": []
+  },
+  "related": [],
+  "notes": [],
+  "conflicts": [],
+  "attachments": []
+}

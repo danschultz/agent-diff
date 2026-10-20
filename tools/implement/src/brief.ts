@@ -1,11 +1,14 @@
-// Parsing briefs written from .github/ISSUE_TEMPLATE/brief.yml.
+// Parsing a brief's headings, and naming its branch. Briefs themselves are
+// Aven tasks; see aven.ts and .rules/briefs.md.
+
+import { randomBytes } from 'node:crypto';
 
 export interface BriefField {
   label: string;
   required: boolean;
 }
 
-/** The fields of the brief issue template, in order. Labels must match brief.yml. */
+/** A brief's headings, in order. Labels must match .rules/briefs.md. */
 export const BRIEF_FIELDS: BriefField[] = [
   { label: 'Goal', required: true },
   { label: 'Out of scope', required: false },
@@ -17,8 +20,9 @@ export const BRIEF_FIELDS: BriefField[] = [
 ];
 
 /**
- * Splits an issue form body into its fields. GitHub renders each field as a
- * `### Label` heading followed by the answer, or `_No response_` when empty.
+ * Splits a brief into its fields, each a `### Label` heading followed by its
+ * text. `_No response_`, which GitHub's issue forms wrote for an empty field,
+ * counts as empty, so briefs copied from issues parse the same way.
  */
 export function parseBrief(body: string): Map<string, string> {
   const fields = new Map<string, string>();
@@ -54,7 +58,7 @@ export function missingFields(body: string): string[] {
   );
 }
 
-/** A short branch-safe slug from an issue title. */
+/** A short branch-safe slug from a brief's title. */
 export function slugify(title: string, maxLength = 40): string {
   const slug = title
     .toLowerCase()
@@ -67,4 +71,12 @@ export function slugify(title: string, maxLength = 40): string {
     /-+$/,
     '',
   );
+}
+
+/**
+ * A short random suffix that keeps branch names unique. It's not derived from
+ * the task, so nothing on GitHub identifies the brief's Aven task.
+ */
+export function randomSuffix(): string {
+  return randomBytes(3).toString('hex');
 }

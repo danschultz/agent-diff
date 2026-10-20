@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { missingFields, parseBrief, slugify } from '../src/brief.ts';
+import {
+  missingFields,
+  parseBrief,
+  randomSuffix,
+  slugify,
+} from '../src/brief.ts';
 
 const complete = `### Goal
 
@@ -30,7 +35,7 @@ _No response_
 
 _No response_`;
 
-test('parses issue form fields and treats "_No response_" as empty', () => {
+test('parses a brief\'s headings, and treats "_No response_" from a GitHub issue form as empty', () => {
   const fields = parseBrief(complete);
   assert.equal(fields.get('Goal'), 'Add a --version flag.');
   assert.equal(fields.get('Out of scope'), '');
@@ -48,7 +53,7 @@ test('a complete brief has no missing fields', () => {
   assert.deepEqual(missingFields(complete), []);
 });
 
-test('lists required fields that are missing or empty', () => {
+test('lists required fields that are missing or empty: Goal, Acceptance criteria, and Verification', () => {
   const body = complete
     .replace('Add a --version flag.', '_No response_')
     .replace(/### Verification[\s\S]*?### Escalation/, '### Escalation');
@@ -69,4 +74,10 @@ test('slugify makes short branch-safe slugs', () => {
   assert.ok(long.length <= 40, long);
   assert.ok(!long.endsWith('-'));
   assert.equal(long, 'render-the-file-view-as-a-tree-grouped');
+});
+
+test('random suffixes are short, branch-safe, and differ each time', () => {
+  const a = randomSuffix();
+  assert.match(a, /^[0-9a-f]{6}$/);
+  assert.notEqual(randomSuffix(), a);
 });

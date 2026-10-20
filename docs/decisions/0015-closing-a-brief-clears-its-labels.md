@@ -1,7 +1,11 @@
 # 0015: Closing a brief's issue clears its agent labels, in a GitHub Actions workflow
 
-- Status: Accepted
+- Status: Superseded by [0034](0034-briefs-are-aven-tasks.md)
 - Date: 2026-10-12
+
+> Superseded by [0034](0034-briefs-are-aven-tasks.md): briefs are Aven tasks, so
+> there are no labels to clear. `implement` removes a brief's `agent` metadata
+> when it lets the brief go, and the workflow is removed.
 
 ## Problem
 

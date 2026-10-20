@@ -24,6 +24,7 @@ in [docs/research](docs/research/README.md), and agreed terms are defined in
 | [`.rules/glossary.md`](.rules/glossary.md)       | Always                                                                              |
 | [`.rules/decisions.md`](.rules/decisions.md)     | When the user settles a design question or answers an open question in `README.md`. |
 | [`.rules/research.md`](.rules/research.md)       | When the user or a brief asks for options to be researched.                         |
+| [`.rules/briefs.md`](.rules/briefs.md)           | When the user asks for a brief.                                                     |
 | [`.rules/formatting.md`](.rules/formatting.md)   | When a change adds a file type the repo doesn't have yet.                           |
 | [`.rules/gitignore.md`](.rules/gitignore.md)     | When adding or changing ignore patterns.                                            |
 | [`.rules/testing.md`](.rules/testing.md)         | When changing code or tests.                                                        |
@@ -71,7 +72,9 @@ working tree, not only what's staged. See
   a child process, use the environment from `gitTestEnv` in
   `tools/implement/test/git-env.ts` or `scripts/test/git-env.ts`: `PATH`, a
   temporary `HOME`, no global or system git config, and nothing else they don't
-  need. They never inherit `process.env`.
+  need. They never inherit `process.env`. Tests that run the real `aven` give it
+  a scratch database, config, and home folder, and are skipped when `aven` isn't
+  installed, as in CI.
 - `npm run check:commit` runs `format:check`, `lint:docs` and `typecheck`, the
   checks the pre-commit hook runs. Only checks that are fast and don't run the
   repo's code belong in it.
