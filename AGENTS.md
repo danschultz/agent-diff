@@ -11,6 +11,11 @@ in [docs/research](docs/research/README.md), and agreed terms are defined in
 - The project is in the planning stage. Don't start implementing until a design
   or task has been agreed with the user.
 - Keep `README.md` as the source of truth for product intent.
+- The project is in early development, and breaking changes are fine for the
+  foreseeable future. Don't write fallbacks, conversions, or tests to keep
+  working with what earlier versions wrote or accepted, such as config files,
+  API calls, or CLI usage, unless a brief asks for them. See
+  [0033](docs/decisions/0033-breaking-changes-are-allowed-during-early-development.md).
 
 ## Rules
 
@@ -94,13 +99,19 @@ stripping, with no build step. Only the review UI is built. See
 - **The review server** runs in the foreground with
   `npx agent-diff server start --foreground`, or with `npm run dev:server`,
   which restarts it when its code changes. It serves the built review UI, so run
-  `npm run build -w packages/ui` first to see the review UI at the URL it
-  prints.
+  `npm run build -w packages/ui` first. It prints the review UI's URL with the
+  token, such as `http://127.0.0.1:40723/#token=…`.
 - **The review UI** runs on Vite's dev server with `npm run dev:ui`, which
   reloads as its code changes and proxies API calls to the review server. Start
-  the review server first, because the proxy reads its port from the config
-  file.
+  the review server first, because the proxy reads its port and token from the
+  config file. It prints the dev server's URL with the token, such as
+  `http://localhost:5173/#token=…`.
 
 Both use the real state directory, `$XDG_STATE_HOME/agent-diff` or
 `~/.local/state/agent-diff`. Set `XDG_STATE_HOME` to another directory, in every
 shell, to keep development data separate.
+
+Open the review UI through one of the URLs with the token. Every API call needs
+the token, and the review UI only gets it from the URL, so without it the review
+UI asks for the link. See
+[0031](docs/decisions/0031-the-review-ui-gets-the-token-in-the-url-fragment.md).

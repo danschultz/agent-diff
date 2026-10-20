@@ -1,5 +1,5 @@
 // Briefs are tasks in the local Aven database, read and changed through the
-// `aven` CLI. See docs/decisions/0031-briefs-are-aven-tasks.md.
+// `aven` CLI. See docs/decisions/0034-briefs-are-aven-tasks.md.
 
 import { run } from './exec.ts';
 

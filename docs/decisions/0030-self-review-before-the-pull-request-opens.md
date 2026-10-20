@@ -1,9 +1,9 @@
 # 0030: Agent sessions started by `implement` self-review before opening a pull request, and wait for CI
 
-- Status: Accepted, amended by [0031](0031-briefs-are-aven-tasks.md)
+- Status: Accepted, amended by [0034](0034-briefs-are-aven-tasks.md)
 - Date: 2026-10-16
 
-> Amended by [0031](0031-briefs-are-aven-tasks.md): the `self-review` sub-agent
+> Amended by [0034](0034-briefs-are-aven-tasks.md): the `self-review` sub-agent
 > is given the brief's Aven ref instead of its issue number, and reads the brief
 > with `aven context` instead of `gh issue view`. It runs no `aven` commands
 > other than `aven context` and `aven show`. The agent session moves the brief

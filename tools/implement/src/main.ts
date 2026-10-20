@@ -1,6 +1,6 @@
 // implement: starts headless agent sessions for briefs written as Aven tasks.
 // See README.md, docs/decisions/0014-implement-briefs-headlessly.md, and
-// docs/decisions/0031-briefs-are-aven-tasks.md.
+// docs/decisions/0034-briefs-are-aven-tasks.md.
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';

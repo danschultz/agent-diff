@@ -3,7 +3,7 @@
 - Status: Accepted, amended by
   [0015](0015-closing-a-brief-clears-its-labels.md),
   [0030](0030-self-review-before-the-pull-request-opens.md), and
-  [0031](0031-briefs-are-aven-tasks.md)
+  [0034](0034-briefs-are-aven-tasks.md)
 - Date: 2026-10-12
 
 > Amended by [0015](0015-closing-a-brief-clears-its-labels.md): a GitHub Actions
@@ -16,7 +16,7 @@
 > request. After pushing, when started or resumed, it waits for CI to pass
 > before moving the brief to `agent:review`.
 >
-> Amended by [0031](0031-briefs-are-aven-tasks.md): briefs are tasks in the Aven
+> Amended by [0034](0034-briefs-are-aven-tasks.md): briefs are tasks in the Aven
 > project `agent-diff` instead of GitHub issues, with the same required fields,
 > checked when a brief is queued, and no author check. Their state is the task's
 > `agent` metadata instead of labels, and `implement` adds notes to the task

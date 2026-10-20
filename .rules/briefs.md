@@ -3,7 +3,7 @@
 A brief is a task for an [agent session](../docs/glossary.md#agent-session) that
 `implement` starts unattended. Briefs are tasks in the Aven project
 `agent-diff`, and the task's description is the brief, given to the agent
-session as written. See [0031](../docs/decisions/0031-briefs-are-aven-tasks.md)
+session as written. See [0031](../docs/decisions/0034-briefs-are-aven-tasks.md)
 and [`tools/implement/README.md`](../tools/implement/README.md).
 
 ## Headings

@@ -1,7 +1,14 @@
 # 0024: A config file in the user's state directory holds their port and token, next to the database
 
-- Status: Accepted
+- Status: Accepted, amended by
+  [0031](0031-the-review-ui-gets-the-token-in-the-url-fragment.md)
 - Date: 2026-10-15
+
+> **Amended by
+> [0031](0031-the-review-ui-gets-the-token-in-the-url-fragment.md):** the
+> browser doesn't get a cookie. The review UI saves the token from the printed
+> URL's fragment in `localStorage` and sends it in a header, and the review
+> server also rejects API calls whose `Host` header isn't its own.
 
 ## Problem
 
@@ -35,9 +42,9 @@ so that other web pages and local processes can't drive the review server.
 - **The token is the user's.** Every API call must carry the token. Other users
   on the same machine can't read the config file, so they can't call the user's
   review server even though it listens on localhost.
-- **The browser gets a cookie.** `server start` prints a URL for the review UI
-  that carries the token. On the first visit, the review server exchanges the
-  token for a cookie, and the browser uses the cookie from then on.
+- **The browser gets the token from a URL.** `server start` prints a URL for the
+  review UI that carries the token. How the browser keeps and sends it is
+  settled by [0031](0031-the-review-ui-gets-the-token-in-the-url-fragment.md).
 - **The database is next to it.** The user's SQLite database is a file in the
   same directory as the config file.
 
@@ -75,9 +82,9 @@ Costs:
   the config file's format.
 - **Rotating the token.** A command that replaces the token, and what happens to
   open browser tabs when it does.
-- **The cookie.** Its attributes, such as `HttpOnly` and `SameSite=Strict`, how
-  long it lasts, and whether the review server redirects to a URL without the
-  token after setting it.
+- **The cookie.** Answered by
+  [0031](0031-the-review-ui-gets-the-token-in-the-url-fragment.md): there's no
+  cookie.
 - **Opening the browser.** Whether `server start` or another command opens the
   review UI, and where the URL is printed for agents and harnesses such as cmux.
 - **Permissions on Windows**, where `0600` and `0700` don't apply.

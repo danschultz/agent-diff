@@ -4,7 +4,7 @@ Starts a headless [agent session](../../docs/glossary.md#agent-session) for each
 brief written as a task in Aven, Dan's local task manager, and brings the work
 back as a pull request on GitHub. The design is in
 [decision 0014](../../docs/decisions/0014-implement-briefs-headlessly.md) and
-[decision 0031](../../docs/decisions/0031-briefs-are-aven-tasks.md).
+[decision 0034](../../docs/decisions/0034-briefs-are-aven-tasks.md).
 
 ## How it works
 
@@ -240,7 +240,7 @@ URL once it's been noted on the task. The task holds everything else:
 
 ## Migrating briefs from GitHub issues
 
-Before [decision 0031](../../docs/decisions/0031-briefs-are-aven-tasks.md),
+Before [decision 0034](../../docs/decisions/0034-briefs-are-aven-tasks.md),
 briefs were GitHub issues, and `state.json` keyed them by issue number, such as
 `"26"`. `implement` doesn't read those entries, so each brief still being
 tracked is moved to Aven by hand once, when the change is deployed. Its agent

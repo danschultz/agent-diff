@@ -1,4 +1,4 @@
-# 0031: Briefs are Aven tasks, and only pull requests stay on GitHub
+# 0034: Briefs are Aven tasks, and only pull requests stay on GitHub
 
 - Status: Accepted
 - Date: 2026-10-20
