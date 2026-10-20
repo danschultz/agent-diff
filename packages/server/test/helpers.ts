@@ -36,6 +36,16 @@ export async function start(
   return server;
 }
 
-export function client(server: ReviewServer): ContractRouterClient<Contract> {
-  return createORPCClient(new RPCLink({ url: `${server.url}api` }));
+// A client that sends the token, the review server's own unless another is
+// given. With `null`, it sends none.
+export function client(
+  server: ReviewServer,
+  token: string | null = server.token,
+): ContractRouterClient<Contract> {
+  return createORPCClient(
+    new RPCLink({
+      url: `${server.url}api`,
+      headers: token === null ? {} : { authorization: `Bearer ${token}` },
+    }),
+  );
 }

@@ -1,16 +1,20 @@
 // Starts the review server: it creates the state directory, migrates the
 // database, then serves the API under /api and the built review UI everywhere
-// else, on 127.0.0.1.
-import { createServer, type Server } from 'node:http';
+// else, on 127.0.0.1, with Hono (decision 0032). Every API call must name the
+// review server in its Host header and carry the token (0031).
+import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { createAdaptorServer, type HttpBindings } from '@hono/node-server';
 import { ORPCError, ValidationError } from '@orpc/server';
-import { RPCHandler } from '@orpc/server/node';
+import { RPCHandler } from '@orpc/server/fetch';
+import { Hono } from 'hono';
 import { apiPrefix } from '@agent-diff/shared/contract';
 import { readConfig, serverUrl, statePaths } from '@agent-diff/shared/state';
+import { createToken, isOwnHost, requireToken } from './auth.ts';
 import { migrate } from './migrate.ts';
 import { createRouter } from './router.ts';
 import { ensureStateDir, writeConfig } from './state.ts';
-import { defaultUiDir, serveUi } from './static.ts';
+import { defaultUiDir, reviewUi } from './static.ts';
 import { Store } from './store.ts';
 
 export interface StartOptions {
@@ -22,7 +26,10 @@ export interface StartOptions {
 
 export interface ReviewServer {
   port: number;
+  // The review server's address, without the token.
   url: string;
+  // The token every API call must carry, saved in the config file.
+  token: string;
   // Stops serving and closes the database.
   close(): Promise<void>;
 }
@@ -77,36 +84,53 @@ export async function startReviewServer(
   const uiDir = options.uiDir ?? defaultUiDir;
   ensureStateDir(paths);
   await migrate(paths.database);
+  const saved = readConfig(paths);
+  const token = saved?.token ?? createToken();
 
   const store = new Store(paths.database);
   const handler = new RPCHandler(createRouter(store), {
+    interceptors: [requireToken(token)],
     clientInterceptors: [({ next }) => next().catch(readableValidationErrors)],
   });
-  const server = createServer(async (req, res) => {
-    try {
-      const { matched } = await handler.handle(req, res, {
+  // Set once the review server is listening, before any request arrives.
+  let port = 0;
+  const api = new Hono<{ Bindings: HttpBindings }>()
+    .use(async (c, next) => {
+      if (!isOwnHost(c.env.incoming.headers, port)) {
+        return c.body(null, 403);
+      }
+      await next();
+    })
+    .all('*', async (c) => {
+      const { matched, response } = await handler.handle(c.req.raw, {
         prefix: apiPrefix,
       });
-      if (!matched) await serveUi(uiDir, req, res);
-    } catch (error) {
-      console.error(error);
-      if (!res.headersSent) res.writeHead(500);
-      res.end();
-    }
-  });
+      return matched ? c.newResponse(response.body, response) : c.notFound();
+    });
+  const app = new Hono().route(apiPrefix, api).route('/', reviewUi(uiDir));
+  const server = createAdaptorServer({
+    fetch: app.fetch,
+    // Without replacing the global Request and Response, which the CLI uses
+    // too when it runs the review server in its own process.
+    overrideGlobalObjects: false,
+    // An API call with no Host reaches the Host check above, and gets 403,
+    // instead of 400 from Node or the adapter.
+    serverOptions: { requireHostHeader: false },
+    hostname: '127.0.0.1',
+  }) as Server;
 
-  let port: number;
   try {
-    port = await listenOnSavedPort(server, readConfig(paths)?.port);
+    port = await listenOnSavedPort(server, saved?.port);
   } catch (error) {
     store.close();
     throw error;
   }
-  writeConfig(paths, { port });
+  writeConfig(paths, { port, token });
 
   return {
     port,
     url: serverUrl(port),
+    token,
     close: () =>
       new Promise((resolve, reject) => {
         server.close((error) => {

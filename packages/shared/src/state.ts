@@ -30,6 +30,7 @@ export function statePaths(env: NodeJS.ProcessEnv = process.env): StatePaths {
 
 export const Config = v.object({
   port: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(65535)),
+  token: v.pipe(v.string(), v.minLength(1)),
 });
 
 export type Config = v.InferOutput<typeof Config>;
@@ -56,4 +57,13 @@ export function readConfig(paths: StatePaths): Config | undefined {
 
 export function serverUrl(port: number): string {
   return `http://127.0.0.1:${port}/`;
+}
+
+// The URL that opens the review UI at base with the token, such as
+// `http://127.0.0.1:4321/#token=…`. The review UI saves the token and removes
+// it from the address bar. A fragment is never sent to any server.
+export function reviewUiUrl(base: string, token: string): string {
+  const url = new URL(base);
+  url.hash = new URLSearchParams({ token }).toString();
+  return url.href;
 }

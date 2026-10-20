@@ -1,7 +1,12 @@
 # 0026: The code is split into npm workspaces on TypeScript 7, and only the review UI is built
 
-- Status: Accepted
+- Status: Accepted, amended by
+  [0032](0032-hono-serves-the-api-and-the-review-ui.md)
 - Date: 2026-10-15
+
+> **Amended by [0032](0032-hono-serves-the-api-and-the-review-ui.md):** the
+> review server serves the built review UI and the API with Hono, not with
+> `node:http` directly.
 
 ## Problem
 
