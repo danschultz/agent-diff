@@ -3,13 +3,14 @@
 import path from 'node:path';
 import {
   AGENT,
+  AGENT_KEY,
   isClosed,
   moveTo,
   type Aven,
   type Task,
   type TaskChanges,
 } from './aven.ts';
-import { slugify } from './brief.ts';
+import { missingFields, slugify } from './brief.ts';
 import { isWorking, type AgentSessionInfo, type Claude } from './claude.ts';
 import type { Config } from './config.ts';
 import type { Git } from './git.ts';
@@ -257,6 +258,11 @@ function startQueued(
 ): number {
   let started = 0;
   for (const task of deps.aven.queuedTasks()) {
+    const missing = missingFields(task.description);
+    if (missing.length > 0) {
+      guard(deps, task.ref, () => sendBack(deps, task, missing));
+      continue;
+    }
     if (started >= slots) break;
     const previous = deps.state.briefs[task.id];
     if (previous && findSession(running, previous)) {
@@ -279,6 +285,16 @@ function startQueued(
     started++;
   }
   return started;
+}
+
+/** Removes `agent=queued` from a brief missing required fields, with a note saying which. */
+function sendBack(deps: Deps, task: Task, missing: string[]): void {
+  deps.aven.edit(task.id, { agent: null });
+  deps.aven.note(
+    task.id,
+    `This brief is missing required fields, so it won't be started:\n\n${missing.map((m) => `- ${m}`).join('\n')}\n\nFill them in under \`###\` headings, as in \`.rules/briefs.md\`, then set \`${AGENT_KEY}=${AGENT.queued}\` again.`,
+  );
+  deps.log(`${task.ref}: missing ${missing.join(', ')}, sent back`);
 }
 
 function start(deps: Deps, task: Task): void {

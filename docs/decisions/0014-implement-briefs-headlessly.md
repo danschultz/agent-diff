@@ -17,14 +17,15 @@
 > before moving the brief to `agent:review`.
 >
 > Amended by [0031](0031-briefs-are-aven-tasks.md): briefs are tasks in the Aven
-> project `agent-diff` instead of GitHub issues, with no required fields and no
-> author check. Their state is the task's `agent` metadata instead of labels,
-> and `implement` adds notes to the task instead of commenting on an issue.
-> Branches are `brief/<slug>-<suffix>`, with a random suffix, and pull requests
-> have no "Closes" line, so nothing on GitHub identifies the task. A brief is
-> let go when its pull request is merged, which sets the task to `done`, or
-> closed, or when Dan sets the task to `done` or `canceled` or removes its
-> `agent` metadata. Pull requests, pull request reviews, and CI stay on GitHub.
+> project `agent-diff` instead of GitHub issues, with the same required fields,
+> checked when a brief is queued, and no author check. Their state is the task's
+> `agent` metadata instead of labels, and `implement` adds notes to the task
+> instead of commenting on an issue. Branches are `brief/<slug>-<suffix>`, with
+> a random verb-noun suffix, and pull requests have no "Closes" line, so nothing
+> on GitHub identifies the task. A brief is let go when its pull request is
+> merged, which sets the task to `done`, or closed, or when Dan sets the task to
+> `done` or `canceled` or removes its `agent` metadata. Pull requests, pull
+> request reviews, and CI stay on GitHub.
 
 ## Problem
 

@@ -19,11 +19,14 @@ close, and how the briefs already on GitHub move over.
 ## Solution
 
 - **A brief is a task in the Aven project `agent-diff`.** Its description is put
-  in the start prompt as written. No fields are required, so `implement` no
-  longer checks for missing fields or who wrote the brief. A new rule,
-  [`.rules/briefs.md`](../../.rules/briefs.md), suggests headings for agent
-  sessions that write briefs, taken from the old issue template, and says to
-  create them with `aven add --project agent-diff --description-stdin`.
+  in the start prompt as written. A new rule,
+  [`.rules/briefs.md`](../../.rules/briefs.md), gives the headings, taken from
+  the old issue template, with the same required fields: Goal, Acceptance
+  criteria, and Verification. It says agent sessions create briefs with
+  `aven add --project agent-diff --description-stdin`. A queued brief that's
+  missing a required field, or has it empty, isn't started: `implement` removes
+  `agent=queued` and adds a note listing what's missing. `implement` no longer
+  checks who wrote the brief, since only Dan's database holds briefs.
 - **State is the task's `agent` metadata**: `queued`, `working`, `needs-input`,
   `review`, or `failed`, changed at the same points the labels were. Dan queues
   a brief by setting `agent=queued` on an open task, and agent sessions set it
@@ -41,10 +44,11 @@ close, and how the briefs already on GitHub move over.
 - **Aven refs stay off GitHub.** A ref identifies Dan's local task, so it never
   appears in a branch name, commit, pull request title, or pull request body.
   Branches are `brief/<slug>-<suffix>`, where the slug comes from the task's
-  title and the suffix is short and random, not derived from the task. The
-  worktree and agent session name follow the branch. The pull request has no
-  "Closes" line, and the prompts tell the agent session to keep the ref and the
-  task's ID out of branch names, commits, and pull requests.
+  title and the suffix is a random verb-noun pair, such as `chase-otter`, that's
+  easy to remember and not derived from the task. The worktree and agent session
+  name follow the branch. The pull request has no "Closes" line, and the prompts
+  tell the agent session to keep the ref and the task's ID out of branch names,
+  commits, and pull requests.
 - **The task's ID is the identity.** `state.json` is keyed by the stable ID from
   `aven --json` output, not by the ref, since a ref's project prefix changes
   when the task moves project. The ref is kept only for prompts, logs, and
@@ -91,7 +95,9 @@ close, and how the briefs already on GitHub move over.
 `aven list --json` has no metadata or description, so `implement` lists queued
 tasks with `--metadata agent=queued`, then reads each with
 `aven show <id> --full --json`. Each tracked brief is read the same way, as
-issues were read one at a time before. This was checked on aven 0.1.50.
+issues were read one at a time before. This was checked on aven 0.1.50. Tests
+run the real `aven` against a scratch database when it's installed, and are
+skipped otherwise, as in CI, where captured output and a fake `aven` cover it.
 
 ## Tradeoffs
 
@@ -100,7 +106,6 @@ Benefits:
 - Briefs live with the rest of Dan's work, and Dan can write, queue, and follow
   them in Aven, including from the Aven TUI.
 - Nothing about Dan's local tasks reaches GitHub.
-- Briefs don't have to fit a form, so short ones are quick to write.
 - Letting a brief go is decided in one place, on each tick, so no GitHub Actions
   workflow is needed, and closing a pull request without merging no longer
   leaves a brief in a stale state.
@@ -113,8 +118,8 @@ Costs:
   notification when it asks.
 - Aven isn't synced here, so briefs can only be written and queued on the server
   that runs `implement`.
-- Without required fields, a brief can reach an agent session with no acceptance
-  criteria or verification steps, and the pull request has less to report.
+- Required fields are only checked when a brief is queued, not when it's
+  written, since Aven has no form to enforce them.
 - Pull requests no longer link back to their brief, so the link only exists in
   the task's notes.
 - Letting a brief go now depends on `implement` running. While it's stopped, a

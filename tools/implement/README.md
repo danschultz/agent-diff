@@ -9,8 +9,9 @@ back as a pull request on GitHub. The design is in
 ## How it works
 
 A brief is a task in the Aven project `agent-diff`. Its description is the
-brief, put in the start prompt as written, and no headings are required. How to
-write one is in [`.rules/briefs.md`](../../.rules/briefs.md).
+brief, put in the start prompt as written. It uses the headings in
+[`.rules/briefs.md`](../../.rules/briefs.md), the same as the old issue
+template's fields, and Goal, Acceptance criteria, and Verification are required.
 
 A brief's state is the task's `agent` metadata: `queued`, `working`,
 `needs-input`, `review`, or `failed`. Dan queues a brief by setting
@@ -21,9 +22,10 @@ session fails, an error on start, and the question when an agent session needs
 input.
 
 Nothing on GitHub identifies the task. Branches are named
-`brief/<slug>-<suffix>`, from the task's title and a short random suffix, and
-the pull request has no "Closes" line. The agent session is told to keep the
-task's ref out of branch names, commits, and pull requests.
+`brief/<slug>-<suffix>`, from the task's title and a random verb-noun suffix,
+such as `brief/add-a-version-flag-chase-otter`, and the pull request has no
+"Closes" line. The agent session is told to keep the task's ref out of branch
+names, commits, and pull requests.
 
 A systemd user timer runs `implement tick` every 2 minutes. Each tick:
 
@@ -52,9 +54,11 @@ A systemd user timer runs `implement tick` every 2 minutes. Each tick:
 3. **Starts** queued briefs, up to the concurrency limit, oldest first. They're
    the open tasks in the project with `agent=queued`, from
    `aven list --project agent-diff --open --metadata agent=queued`, so tasks in
-   other projects and `done` or `canceled` tasks are ignored. For each one,
-   `implement` sets the task's status to `active` and `agent=working`, creates
-   the worktree `.claude/worktrees/brief-<slug>-<suffix>` on the branch
+   other projects and `done` or `canceled` tasks are ignored. A brief missing a
+   required field has `agent=queued` removed and gets a note listing what's
+   missing. For each other one, `implement` sets the task's status to `active`
+   and `agent=working`, creates the worktree
+   `.claude/worktrees/brief-<slug>-<suffix>` on the branch
    `brief/<slug>-<suffix>` from `origin/main`, then runs:
 
    ```sh
@@ -203,6 +207,12 @@ npm run typecheck
 against a scratch database instead, such as one made with
 `aven --db <temp file> project create agent-diff`.
 
+`test/aven-real.test.ts` runs the real `aven` (`IMPLEMENT_AVEN`, or
+`~/.local/bin/aven`) against a scratch database, config, and home folder in a
+temporary folder, so it never touches the host's tasks. It's skipped when `aven`
+isn't installed, as in CI, where `test/aven.test.ts` covers parsing with output
+captured from `aven` and the arguments with a fake.
+
 State lives in `<state dir>/state.json`. For each brief it started, keyed by the
 task's ID, it holds the task's ref when last seen, the branch, worktree, agent
 session name and id, which reviews have been handed over, and the pull request's
@@ -216,9 +226,9 @@ URL once it's been noted on the task. The task holds everything else:
       "ref": "AD-5M82",
       "repo": "danschultz/agent-diff",
       "title": "Take briefs from Aven instead of GitHub issues",
-      "branch": "brief/take-briefs-from-aven-instead-of-github-3f9a2c",
-      "worktree": "/home/dan/agent-diff/.claude/worktrees/brief-take-briefs-from-aven-instead-of-github-3f9a2c",
-      "sessionName": "brief-take-briefs-from-aven-instead-of-github-3f9a2c",
+      "branch": "brief/take-briefs-from-aven-instead-of-github-chase-otter",
+      "worktree": "/home/dan/agent-diff/.claude/worktrees/brief-take-briefs-from-aven-instead-of-github-chase-otter",
+      "sessionName": "brief-take-briefs-from-aven-instead-of-github-chase-otter",
       "sessionId": "0b7c2f1e-6a4d-4c8e-9f3a-2d5e8b1c7a90",
       "launchedAt": 1792468800000,
       "handledReviewIds": ["PRR_kwDOexample"],

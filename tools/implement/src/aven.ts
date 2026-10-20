@@ -83,13 +83,18 @@ export function parseTask(json: string): Task {
 }
 
 /**
- * Runs `aven` against its default database. Tasks are found by ID, which
- * `aven` accepts as a ref, and queued tasks are listed in `project`, never in
- * one inferred from the current directory.
+ * Runs `aven` against its default database, or `AVEN_DB` when `env` sets it.
+ * Tasks are found by ID, which `aven` accepts as a ref, and queued tasks are
+ * listed in `project`, never in one inferred from the current directory. Tests
+ * pass an `env` that points `aven` at a scratch database and config.
  */
-export function cliAven(avenBin: string, project: string): Aven {
+export function cliAven(
+  avenBin: string,
+  project: string,
+  env: NodeJS.ProcessEnv = process.env,
+): Aven {
   const aven = (args: string[], input?: string) =>
-    run(avenBin, args, { input });
+    run(avenBin, args, { input, env });
   const task = (id: string) =>
     parseTask(aven(['show', id, '--full', '--json']));
   return {

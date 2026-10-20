@@ -67,7 +67,9 @@ working tree, not only what's staged. See
   a child process, use the environment from `gitTestEnv` in
   `tools/implement/test/git-env.ts` or `scripts/test/git-env.ts`: `PATH`, a
   temporary `HOME`, no global or system git config, and nothing else they don't
-  need. They never inherit `process.env`.
+  need. They never inherit `process.env`. Tests that run the real `aven` give it
+  a scratch database, config, and home folder, and are skipped when `aven` isn't
+  installed, as in CI.
 - `npm run check:commit` runs `format:check`, `lint:docs` and `typecheck`, the
   checks the pre-commit hook runs. Only checks that are fast and don't run the
   repo's code belong in it.

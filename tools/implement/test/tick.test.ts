@@ -21,6 +21,9 @@ const config: Config = {
   avenProject: 'agent-diff',
 };
 
+const BODY =
+  '### Goal\n\nDo it.\n\n### Acceptance criteria\n\n- It works.\n\n### Verification\n\nRun it.';
+
 /** A task in the fake Aven. Its ID and ref both contain `n`. */
 function task(
   n: string,
@@ -31,7 +34,7 @@ function task(
     id: `${n}TASKID0000`,
     ref: `AD-${n}`,
     title: `Brief ${n}`,
-    description: '### Goal\n\nDo it.',
+    description: BODY,
     status: 'active',
     agent,
     ...extra,
@@ -218,14 +221,38 @@ test("branch, worktree, and agent session names don't contain the task's ref or 
     assert.doesNotMatch(name, /q9zz|Q9ZZ/i);
 });
 
-test('starts queued briefs no matter who wrote them or which headings they use', () => {
+test('sends back a queued brief with missing required fields, with a note listing them', () => {
   const h = harness({
-    tasks: [task('3A', 'queued', { description: 'Just do the thing.' })],
+    tasks: [
+      task('3A', 'queued', {
+        status: 'todo',
+        description: '### Goal\n\nDo it.\n\n### Verification\n\n_No response_',
+      }),
+    ],
   });
   tick(h.deps);
-  assert.equal(h.started.length, 1);
-  assert.match(h.started[0].prompt, /Just do the thing\./);
-  assert.deepEqual(h.notes, []);
+  assert.equal(h.started.length, 0);
+  assert.equal(h.tasks.get('3ATASKID0000')!.agent, undefined);
+  assert.equal(h.tasks.get('3ATASKID0000')!.status, 'todo');
+  assert.equal(h.notes.length, 1);
+  assert.match(h.notes[0].body, /- Acceptance criteria\n- Verification/);
+  assert.match(h.notes[0].body, /agent=queued/);
+  assert.equal(h.state.briefs['3ATASKID0000'], undefined);
+});
+
+test("a brief sent back doesn't use a concurrency slot", () => {
+  const h = harness({
+    tasks: [
+      task('1A', 'queued', { description: '### Goal\n\nDo it.' }),
+      task('2A', 'queued'),
+      task('3A', 'queued'),
+    ],
+  });
+  tick(h.deps);
+  assert.deepEqual(
+    h.started.map((s) => s.name),
+    ['brief-brief-2a-r1', 'brief-brief-3a-r2'],
+  );
 });
 
 test('respects the concurrency limit, counting running agent sessions', () => {
