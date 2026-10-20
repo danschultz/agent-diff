@@ -1,5 +1,6 @@
 // Creates the user's state directory and writes the config file, with the
 // modes from decision 0024.
+import { randomBytes } from 'node:crypto';
 import {
   chmodSync,
   mkdirSync,
@@ -28,7 +29,9 @@ export function ensureStateDir(paths: StatePaths): void {
 // the token, so it's written to a new file and renamed over the old one,
 // rather than written into an old file that others might be able to read.
 export function writeConfig(paths: StatePaths, config: Config): void {
-  const temporary = `${paths.config}.${process.pid}.tmp`;
+  // A random name, so a file left behind by a review server that crashed
+  // while writing never gets in the way.
+  const temporary = `${paths.config}.${randomBytes(8).toString('hex')}.tmp`;
   try {
     writeFileSync(temporary, JSON.stringify(config, null, 2) + '\n', {
       mode: 0o600,

@@ -8,7 +8,7 @@
 > [0031](0031-the-review-ui-gets-the-token-in-the-url-fragment.md):** the
 > browser doesn't get a cookie. The review UI saves the token from the printed
 > URL's fragment in `localStorage` and sends it in a header, and the review
-> server also rejects requests whose `Host` header isn't its own.
+> server also rejects API calls whose `Host` header isn't its own.
 
 ## Problem
 

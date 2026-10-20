@@ -35,11 +35,13 @@ against cross-site request forgery.
   with 401. The token is compared in constant time. The
   [review UI](../glossary.md#review-ui)'s static files are served without the
   token, because they're the same for every user.
-- **The `Host` check.** Every request, including requests for the review UI's
-  files, is rejected with 403 unless its `Host` header is `127.0.0.1:<port>` or
-  `localhost:<port>`, with the review server's own port. A request with no
-  `Host` header is rejected too. This blocks DNS rebinding, where a page's own
-  domain name resolves to `127.0.0.1` and the browser sends that name.
+- **The `Host` check.** Every API call is rejected with 403 unless its `Host`
+  header is `127.0.0.1:<port>` or `localhost:<port>`, with the review server's
+  own port. A call with no `Host` header is rejected too. This blocks DNS
+  rebinding, where a page's own domain name resolves to `127.0.0.1` and the
+  browser sends that name. The review UI's files are served whatever the `Host`:
+  they're the same for every user, and a page that rebinds its domain name gets
+  its own origin's `localStorage`, never the token.
 - **No CORS.** The review server sends no CORS headers, so browsers keep pages
   from other origins from reading its responses or sending the token header.
 - **The printed URL** is `http://127.0.0.1:<port>/#token=<token>`, built in one
@@ -86,7 +88,7 @@ Benefits:
   server sends no CORS headers, so the API needs no defense against cross-site
   request forgery.
 - The `Host` check keeps web pages that rebind their domain name to `127.0.0.1`
-  out, even before the token is checked.
+  out of the API, even before the token is checked.
 - The CLI and the review UI authenticate the same way, through one header.
 
 Costs:
@@ -98,8 +100,12 @@ Costs:
   needs the link.
 - The URL still ends up in terminal scrollback, and the browser's history may
   keep the first visit's URL with the token before the fragment is removed.
-- The review server can't be reached through any other host name, such as one
-  set up in `/etc/hosts` or through a tunnel that rewrites `Host`.
+- The API can't be reached through any other host name, such as one set up in
+  `/etc/hosts` or through a tunnel that rewrites `Host`.
+- A page that rebinds its domain name to `127.0.0.1` can read the review UI's
+  files, and learn that a review server is running. A route added outside `/api`
+  isn't covered by the `Host` check, so it mustn't serve anything that differs
+  between users.
 
 ## Follow-up design choices
 

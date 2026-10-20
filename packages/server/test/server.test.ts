@@ -155,6 +155,18 @@ test('the token is never written into an existing config file that others can re
   ]);
 });
 
+test('a temporary config file left behind by an earlier start is ignored', async (t) => {
+  const env = tempStateHome(t);
+  const paths = statePaths(env);
+  mkdirSync(paths.dir, { mode: 0o700 });
+  // Such as one left by a review server that crashed while writing the config
+  // file, in a process with the same ID as this one.
+  const leftover = `${paths.config}.${process.pid}.tmp`;
+  writeFileSync(leftover, '{}');
+  const server = await start(t, { env });
+  assert.equal(savedConfig(env).token, server.token);
+});
+
 test('later starts reuse the saved port and token', async (t) => {
   const env = tempStateHome(t);
   const first = await start(t, { env });
@@ -297,17 +309,23 @@ test('paths under /api that are not procedures need the token too', async (t) =>
   }
 });
 
-test('requests whose Host is not the review server are rejected with 403', async (t) => {
+test('paths under /api that are not procedures are not found, rather than served the review UI', async (t) => {
   const server = await start(t, { env: tempStateHome(t), uiDir: uiDir(t) });
-  const { port } = server;
-  const requests = [
-    { method: 'POST', path: '/api/health', headers: bearer(server) },
-    { method: 'POST', path: '/api/hello', headers: bearer(server) },
-    { path: '/' },
-    { path: '/review-sessions/1' },
-    { path: '/assets/app.js' },
-  ];
-  for (const host of [
+  for (const method of ['GET', 'POST']) {
+    for (const pathname of ['/api', '/api/', '/api/nothing', '/api/a/b']) {
+      const response = await send(server, {
+        method,
+        path: pathname,
+        headers: bearer(server),
+      });
+      assert.equal(response.status, 404, `${method} ${pathname}`);
+      assert.doesNotMatch(response.body, /review UI/, `${method} ${pathname}`);
+    }
+  }
+});
+
+function foreignHosts(port: number): (string | null)[] {
+  return [
     'evil.example',
     `evil.example:${port}`,
     `localhost.evil.example:${port}`,
@@ -318,11 +336,32 @@ test('requests whose Host is not the review server are rejected with 403', async
     `[::1]:${port}`,
     `0.0.0.0:${port}`,
     null,
-  ]) {
+  ];
+}
+
+test('API calls whose Host is not the review server are rejected with 403', async (t) => {
+  const server = await start(t, { env: tempStateHome(t), uiDir: uiDir(t) });
+  const requests = [
+    { method: 'POST', path: '/api/health', headers: bearer(server) },
+    { method: 'POST', path: '/api/hello', headers: bearer(server) },
+    { method: 'POST', path: '/api/health' },
+    { path: '/api/nothing', headers: bearer(server) },
+  ];
+  for (const host of foreignHosts(server.port)) {
     for (const options of requests) {
       const response = await send(server, { ...options, host });
       assert.equal(response.status, 403, `${host} ${options.path}`);
       assert.equal(response.body, '', `${host} ${options.path}`);
+    }
+  }
+});
+
+test("the review UI's files are served whatever the Host", async (t) => {
+  const server = await start(t, { env: tempStateHome(t), uiDir: uiDir(t) });
+  for (const host of foreignHosts(server.port)) {
+    for (const pathname of ['/', '/review-sessions/1', '/assets/app.js']) {
+      const response = await send(server, { path: pathname, host });
+      assert.equal(response.status, 200, `${host} ${pathname}`);
     }
   }
 });

@@ -20,18 +20,23 @@ is added by hand to that handler.
 - **Hono serves every request,** through `@hono/node-server`'s
   `createAdaptorServer`, which creates the `node:http` server. The review server
   listens with it on the saved port, or on a random one when the saved port is
-  taken, as before. The API is a Hono middleware that passes requests to oRPC's
-  fetch `RPCHandler` ([0025](0025-contract-first-orpc-over-rpc.md)), and the
-  review UI's files are served with `@hono/node-server`'s `serveStatic`, with
-  `index.html` for any path that isn't a file.
-- **The `Host` check is Hono's first middleware.** It reads the `Host` header
-  Node received, and answers 403 unless it's the review server's own. The
+  taken, as before.
+- **The API is a Hono sub-app, mounted with `.route` at `/api`.** It passes
+  every request to oRPC's fetch `RPCHandler`
+  ([0025](0025-contract-first-orpc-over-rpc.md)), and answers 404 for a path
+  that isn't a procedure, so no path under `/api` falls through to the review
+  UI. The review UI's files are served everywhere else with
+  `@hono/node-server`'s `serveStatic`, with `index.html` for any path that isn't
+  a file.
+- **The `Host` check is the API sub-app's first middleware.** It reads the
+  `Host` header Node received, and answers 403 unless it's the review server's
+  own. The review UI's files don't go through it, as
+  [0031](0031-the-review-ui-gets-the-token-in-the-url-fragment.md) says. The
   adapter builds each request's URL from `Host`, so it's given `127.0.0.1` as
   the host for a request with none, and Node's own check for a missing `Host` is
-  turned off. A request with no `Host` reaches the middleware and gets 403, as
-  [0031](0031-the-review-ui-gets-the-token-in-the-url-fragment.md) says. A
+  turned off. An API call with no `Host` reaches the middleware and gets 403. A
   `Host` the adapter can't build a URL from, such as `a b`, gets 400 from the
-  adapter before any middleware runs, so nothing is served either.
+  adapter before any middleware runs, for the review UI's files too.
 - **The token stays an oRPC interceptor,** so a rejected call is an oRPC error
   that the CLI and the review UI read as 401.
 - **Global objects are left alone.** The adapter is told not to replace the
@@ -49,7 +54,8 @@ is added by hand to that handler.
 Benefits:
 
 - Routes and middleware, such as the API and static files, are composed with
-  Hono instead of written by hand.
+  Hono instead of written by hand. Middleware for the API, such as the `Host`
+  check, is scoped to it by its sub-app.
 - `serveStatic` refuses paths with `..`, `//`, `\`, or `%`, so path traversal
   protection isn't hand-written.
 - oRPC's fetch adapter and Hono both use web-standard `Request` and `Response`.

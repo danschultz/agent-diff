@@ -1,8 +1,7 @@
 // Starts the review server: it creates the state directory, migrates the
 // database, then serves the API under /api and the built review UI everywhere
-// else, on 127.0.0.1, with Hono (decision 0032). Every request must name the
-// review server in its Host header, and every API call must carry the token
-// (0031).
+// else, on 127.0.0.1, with Hono (decision 0032). Every API call must name the
+// review server in its Host header and carry the token (0031).
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { createAdaptorServer, type HttpBindings } from '@hono/node-server';
@@ -95,27 +94,26 @@ export async function startReviewServer(
   });
   // Set once the review server is listening, before any request arrives.
   let port = 0;
-  const app = new Hono<{ Bindings: HttpBindings }>()
+  const api = new Hono<{ Bindings: HttpBindings }>()
     .use(async (c, next) => {
       if (!isOwnHost(c.env.incoming.headers, port)) {
         return c.body(null, 403);
       }
       await next();
     })
-    .use(async (c, next) => {
+    .all('*', async (c) => {
       const { matched, response } = await handler.handle(c.req.raw, {
         prefix: apiPrefix,
       });
-      if (matched) return c.newResponse(response.body, response);
-      await next();
-    })
-    .route('/', reviewUi(uiDir));
+      return matched ? c.newResponse(response.body, response) : c.notFound();
+    });
+  const app = new Hono().route(apiPrefix, api).route('/', reviewUi(uiDir));
   const server = createAdaptorServer({
     fetch: app.fetch,
     // Without replacing the global Request and Response, which the CLI uses
     // too when it runs the review server in its own process.
     overrideGlobalObjects: false,
-    // A request with no Host reaches the Host check above, and gets 403,
+    // An API call with no Host reaches the Host check above, and gets 403,
     // instead of 400 from Node or the adapter.
     serverOptions: { requireHostHeader: false },
     hostname: '127.0.0.1',

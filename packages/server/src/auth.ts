@@ -1,6 +1,6 @@
 // Keeps everyone but the user who started the review server out, from
 // decisions 0001, 0024, and 0031: every API call carries the token from the
-// config file, and every request names the review server in its Host header.
+// config file, and names the review server in its Host header.
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { IncomingHttpHeaders } from 'node:http';
 import { type Context, ORPCError } from '@orpc/server';
