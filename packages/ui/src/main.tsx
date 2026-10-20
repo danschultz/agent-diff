@@ -3,23 +3,15 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App.tsx';
 import { saveTokenFromUrl } from './token.ts';
 
-const root = createRoot(document.getElementById('root')!);
-let renders = 0;
-
-// Renders the review UI from scratch, so it uses the saved token.
-function render(): void {
-  renders += 1;
-  root.render(
-    <StrictMode>
-      <App key={renders} />
-    </StrictMode>,
-  );
-}
-
 saveTokenFromUrl();
-render();
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+);
 // Opening a link with a token in a tab already showing the review UI only
-// changes the fragment, without loading the page again.
+// changes the fragment, without loading the page again. The fragment has been
+// removed by then, so the reload loads the URL without it.
 window.addEventListener('hashchange', () => {
-  if (saveTokenFromUrl()) render();
+  if (saveTokenFromUrl()) window.location.reload();
 });
