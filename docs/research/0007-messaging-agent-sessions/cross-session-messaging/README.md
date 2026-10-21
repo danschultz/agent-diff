@@ -12,8 +12,9 @@ any release.
 ## How it works
 
 - Each Claude Code agent session binds a Unix socket,
-  `$XDG_RUNTIME_DIR/cc-socks/<pid>.sock`, and lists it as `messagingSocketPath`
-  in `~/.claude/sessions/<pid>.json`.
+  `$XDG_RUNTIME_DIR/cc-socks/<pid>.sock`, or `/tmp/cc-socks/<pid>.sock` when
+  `XDG_RUNTIME_DIR` isn't set, and lists it as `messagingSocketPath` in
+  `~/.claude/sessions/<pid>.json`.
 - The review server finds the agent session with `claude agents --json`, reads
   the socket path from that file, and writes one JSON line to the socket:
 

@@ -20,8 +20,10 @@ implemented but wasn't run, because the usage limit was reached first.
 
 1. `npm install`
 2. `AD_TOKEN=devtoken npm start`. It listens on `127.0.0.1:47108`.
-3. Start an agent session. `allowedTools` skips the permission prompt for those
-   tools. Leave it out to get prompts.
+3. Start an agent session in an existing directory, such as one made with
+   `mkdir -p /tmp/work`. The agent process starts with the first message.
+   `allowedTools` skips the permission prompt for those tools. Leave it out to
+   get prompts.
 
    ```sh
    curl -s -H 'Authorization: Bearer devtoken' -d '{"kind":"sdk","cwd":"/tmp/work","model":"haiku","allowedTools":["Bash"]}' http://127.0.0.1:47108/sessions

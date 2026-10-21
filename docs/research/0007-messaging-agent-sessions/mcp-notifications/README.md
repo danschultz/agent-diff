@@ -48,6 +48,8 @@ The research was cut down in scope. See the research notes for what was tried.
 To try the long poll, ask the agent: "Call the review wait_for_message tool.
 When it returns a message, answer it with the review reply tool." Then send a
 `poll` message. The reply is logged as `REPLY` with the message ID and the
-latency. In Claude Code the call moves to the background after 120 seconds; the
-message then arrives as a background task notification, which starts a turn if
-the agent session is idle.
+latency. In Claude Code the call moves to the background after 120 seconds, or
+after `CLAUDE_CODE_MCP_AUTO_BACKGROUND_MS` if `claude` is started with it set,
+such as `CLAUDE_CODE_MCP_AUTO_BACKGROUND_MS=15000`; the message then arrives as
+a background task notification, which starts a turn if the agent session is
+idle.

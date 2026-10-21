@@ -12,8 +12,10 @@ There are no npm dependencies. It needs Node 24 or later.
 
 - `server.mjs`: the prototype review server, on `127.0.0.1:47105` by default. It
   queues messages per agent-session ID and logs each reply with its message ID
-  and latency. Set `BGPROC_LOG` to also write the log to a file, and
-  `BGPROC_TOKEN` to require a bearer token.
+  and latency. Set `BGPROC_PORT` to use another port, `BGPROC_LOG` to also write
+  the log to a file, and `BGPROC_TOKEN` to require a bearer token. `client.mjs`
+  reads `BGPROC_URL` for the review server's address, and `BGPROC_SOCK_DIR` for
+  where its Unix socket goes.
 - `client.mjs`: `listen` (the background process), `reply` (the agent's answer)
   and `send` (stands in for the review UI).
 - `plugin/`: a Claude Code plugin whose monitor starts `client.mjs listen` with
