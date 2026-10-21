@@ -24,7 +24,7 @@ Tried with Cursor CLI 2026.10.19-6bbf2c4 and Node 26.
    `PERMISSIONS=ask|allow|reject` (default `ask`), `AGENT_BIN`.
 
 3. Create an agent session. Pass `{"load":"<sessionId>"}` instead to load an
-   earlier ACP session:
+   earlier ACP agent session:
 
    ```sh
    T=<token>

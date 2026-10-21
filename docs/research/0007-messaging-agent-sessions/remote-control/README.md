@@ -37,7 +37,7 @@ what was run by hand on 2026-10-21, so it can be repeated.
      from `api.anthropic.com/v1/code/sessions/<id>/worker/events/stream`, an
      endpoint the Claude Platform API reference doesn't list.
 5. Type `/remote-control` and press Enter to see the status panel, then Esc and
-   `/exit`. The debug log shows the claude.ai session archived on exit.
+   `/exit`. The debug log shows the agent session archived on claude.ai on exit.
 6. `tmux -L ad-remote kill-server`.
 
 ## Cursor CLI

@@ -22,8 +22,8 @@ npm dependencies; it needs `claude`, `script` (util-linux) and Node 24 or later.
    It prints a short ID, such as `bb88af4d`. To watch it as a human would, run
    `claude attach <id>`.
 
-3. Send a message. `session` is the short ID, the session UUID or the name from
-   `claude agents --json`.
+3. Send a message. `session` is the short ID, the agent session ID (a UUID) or
+   the name from `claude agents --json`.
 
    ```sh
    curl -s -X POST localhost:47107/send -d '{"session":"<id>","text":"What is 2+2? Answer only with the number."}'

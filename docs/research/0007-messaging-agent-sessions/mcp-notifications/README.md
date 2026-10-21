@@ -9,7 +9,8 @@ It tries to reach an agent session with standard MCP messages
 `notifications/claude/channel`), and offers a long-poll tool
 (`wait_for_message`) and a `reply` tool that takes the message ID.
 
-The research was cut down in scope. See the research notes for what was tried.
+The long-poll tool is covered in [`../mcp-tool-wait/`](../mcp-tool-wait/), which
+has a copy of the same server.
 
 ## Run it
 
@@ -39,17 +40,8 @@ The research was cut down in scope. See the research notes for what was tried.
    call), `sampling`, `elicitation`, `channel`, or `poll` (returned by a blocked
    `wait_for_message` call).
 
-4. `GET /control/status` lists the connected MCP sessions and their client
+4. `GET /control/status` lists the connected MCP connections and their client
    capabilities. Every JSON-RPC message, send, and reply is logged with a
    timestamp to `$AD_LOG`, by default `/tmp/ad-mcpnotif-<transport>.log`.
 
 `busy.sh 30` keeps an agent session busy for 30 seconds without `sleep`.
-
-To try the long poll, ask the agent: "Call the review wait_for_message tool.
-When it returns a message, answer it with the review reply tool." Then send a
-`poll` message. The reply is logged as `REPLY` with the message ID and the
-latency. In Claude Code the call moves to the background after 120 seconds, or
-after `CLAUDE_CODE_MCP_AUTO_BACKGROUND_MS` if `claude` is started with it set,
-such as `CLAUDE_CODE_MCP_AUTO_BACKGROUND_MS=15000`; the message then arrives as
-a background task notification, which starts a turn if the agent session is
-idle.
