@@ -11,8 +11,8 @@ Tried with Cursor CLI 2026.10.19-6bbf2c4 and Node 26.
 
 ## Run it
 
-1. Make a scratch workspace for the agent, such as `mkdir /tmp/acp-ws`. Don't
-   point it at a repo you care about: the agent can edit files there.
+1. Make a scratch working directory for the agent, such as `mkdir /tmp/acp-ws`.
+   Don't point it at a repo you care about: the agent can edit files there.
 2. Start the server from this folder:
 
    ```sh

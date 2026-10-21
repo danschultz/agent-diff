@@ -96,8 +96,10 @@ work, and where it stopped; or doesn't apply to that agent, and why.
 
 ### How each option behaves
 
-Every option in the first table, by agent where they differ. Where an option
-doesn't reach a running agent session, the cells say so.
+Every option in the first table. Where an option works for only one agent, its
+row covers that agent, and the first table says why it doesn't work or apply for
+the other. Where an option doesn't reach a running agent session, the cells say
+so.
 
 | Option                                                              | Stability                                                                                                                                 | Setup                                                                                                                                                                                    | Reaching an idle agent session                                                                                                                        | When it's busy                                                                                                                       | How the reply comes back                                                                                                              | How the reply is tied to the message                                                                     |
 | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
@@ -368,9 +370,11 @@ Prototype:
   token. The token is only checked on Windows, and on macOS in some cases.
   - The docs' default rules deliver a message to an agent session in a prompting
     permission mode. A `bypassPermissions` agent session holds it in a dialog,
-    with Deny selected, until the human answers or 5 minutes pass. But the
-    sender's mode is taken from a `from-mode` attribute in the message text: a
-    message claiming `from-mode="bypass"` got past the hold.
+    with Deny selected, until the human answers or 5 minutes pass. The docs say
+    this depends on whether the sending agent session identifies itself as
+    bypassing, and the sender's mode is a `from-mode` attribute in the message
+    text, which any sender can set: a message claiming `from-mode="bypass"` got
+    past the hold.
   - `crossSessionInbound` overrides the rules. `accept` in the project's
     `.claude/settings.json` was ignored, as the
     [settings reference](https://code.claude.com/docs/en/settings-reference#crosssessioninbound)
@@ -1124,6 +1128,11 @@ time out waiting for a reply, since replying is always up to the model.
     turn.
   - Neither agent can ask a human for permission in print mode.
   - Each message starts an agent, 9 to 23 s from send to reply.
+
+### Standard MCP notifications
+
+- **Costs.** No standard notification or request reaches the model or starts a
+  turn, in either agent.
 
 ### Remote Control
 

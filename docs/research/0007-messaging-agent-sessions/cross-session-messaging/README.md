@@ -67,7 +67,7 @@ Use Node 24 or later. There are no dependencies.
    claude
    ```
 
-   Accept the folder trust dialog if it asks. Don't type anything else.
+   Accept the directory trust dialog if it asks. Don't type anything else.
 
 3. List the agent sessions the review server can see, and send one a message:
 

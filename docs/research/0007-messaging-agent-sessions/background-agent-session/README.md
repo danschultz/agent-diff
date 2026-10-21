@@ -42,3 +42,18 @@ npm dependencies; it needs `claude`, `script` (util-linux) and Node 24 or later.
 `busy.sh` waits about 30 seconds in Node, to keep a turn busy for the busy test.
 Claude Code blocks a foreground `sleep 30`, so it doesn't use `sleep`. Ask the
 agent to run `sh busy.sh` in the foreground, then send a message.
+
+## Cursor CLI
+
+The server only drives `claude`. The Cursor CLI check was run by hand, in a
+scratch directory outside git, without `--model`:
+
+1. `env -u TMUX cursor-agent persist "Say hi in three words."`, then
+   `cursor-agent persist list` shows the agent session as attached.
+2. From another terminal, `cursor-agent --resume <chatId> "What is 2+2?"`. It
+   asks whether to take over and disconnect the other client. With `y`, the
+   first terminal is detached and the new one attaches, but the prompt isn't
+   sent. With `n`, nothing is sent.
+3. `cursor-agent -p --resume <chatId> "..."` is refused while the chat is held
+   by `persist`.
+4. `cursor-agent persist stop <name>`.

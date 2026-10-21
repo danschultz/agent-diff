@@ -31,7 +31,7 @@ There are no npm dependencies. It needs Node 24 or later.
 ## Run it with Claude Code
 
 1. Start the server: `node server.mjs`.
-2. In another terminal, in this folder, start
+2. In another terminal, in this directory, start
    `claude --model haiku --permission-mode default`.
 3. Type one of these prompts:
    - Exits on a message: "Start `node client.mjs listen --session A --once` with
@@ -68,9 +68,9 @@ root, so copy `client.mjs` and `busy.sh` to a folder outside git. Add a
 ```
 
 1. Start the server in this folder: `node server.mjs`.
-2. In the copy, start `cursor-agent` and trust the folder. Don't pass `--model`,
-   and don't choose "Add to allowlist" in a permission prompt: both change the
-   user's `~/.cursor/cli-config.json`.
+2. In the copy, start `cursor-agent` and trust the directory. Don't pass
+   `--model`, and don't choose "Add to allowlist" in a permission prompt: both
+   change the user's `~/.cursor/cli-config.json`.
 3. Type one of these prompts:
    - Exits on a message: "Run `node client.mjs listen --session K --once` as a
      background shell command, then end your turn. When it exits it prints a
