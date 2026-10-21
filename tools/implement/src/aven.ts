@@ -30,6 +30,17 @@ export interface Task {
   status: TaskStatus;
   /** The `agent` metadata, or undefined when it isn't set. Dan can set any value. */
   agent: string | undefined;
+  /** The tasks this one depends on, in any project. */
+  blockers: Blocker[];
+}
+
+/** A task another task depends on, from `aven dep add <ref> <blocker ref>`. */
+export interface Blocker {
+  id: string;
+  ref: string;
+  title: string;
+  status: TaskStatus;
+  deleted: boolean;
 }
 
 export interface TaskChanges {
@@ -60,6 +71,15 @@ interface RawTask {
   task: { id: string; ref: string; title: string; status: TaskStatus };
   description: string;
   metadata: Record<string, string>;
+  dependencies: {
+    depends_on: {
+      id: string;
+      ref: string;
+      title: string;
+      status: TaskStatus;
+      deleted: boolean;
+    }[];
+  };
 }
 
 /** The IDs of the tasks in `aven list --json` output, oldest first. */
@@ -79,6 +99,15 @@ export function parseTask(json: string): Task {
     description: raw.description,
     status: raw.task.status,
     agent: raw.metadata[AGENT_KEY],
+    // Aven's own `unresolved` counts canceled and deleted blockers as
+    // resolved, so each blocker's status is kept instead.
+    blockers: raw.dependencies.depends_on.map((d) => ({
+      id: d.id,
+      ref: d.ref,
+      title: d.title,
+      status: d.status,
+      deleted: d.deleted,
+    })),
   };
 }
 

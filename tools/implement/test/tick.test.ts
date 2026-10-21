@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { Aven, Task, TaskChanges } from '../src/aven.ts';
+import type { Aven, Blocker, Task, TaskChanges } from '../src/aven.ts';
 import type { AgentSessionInfo, Claude, StartOptions } from '../src/claude.ts';
 import type { Config } from '../src/config.ts';
 import type { GitHub, PullRequest } from '../src/github.ts';
 import { onNotification, onPromptSubmit } from '../src/hook.ts';
 import type { BriefState, State } from '../src/state.ts';
-import { LAUNCH_GRACE_MS, tick, type Deps } from '../src/tick.ts';
+import {
+  LAUNCH_GRACE_MS,
+  tick,
+  waitingBriefs,
+  type Deps,
+} from '../src/tick.ts';
 
 const config: Config = {
   repoDir: '/repo',
@@ -37,8 +42,15 @@ function task(
     description: BODY,
     status: 'active',
     agent,
+    blockers: [],
     ...extra,
   };
+}
+
+/** `task(n)` as a blocker of another task, as `aven show` lists it. */
+function blocker(n: string, status: Task['status'], deleted = false): Blocker {
+  const { id, ref, title } = task(n, undefined);
+  return { id, ref, title, status, deleted };
 }
 
 function harness(
@@ -60,19 +72,29 @@ function harness(
   const stopped: string[] = [];
   const removed: string[] = [];
   const added: { dir: string; branch: string }[] = [];
+  const logs: string[] = [];
   const state: State = options.state ?? { briefs: {} };
+  // Like `aven show`, reads each blocker's current status when it's one of the fake's tasks.
+  const read = (t: Task): Task =>
+    structuredClone({
+      ...t,
+      blockers: t.blockers.map((b) => {
+        const current = tasks.get(b.id);
+        return current ? { ...b, status: current.status } : b;
+      }),
+    });
   // Mirrors `aven list --project agent-diff --open --metadata agent=queued`.
   const aven: Aven = {
     queuedTasks: () =>
-      structuredClone(
-        [...tasks.values()].filter(
+      [...tasks.values()]
+        .filter(
           (t) =>
             t.agent === 'queued' &&
             t.status !== 'done' &&
             t.status !== 'canceled',
-        ),
-      ),
-    task: (id) => structuredClone(tasks.get(id)!),
+        )
+        .map(read),
+    task: (id) => read(tasks.get(id)!),
     edit(id, changes) {
       edits.push({ id, changes });
       const t = tasks.get(id)!;
@@ -119,10 +141,11 @@ function harness(
     randomSuffix: () => `r${++suffixes}`,
     now: () => now,
     sleep() {},
-    log() {},
+    log: (message) => logs.push(message),
   };
   return {
     deps,
+    logs,
     tasks,
     notes,
     edits,
@@ -555,6 +578,153 @@ test('letting go of a closed pull request keeps agent=queued when Dan has queued
   assert.deepEqual(h.removed, [brief.worktree]);
   assert.equal(h.started.length, 1, 'started over');
   assert.equal(h.tasks.get('8ATASKID0000')!.agent, 'working');
+});
+
+test("doesn't start a queued brief until its blockers are done, and logs what it's waiting on", () => {
+  const h = harness({
+    tasks: [
+      task('1B', undefined, { status: 'todo' }),
+      task('2B', 'queued', {
+        status: 'todo',
+        blockers: [
+          blocker('1B', 'todo'),
+          blocker('9X', 'done'),
+          blocker('8X', 'active'),
+        ],
+      }),
+    ],
+  });
+  tick(h.deps);
+  assert.equal(h.started.length, 0);
+  assert.deepEqual(h.edits, []);
+  assert.deepEqual(h.notes, []);
+  assert.equal(h.tasks.get('2BTASKID0000')!.agent, 'queued');
+  assert.equal(h.state.briefs['2BTASKID0000'], undefined);
+  assert.ok(
+    h.logs.includes('AD-2B: waiting on AD-1B, AD-8X'),
+    h.logs.join('\n'),
+  );
+});
+
+test("briefs waiting on blockers don't use a concurrency slot or hold up the briefs after them", () => {
+  const h = harness({
+    tasks: [
+      task('1B', 'queued', { blockers: [blocker('9X', 'todo')] }),
+      task('2B', 'queued', { blockers: [blocker('9X', 'inbox')] }),
+      task('3B', 'queued'),
+      task('4B', 'queued'),
+    ],
+  });
+  tick(h.deps);
+  assert.deepEqual(
+    h.started.map((s) => s.name),
+    ['brief-brief-3b-r1', 'brief-brief-4b-r2'],
+  );
+});
+
+test('starts a queued brief whose blockers are all done', () => {
+  const h = harness({
+    tasks: [
+      task('2B', 'queued', {
+        blockers: [blocker('1B', 'done'), blocker('9X', 'done')],
+      }),
+    ],
+  });
+  tick(h.deps);
+  assert.equal(h.started.length, 1);
+  assert.equal(h.tasks.get('2BTASKID0000')!.agent, 'working');
+});
+
+test('starts a brief in the same tick that sets its blocker done, after its pull request merges', () => {
+  const brief = tracked('1B', { pullRequestUrl: pr(10, 'MERGED').url });
+  const h = harness({
+    tasks: [
+      task('1B', 'review'),
+      task('2B', 'queued', { blockers: [blocker('1B', 'active')] }),
+    ],
+    state: stateOf(brief),
+    prs: { [brief.branch]: pr(10, 'MERGED') },
+  });
+  tick(h.deps);
+  assert.equal(h.tasks.get('1BTASKID0000')!.status, 'done');
+  assert.deepEqual(
+    h.started.map((s) => s.name),
+    ['brief-brief-2b-r1'],
+  );
+});
+
+test('sends back a queued brief with a canceled or deleted blocker, with a note naming each', () => {
+  const h = harness({
+    tasks: [
+      task('2B', 'queued', {
+        status: 'todo',
+        blockers: [
+          blocker('1B', 'canceled'),
+          blocker('9X', 'done', true),
+          blocker('8X', 'todo', true),
+          blocker('7X', 'done'),
+          blocker('6X', 'todo'),
+        ],
+      }),
+      task('3B', 'queued'),
+      task('4B', 'queued'),
+    ],
+  });
+  tick(h.deps);
+  const t = h.tasks.get('2BTASKID0000')!;
+  assert.equal(t.agent, undefined);
+  assert.equal(t.status, 'todo');
+  assert.equal(h.notes.length, 1);
+  const note = h.notes[0];
+  assert.equal(note.id, '2BTASKID0000');
+  for (const ref of ['AD-1B', 'AD-9X', 'AD-8X'])
+    assert.match(note.body, new RegExp(`\`aven dep remove AD-2B ${ref}\``));
+  assert.doesNotMatch(note.body, /AD-7X|AD-6X/);
+  assert.match(note.body, /AD-1B Brief 1B \(canceled\)/);
+  assert.match(note.body, /AD-9X Brief 9X \(deleted\)/);
+  assert.match(note.body, /`agent=queued` again/);
+  // Sending it back doesn't use a concurrency slot.
+  assert.deepEqual(
+    h.started.map((s) => s.name),
+    ['brief-brief-3b-r1', 'brief-brief-4b-r2'],
+  );
+});
+
+test('a brief missing required fields is sent back for that, even with a canceled blocker', () => {
+  const h = harness({
+    tasks: [
+      task('2B', 'queued', {
+        description: '### Goal\n\nDo it.',
+        blockers: [blocker('1B', 'canceled')],
+      }),
+    ],
+  });
+  tick(h.deps);
+  assert.equal(h.notes.length, 1);
+  assert.match(h.notes[0].body, /missing required fields/);
+  assert.doesNotMatch(h.notes[0].body, /aven dep remove/);
+});
+
+test('lists the queued briefs waiting on blockers, with their open blockers', () => {
+  const waiting = task('2B', 'queued', {
+    blockers: [blocker('1B', 'todo'), blocker('9X', 'done')],
+  });
+  const result = waitingBriefs([
+    task('3B', 'queued'),
+    waiting,
+    task('4B', 'queued', { blockers: [blocker('9X', 'done')] }),
+    // These are sent back on the next tick instead.
+    task('5B', 'queued', {
+      blockers: [blocker('1B', 'todo'), blocker('8X', 'canceled')],
+    }),
+    task('6B', 'queued', {
+      description: '### Goal',
+      blockers: [blocker('1B', 'todo')],
+    }),
+  ]);
+  assert.deepEqual(result, [
+    { task: waiting, blockers: [blocker('1B', 'todo')] },
+  ]);
 });
 
 test("notes an error and marks the brief failed when its agent session can't start", () => {

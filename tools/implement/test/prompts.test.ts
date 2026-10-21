@@ -24,6 +24,7 @@ const task: Task = {
   description: '### Goal\n\nDo it as written.',
   status: 'active',
   agent: 'working',
+  blockers: [],
 };
 
 const review: Review = {
@@ -167,4 +168,46 @@ test('the prompts keep the ref and task ID out of GitHub and git', () => {
 test('the prompts say Dan sees questions as a note on the brief', () => {
   assert.match(start, /adds your question to the brief as a note/);
   assert.match(resume, /adds your question to the brief as a note/);
+});
+
+test('the start prompt lists the blockers, says they are done, and says to read but not change them', () => {
+  const blocked = unwrapped(
+    startPrompt(
+      brief,
+      {
+        ...task,
+        blockers: [
+          {
+            id: 'M5RDA25QV2AY38SP',
+            ref: 'AD-M5RD',
+            title: 'Add the parser',
+            status: 'done',
+            deleted: false,
+          },
+          {
+            id: 'QHPQ9MRZKKXJGXXD',
+            ref: 'OTH-QHPQ',
+            title: 'Pick a format',
+            status: 'done',
+            deleted: false,
+          },
+        ],
+      },
+      'main',
+    ),
+  );
+  assert.match(blocked, /- AD-M5RD: Add the parser - OTH-QHPQ: Pick a format/);
+  assert.match(blocked, /which are all done/);
+  assert.match(blocked, /`aven context <ref>`/);
+  assert.match(blocked, /don't change them/);
+  assert.match(
+    blocked,
+    /Keep their refs, and their IDs, out of branch names, commits, and pull requests/,
+  );
+  assert.doesNotMatch(blocked, /M5RDA25QV2AY38SP|QHPQ9MRZKKXJGXXD/);
+});
+
+test('a brief without blockers gets the same start prompt as before, with nothing about blockers', () => {
+  assert.doesNotMatch(start, /depends on/);
+  assert.doesNotMatch(start, /aven context <ref>/);
 });
