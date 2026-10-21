@@ -56,8 +56,25 @@ A systemd user timer runs `implement tick` every 2 minutes. Each tick:
    `aven list --project agent-diff --open --metadata agent=queued`, so tasks in
    other projects and `done` or `canceled` tasks are ignored. A brief missing a
    required field has `agent=queued` removed and gets a note listing what's
-   missing. For each other one, `implement` sets the task's status to `active`
-   and `agent=working`, creates the worktree
+   missing. Then the tasks each brief depends on, its blockers, are checked
+   ([decision 0035](../../docs/decisions/0035-queued-briefs-wait-for-their-blockers.md)).
+   They're listed in `aven show --full --json` under `dependencies.depends_on`,
+   and can be any task, in any project. Only a `done` blocker counts, unlike
+   Aven, which counts `canceled` and deleted ones as resolved:
+   - A brief with a `canceled` or deleted blocker has `agent=queued` removed and
+     gets a note naming each one, with the `aven dep remove <ref> <blocker ref>`
+     command that removes it, saying to set `agent=queued` again after.
+   - A brief with any other blocker that isn't `done` waits. It keeps
+     `agent=queued`, gets no note, and uses no concurrency slot, and the tick
+     logs `<ref>: waiting on <blocker refs>`. The briefs after it take the free
+     slots.
+
+   Each tick reaps before it starts briefs, so the tick that sets a blocker to
+   `done` when its pull request merges starts the brief it was blocking, from an
+   `origin/main` that has the blocker's changes. A brief never starts from
+   another brief's branch, and dependencies added after a brief starts don't
+   affect it. For each brief that can start, `implement` sets the task's status
+   to `active` and `agent=working`, creates the worktree
    `.claude/worktrees/brief-<slug>-<suffix>` on the branch
    `brief/<slug>-<suffix>` from `origin/main`, then runs:
 
@@ -65,6 +82,11 @@ A systemd user timer runs `implement tick` every 2 minutes. Each tick:
    claude --bg --remote-control brief-<slug>-<suffix> --name brief-<slug>-<suffix> \
      --permission-mode auto --settings <state>/settings.json "<prompt>"
    ```
+
+   The start prompt lists the brief's blockers, if it has any, with their refs
+   and titles. It says they're done, and that the agent session can read them
+   with `aven context <ref>` but mustn't change them or put their refs on
+   GitHub.
 
    The task stays `active` until the brief is let go. A brief queued again after
    failing starts over from a fresh worktree.
@@ -198,7 +220,8 @@ the service:
 
 ```sh
 node src/main.ts tick [--dry-run]   # one tick; --dry-run only logs what it would change
-node src/main.ts status             # tracked briefs, their state in Aven, and their agent sessions
+node src/main.ts status             # tracked briefs, their state in Aven, and their agent sessions,
+                                    # then queued briefs waiting on blockers, with the blockers that aren't done
 npm test
 npm run typecheck
 ```

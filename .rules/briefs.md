@@ -58,3 +58,19 @@ Dan asks, since a brief Dan hasn't asked to queue is a draft:
 ```sh
 aven edit <ref> --metadata agent=queued
 ```
+
+## Depending on another brief
+
+When a brief can only start once another task is finished, such as another brief
+whose changes it builds on, make it depend on that task:
+
+```sh
+aven dep add <ref> <blocker ref>
+```
+
+The blocker can be any task, in any project. `implement` leaves a queued brief
+waiting until every task it depends on is `done`, so a brief depending on
+another brief starts once that brief's pull request is merged. If a blocker is
+`canceled` or deleted, `implement` removes `agent=queued` and adds a note saying
+to remove the dependency with `aven dep remove <ref> <blocker ref>`. See
+[0035](../docs/decisions/0035-queued-briefs-wait-for-their-blockers.md).

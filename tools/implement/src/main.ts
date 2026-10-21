@@ -20,13 +20,14 @@ import { ghGitHub } from './github.ts';
 import { onNotification, onPromptSubmit, type HookInput } from './hook.ts';
 import { writeSettingsFile } from './settings.ts';
 import { acquireLock, fileStateStore } from './state.ts';
-import { tick } from './tick.ts';
+import { tick, waitingBriefs } from './tick.ts';
 
 const USAGE = `implement
 
   implement tick [--dry-run]   Reap, resume, and start agent sessions once.
                                --dry-run reads Aven, GitHub, and git but only logs changes.
-  implement status             List tracked briefs, their state in Aven, and their agent sessions.
+  implement status             List tracked briefs, their state in Aven, and their agent sessions,
+                               and queued briefs waiting on blockers.
   implement setup              Check the GitHub repo settings implement relies on.
   implement install            Install and start the systemd user timer.
   implement hook <notification|prompt>
@@ -173,6 +174,13 @@ function status(): void {
     console.log(
       `  agent session: ${b.sessionName} ${b.sessionId ?? '(id not known yet)'} ${session ? session.state : 'not running'}`,
     );
+  }
+  const waiting = waitingBriefs(aven.queuedTasks());
+  if (waiting.length > 0) console.log('\nQueued briefs waiting on blockers:');
+  for (const { task, blockers } of waiting) {
+    console.log(`${task.ref} ${task.title}`);
+    for (const b of blockers)
+      console.log(`  waiting on:    ${b.ref} ${b.title} (${b.status})`);
   }
 }
 
