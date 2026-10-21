@@ -25,7 +25,42 @@ test('parses a task from `aven show --full --json`', () => {
       '### Goal\n\nAdd a `--version` flag.\n\n### Acceptance criteria\n\n- `agent-diff --version` prints the version.\n',
     status: 'active',
     agent: 'review',
+    blockers: [],
   });
+});
+
+test("parses a task's blockers, with each one's status and whether it's deleted", () => {
+  const task = parseTask(fixture('aven-show-with-blockers.json'));
+  assert.deepEqual(task.blockers, [
+    {
+      id: 'M5RDA25QV2AY38SP',
+      ref: 'OTH-M5RD',
+      title: 'Blocker open',
+      status: 'inbox',
+      deleted: false,
+    },
+    {
+      id: 'QHPQ9MRZKKXJGXXD',
+      ref: 'AD-QHPQ',
+      title: 'Blocker deleted',
+      status: 'inbox',
+      deleted: true,
+    },
+    {
+      id: 'MVYNP6QC8HCXMY7D',
+      ref: 'AD-MVYN',
+      title: 'Blocker done',
+      status: 'done',
+      deleted: false,
+    },
+    {
+      id: 'DNP7A80YH2S0DNW7',
+      ref: 'AD-DNP7',
+      title: 'Blocker canceled',
+      status: 'canceled',
+      deleted: false,
+    },
+  ]);
 });
 
 test('a task without agent metadata has no agent state', () => {

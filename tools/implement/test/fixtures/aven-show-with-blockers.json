@@ -1,0 +1,89 @@
+{
+  "task": {
+    "ref": "AD-D0ZZ",
+    "id": "D0ZZH89WSNTNBC9B",
+    "title": "Brief with blockers",
+    "project": "agent-diff",
+    "status": "inbox",
+    "priority": "none",
+    "labels": [],
+    "deleted": false,
+    "is_epic": false,
+    "epic_parent": null,
+    "epic_children": [],
+    "has_conflict": false,
+    "blocked_by": 1,
+    "blocks": 0,
+    "available_at": "",
+    "due_on": "",
+    "recurrence": null,
+    "recurrence_group": null,
+    "created_at": "2026-10-21T06:30:22Z",
+    "updated_at": "2026-10-21T06:30:22Z"
+  },
+  "project_prefix": "AD",
+  "description": "### Goal\n\nDo it.\n\n### Acceptance criteria\n\n- It works.\n\n### Verification\n\nRun it.",
+  "metadata": {
+    "agent": "queued"
+  },
+  "metadata_details": [
+    {
+      "field_id": "Y6HKTKCF25T5T4SQ",
+      "key": "agent",
+      "value": "queued"
+    }
+  ],
+  "dependencies": {
+    "depends_on_open": 1,
+    "depends_on_total": 4,
+    "blocks_open": 0,
+    "blocks_total": 0,
+    "depends_on": [
+      {
+        "ref": "OTH-M5RD",
+        "id": "M5RDA25QV2AY38SP",
+        "title": "Blocker open",
+        "status": "inbox",
+        "priority": "none",
+        "deleted": false,
+        "unresolved": true,
+        "created_at": "2026-10-21T06:30:22Z"
+      },
+      {
+        "ref": "AD-QHPQ",
+        "id": "QHPQ9MRZKKXJGXXD",
+        "title": "Blocker deleted",
+        "status": "inbox",
+        "priority": "none",
+        "deleted": true,
+        "unresolved": false,
+        "created_at": "2026-10-21T06:30:22Z"
+      },
+      {
+        "ref": "AD-MVYN",
+        "id": "MVYNP6QC8HCXMY7D",
+        "title": "Blocker done",
+        "status": "done",
+        "priority": "none",
+        "deleted": false,
+        "unresolved": false,
+        "created_at": "2026-10-21T06:30:22Z"
+      },
+      {
+        "ref": "AD-DNP7",
+        "id": "DNP7A80YH2S0DNW7",
+        "title": "Blocker canceled",
+        "status": "canceled",
+        "priority": "none",
+        "deleted": false,
+        "unresolved": false,
+        "created_at": "2026-10-21T06:30:22Z"
+      }
+    ],
+    "blocks": []
+  },
+  "related": [],
+  "notes": [],
+  "conflicts": [],
+  "attachments": []
+}

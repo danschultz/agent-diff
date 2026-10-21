@@ -1,7 +1,13 @@
 # 0034: Briefs are Aven tasks, and only pull requests stay on GitHub
 
-- Status: Accepted
+- Status: Accepted, amended by
+  [0035](0035-queued-briefs-wait-for-their-blockers.md)
 - Date: 2026-10-20
+
+> Amended by [0035](0035-queued-briefs-wait-for-their-blockers.md): a queued
+> brief starts only once every task it depends on in Aven is `done`. One waiting
+> on a blocker keeps `agent=queued` and uses no concurrency slot, and one with a
+> `canceled` or deleted blocker is sent back with a note.
 
 ## Problem
 
