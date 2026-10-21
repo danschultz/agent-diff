@@ -1,5 +1,5 @@
 {
   "permissions": {
-    "allow": ["Bash(node reply.mjs:*)", "Bash(sh wait.sh)"]
+    "allow": ["Bash(node reply.mjs:*)", "Bash(sh busy.sh)"]
   }
 }

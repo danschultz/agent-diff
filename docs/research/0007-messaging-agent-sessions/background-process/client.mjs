@@ -17,12 +17,15 @@
 import { createServer, createConnection } from 'node:net';
 import { existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 const base = process.env.BGPROC_URL ?? 'http://127.0.0.1:47105';
 const token = process.env.BGPROC_TOKEN ?? '';
 const sockDir = process.env.BGPROC_SOCK_DIR ?? '/tmp/agent-diff-bgproc';
-const self = fileURLToPath(import.meta.url);
+const selfAbs = fileURLToPath(import.meta.url);
+// Print a short path when the agent runs in this folder, so permission rules
+// such as Bash(node client.mjs *) match the reply command.
+const self = dirname(selfAbs) === process.cwd() ? 'client.mjs' : selfAbs;
 const headers = token ? { authorization: `Bearer ${token}` } : {};
 
 const args = process.argv.slice(2);

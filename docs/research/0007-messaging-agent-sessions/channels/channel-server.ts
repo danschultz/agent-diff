@@ -39,9 +39,8 @@ const mcp = new Server(
       },
       tools: {},
     },
-    // Worded like the fakechat channel's instructions. A plainer version
-    // ("do what it asks, then call the reply tool") was ignored by Haiku and
-    // Sonnet, which answered in the terminal instead.
+    // Worded like the fakechat channel's instructions. Rewording alone didn't
+    // make the agent call the reply tool: loading it upfront did (see below).
     instructions:
       'The reviewer reads the agent-diff review UI, not this terminal. Anything you want them to see ' +
       'must go through the reply tool: your transcript output never reaches them.\n\n' +
@@ -68,8 +67,9 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         required: ['message_id', 'text'],
       },
-      // Without this the tool is deferred behind tool search, and the agent
-      // tended to answer in the terminal instead of calling it.
+      // Load the tool upfront. Without this, Claude Code defers it behind
+      // tool search, and Haiku and Sonnet answered channel messages in the
+      // terminal instead of calling it.
       _meta: { 'anthropic/alwaysLoad': AD_ALWAYS_LOAD },
     },
   ],

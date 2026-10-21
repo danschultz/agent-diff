@@ -11,7 +11,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { existsSync, readFileSync, unlinkSync } from 'node:fs';
+import { chmodSync, existsSync, readFileSync, unlinkSync } from 'node:fs';
 import { createServer as createHttpServer } from 'node:http';
 import { createConnection, createServer as createNetServer } from 'node:net';
 import { homedir } from 'node:os';
@@ -98,7 +98,8 @@ function ensureInbox(agentSocket: string): string {
     });
     conn.on('error', () => {});
   });
-  server.listen(path);
+  // Only this OS user may write replies to it.
+  server.listen(path, () => chmodSync(path, 0o600));
   inboxPath = path;
   log('inbox-bound', { path });
   return path;
@@ -156,6 +157,9 @@ type SendOptions = {
   noFrom?: boolean;
   // Leave out the instructions on how to answer.
   bare?: boolean;
+  // The agent session's ID. The agent session drops the frame if it doesn't
+  // match, which guards against a reused PID.
+  sessionId?: string;
 };
 
 function send(opts: SendOptions): Promise<Sent> {
@@ -182,6 +186,7 @@ function send(opts: SendOptions): Promise<Sent> {
     message: { role: 'user', content },
     priority: opts.priority ?? 'next',
     ...(opts.noFrom ? {} : { from }),
+    ...(opts.sessionId ? { session_id: opts.sessionId } : {}),
   };
   const s: Sent = {
     id,

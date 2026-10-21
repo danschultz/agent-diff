@@ -1,8 +1,7 @@
 {
   "mcpServers": {
     "review": {
-      "command": "node",
-      "args": ["server.mjs", "--transport=stdio", "--port=47112"]
+      "url": "http://127.0.0.1:47102/mcp"
     }
   }
 }

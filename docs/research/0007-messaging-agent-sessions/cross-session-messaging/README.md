@@ -39,9 +39,10 @@ any release.
   it's busy, and answers with its `SendMessage` tool to `uds:<inbox>`. The
   review server reads the answer from its inbox, as a frame of the same shape,
   and ties it to the message by the `ad-…` ID the agent copies into its answer.
-- When the agent session holds, refuses or drops a message, it sends a
-  `peer_message_status` frame to `<inbox>` with the original `msg_id`, which the
-  review server logs as a receipt.
+- When the agent session holds a message, or later delivers, denies or refuses a
+  held one, it sends a `peer_message_status` frame to `<inbox>` with the
+  original `msg_id`. The review server logs it as a receipt. A message that's
+  delivered straight away gets no receipt.
 - `POST /reply` takes a reply over HTTP instead, for an agent session told to
   answer with `curl`.
 
@@ -80,9 +81,35 @@ Use Node 24 or later. There are no dependencies.
 
 4. Expect the agent session to show
    `› Message from @agent-diff: [ad-…] What is 2+2? …`, start a turn, and send
-   `ad-… 4` with `SendMessage`. In auto mode the classifier allowed the
-   `SendMessage` call. Other permission modes weren't tried. The review server
-   logs a `reply` event with the ID and the time since it sent the message.
+   `ad-… 4` with `SendMessage`. In auto mode the classifier allows the
+   `SendMessage` call, and in the default mode it isn't prompted for. The review
+   server logs a `reply` event with the ID and the time since it sent the
+   message.
+
+## Try the other cases
+
+- **Busy:** type ``Run `node busy.mjs` with the Bash tool, then say done.`` in
+  the agent session, and send a message while it runs. The agent session reads
+  it after the 30 s tool call ends, in the same turn.
+- **Permission prompt:** start Claude Code with
+  `claude --permission-mode default`, ask it to run `touch /tmp/x`, and send a
+  message while the prompt shows. The message waits until you answer the prompt.
+- **Held for approval:** start Claude Code with
+  `claude --permission-mode bypassPermissions`. A message shows an approval
+  dialog, and the review server logs a `held` receipt, then `delivered` or
+  `denied`. Send with `"fromMode": "bypass"`, or start Claude Code with
+  `--settings '{"crossSessionInbound":"accept"}'`, and it's delivered without
+  the dialog. To skip the bypass disclaimer without accepting it into your user
+  settings, put `{"skipDangerousModePermissionPrompt": true}` in
+  `.claude/settings.local.json` in this directory.
+- **Refused:** put `{"crossSessionInbound": "refuse"}` in
+  `.claude/settings.json` in this directory. Running agent sessions pick it up,
+  and the review server logs an `expired` receipt with
+  `status_detail: "refused"`.
+- **Reply with curl:** ask in the message for
+  `curl -s -XPOST http://127.0.0.1:47104/reply -d '{"id":"<ID>","text":"<answer>"}'`.
+- **Exited:** after `/exit` the socket is gone and the send fails with `ENOENT`.
+  After `kill -9` the socket stays and the send fails with `ECONNREFUSED`.
 
 `POST /send` also takes:
 
@@ -95,6 +122,9 @@ Use Node 24 or later. There are no dependencies.
   tag.
 - `token`: send `{"type":"auth","token":…}` first.
 - `noFrom`: leave out the reply address.
+- `sessionId`: the agent session's ID, from `GET /agents`. The agent session
+  silently drops a frame whose ID doesn't match, which guards against a reused
+  PID.
 
 `GET /messages` lists the messages sent, with their receipts and replies.
 

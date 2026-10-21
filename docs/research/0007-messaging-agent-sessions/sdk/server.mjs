@@ -173,6 +173,10 @@ function handleOutput(session, m) {
       taskId: m.task_id,
       description: m.description,
     });
+  } else if (m.type === 'rate_limit_event') {
+    // Subscription usage. Stop testing if this says the limit is reached or
+    // usage credits are in use.
+    log('agent.rate_limit', { session: session.id, ...m.rate_limit_info });
   }
 }
 

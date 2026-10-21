@@ -9,7 +9,7 @@ It tries to reach an agent session with standard MCP messages
 `notifications/claude/channel`), and offers a long-poll tool
 (`wait_for_message`) and a `reply` tool that takes the message ID.
 
-The research was stopped early. See the research notes for what was tried.
+The research was cut down in scope. See the research notes for what was tried.
 
 ## Run it
 
@@ -19,9 +19,12 @@ The research was stopped early. See the research notes for what was tried.
      `claude --mcp-config mcp-stdio.json --strict-mcp-config`
    - Claude Code, HTTP: first `node server.mjs --transport=http --port=47102`,
      then `claude --mcp-config mcp-http.json --strict-mcp-config`
-   - Cursor CLI, stdio: `cursor-agent --approve-mcps` with `.cursor/mcp.json`.
-     The Cursor CLI only found this file when this directory was the workspace
-     root outside the git repo, so copy the directory somewhere else first.
+   - Cursor CLI, HTTP: first `node server.mjs --transport=http --port=47102`,
+     then `cursor-agent --approve-mcps` with `.cursor/mcp.json`. The Cursor CLI
+     only reads `.cursor/mcp.json` at the workspace root (the git root), so copy
+     this directory to a scratch directory outside git and run it there. Don't
+     use stdio with the Cursor CLI: it runs stdio MCP servers in its sandbox,
+     where the control port isn't reachable from outside.
 3. Send a message from the review server:
 
    ```sh
@@ -40,7 +43,11 @@ The research was stopped early. See the research notes for what was tried.
    capabilities. Every JSON-RPC message, send, and reply is logged with a
    timestamp to `$AD_LOG`, by default `/tmp/ad-mcpnotif-<transport>.log`.
 
+`busy.sh 30` keeps an agent session busy for 30 seconds without `sleep`.
+
 To try the long poll, ask the agent: "Call the review wait_for_message tool.
 When it returns a message, answer it with the review reply tool." Then send a
 `poll` message. The reply is logged as `REPLY` with the message ID and the
-latency.
+latency. In Claude Code the call moves to the background after 120 seconds; the
+message then arrives as a background task notification, which starts a turn if
+the agent session is idle.

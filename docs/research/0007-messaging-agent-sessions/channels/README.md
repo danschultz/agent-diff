@@ -58,11 +58,12 @@ preview, so this needs Claude Code's development flag.
    starts a turn, calls the `reply` tool, and the review server logs
    `reply.received` with the same `message_id` and the time since it was sent.
 
-5. To try the permission relay, which this prototype implements from the docs
-   but which wasn't tried by hand, switch the agent session to manual mode with
-   `Shift+Tab`, then send a message that makes it run a command that needs
-   approval. The review server should log `permission.request` with a
-   five-letter `request_id`. Answer it from the review server:
+5. To try the permission relay, start Claude Code with
+   `--permission-mode default` (or switch to manual mode with `Shift+Tab`), so
+   the `reply` tool and shell commands need approval. Send a message. When the
+   approval prompt opens in the terminal, the review server logs
+   `permission.request` with a five-letter `request_id`. Answer it from the
+   review server instead of the terminal, with `allow` or `deny`:
 
    ```sh
    curl -s -XPOST localhost:47101/verdict -d '{"to":"agent-a","request_id":"abcde","behavior":"allow"}'
@@ -85,5 +86,7 @@ Nothing is authenticated, so anything on this machine that can reach the port
 can send the agent session a prompt or approve a tool call. Only run it for a
 test.
 
-Set `AD_ALWAYS_LOAD=0` when starting Claude Code to let tool search defer the
-`reply` tool, as it does by default for MCP tools.
+The `reply` tool sets `"anthropic/alwaysLoad": true` in its `_meta`, so Claude
+Code loads it upfront instead of deferring it behind tool search. Without it,
+Haiku and Sonnet answered channel messages in the terminal and didn't call the
+tool. Set `AD_ALWAYS_LOAD=0` when starting Claude Code to see that.

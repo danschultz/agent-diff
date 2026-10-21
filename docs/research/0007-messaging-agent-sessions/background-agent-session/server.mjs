@@ -50,7 +50,12 @@ async function resolveSession(ref) {
   const a = agents.find(
     (x) => x.id === ref || x.sessionId === ref || x.name === ref,
   );
-  if (!a) throw new Error(`no agent session matches ${ref}`);
+  if (!a) {
+    // A removed agent session isn't listed. A full session UUID is still
+    // tried, to see what `claude --resume` does with it.
+    if (/^[0-9a-f-]{36}$/.test(ref)) return { sessionId: ref };
+    throw new Error(`no agent session matches ${ref}`);
+  }
   if (!a.sessionId) throw new Error(`agent session ${ref} has no sessionId`);
   return a;
 }
@@ -131,6 +136,22 @@ function plain(s) {
     .replace(/\r/g, '');
 }
 
+// Polls `claude agents --json` until the agent session is busy, to log when
+// the message's turn started. It's approximate: each poll takes about 1 s.
+async function watchTurnStart(id, shortId, sentAt) {
+  const m = messages.get(id);
+  for (let i = 0; i < 40 && !m.reply; i++) {
+    const a = (await listAgents()).find((x) => x.id === shortId);
+    if (a?.status === 'busy') {
+      log(`TURN-BUSY ${id} seen ${Date.now() - sentAt}ms after send`);
+      return;
+    }
+    if (a?.status === 'waiting') {
+      log(`WAITING ${id} ${shortId} waitingFor=${a.waitingFor}`);
+    }
+  }
+}
+
 function readBody(req) {
   return new Promise((resolve) => {
     let b = '';
@@ -162,6 +183,7 @@ const server = http.createServer(async (req, res) => {
         `SEND-RESULT ${id} sent=${r.sent} after ${r.ms}ms${r.exitCode !== undefined ? ` exit=${r.exitCode}` : ''}${r.timeout ? ' timeout' : ''}`,
       );
       if (!r.sent) log(`SEND-OUTPUT ${id}: ${JSON.stringify(r.output)}`);
+      if (r.sent && agent.id) watchTurnStart(id, agent.id, sentAt);
       return reply(200, { id, ...r });
     }
     if (req.method === 'POST' && req.url === '/reply') {
