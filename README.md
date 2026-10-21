@@ -1,6 +1,6 @@
 # agent-diff
 
-Hello World
+hello world
 
 A code review tool for humans reviewing the output of coding agents.
 
