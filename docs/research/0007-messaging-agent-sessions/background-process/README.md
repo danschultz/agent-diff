@@ -66,14 +66,29 @@ root, so copy `client.mjs` and `busy.sh` to a folder outside git. Add a
 ```
 
 1. Start the server in this folder: `node server.mjs`.
-2. In the copy, start `cursor-agent` and trust the folder.
-3. Type: "Run `node client.mjs listen --session K --once` as a background shell
-   command, then end your turn. When it exits it prints a review message: answer
-   it by running the reply command it shows."
+2. In the copy, start `cursor-agent` and trust the folder. Don't pass `--model`,
+   and don't choose "Add to allowlist" in a permission prompt: both change the
+   user's `~/.cursor/cli-config.json`.
+3. Type one of these prompts:
+   - Exits on a message: "Run `node client.mjs listen --session K --once` as a
+     background shell command, then end your turn. When it exits it prints a
+     review message: answer it by running the reply command it shows."
+   - Keeps printing: "Run `node client.mjs listen --session K` as a background
+     shell command that keeps running, and ask to be notified whenever its
+     output matches `agent-diff review message`. Each such line is a review
+     message: answer it by running the reply command it shows. Then end your
+     turn."
 4. Send a message:
    `node client.mjs send K "What is 2+3? Reply with just the number."`
-5. Expect "Finished" for the background command, a new turn, and a `reply` line
-   in the server's log.
+5. Expect "Finished" and the background command's description, or the reason the
+   agent gave for the watch, then a new turn and a `reply` line in the server's
+   log. With `--once`, the agent has to start the listener again for the next
+   message.
 
-Busy agent sessions, permission prompts and exited agent sessions weren't tried
-with the Cursor CLI.
+To try a busy agent session, type "Run `./busy.sh` in the foreground and tell me
+what it printed" and send the message while it runs. To try a permission prompt,
+type "Run `touch /tmp/agent-diff-x` in the foreground" and send the message
+while the prompt shows, then choose "Run (once)". Expect the message to be
+handled after the tool call ends or the prompt is answered. To try an exited
+agent session, press Ctrl+D: the listener stops, and later messages stay queued
+on the server.
