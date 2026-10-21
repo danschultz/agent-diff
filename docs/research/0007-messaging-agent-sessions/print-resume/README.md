@@ -38,3 +38,18 @@ dependencies and runs on Node 24 or later.
 The message runs in a new process on the stored conversation. The interactive
 agent session's terminal shows nothing, and the interactive agent session
 doesn't see the message or the reply.
+
+To see the other states, type into the interactive agent session before sending:
+
+- Busy:
+  `Run this exact bash command in the foreground: node -e "setTimeout(()=>{},45000)"`.
+  Wait until the terminal shows it running. For Claude Code, allow
+  `Bash(node -e *)` in the scratch directory's `.claude/settings.json`.
+- Waiting on a permission prompt: start Claude Code with
+  `--permission-mode default` and type
+  `Run this exact bash command: touch /tmp/<name>-x`.
+- Exited: type `/exit`, send the message, then run
+  `claude --resume <session-id>`. The print-mode turn shows in the history.
+
+In the busy and permission-prompt states, the print-mode turn doesn't wait. It
+runs at once and treats the running tool call as interrupted.

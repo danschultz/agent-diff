@@ -18,11 +18,19 @@ There are no npm dependencies. It needs Node 24 or later.
   and `send` (stands in for the review UI).
 - `plugin/`: a Claude Code plugin whose monitor starts `client.mjs listen` with
   the agent session, for `--plugin-dir`.
+- `busy.sh`: keeps a tool call busy for 30 seconds, for sending a message
+  mid-turn. Claude Code blocks a bare `sleep`.
+- `.claude/settings.json`: allows `node client.mjs *`, `./busy.sh` and the
+  Monitor tool for Claude Code in this folder, so in the default permission mode
+  only the command you're testing asks for permission. When the agent runs
+  `client.mjs` from this folder, it prints the reply command with the short path
+  so this rule matches.
 
 ## Run it with Claude Code
 
 1. Start the server: `node server.mjs`.
-2. In another terminal, in this folder, start `claude`.
+2. In another terminal, in this folder, start
+   `claude --model haiku --permission-mode default`.
 3. Type one of these prompts:
    - Exits on a message: "Start `node client.mjs listen --session A --once` with
      the Bash tool and run_in_background true, then stop and wait. When it exits
@@ -36,14 +44,36 @@ There are no npm dependencies. It needs Node 24 or later.
 5. Expect the agent to start a turn, run the reply command, and the server to
    log a `reply` line with the same message ID.
 
-The plugin monitor wasn't tried: research stopped at a usage limit. To start the
-listener with the agent session instead, start `claude --plugin-dir ./plugin`
-with `BGPROC_SESSION` set to the agent-session ID the server should use. Without
-it, `client.mjs` falls back to `CLAUDE_CODE_SESSION_ID`, if the agent sets it
-for the process.
+To try a busy agent session, type "Run ./busy.sh in the foreground with the Bash
+tool" and send the message while it runs. To try a permission prompt, type "Run
+`touch /tmp/agent-diff-x` with the Bash tool" and send the message while the
+prompt shows. Expect the message to be handled after the tool call ends or the
+prompt is answered.
+
+To start the listener with the agent session instead, start
+`claude --plugin-dir ./plugin`. The listener uses `BGPROC_SESSION` as the
+agent-session ID if it's set, and otherwise `CLAUDE_CODE_SESSION_ID`. Send
+messages to the ID the server logs in its `listener-open` line.
 
 ## Run it with the Cursor CLI
 
-Not tried: research stopped at a usage limit. Start `cursor-agent` in this
-folder and ask it to run `node client.mjs listen --session K --once` as a
-background shell, then send a message to `K` as in step 4.
+The Cursor CLI only reads project config, such as `.cursor/cli.json`, at the git
+root, so copy `client.mjs` and `busy.sh` to a folder outside git. Add a
+`.cursor/cli.json` there with:
+
+```json
+{ "permissions": { "allow": ["Shell(node)", "Shell(./busy.sh)"], "deny": [] } }
+```
+
+1. Start the server in this folder: `node server.mjs`.
+2. In the copy, start `cursor-agent` and trust the folder.
+3. Type: "Run `node client.mjs listen --session K --once` as a background shell
+   command, then end your turn. When it exits it prints a review message: answer
+   it by running the reply command it shows."
+4. Send a message:
+   `node client.mjs send K "What is 2+3? Reply with just the number."`
+5. Expect "Finished" for the background command, a new turn, and a `reply` line
+   in the server's log.
+
+Busy agent sessions, permission prompts and exited agent sessions weren't tried
+with the Cursor CLI.

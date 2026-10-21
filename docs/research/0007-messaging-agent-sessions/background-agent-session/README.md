@@ -12,7 +12,7 @@ npm dependencies; it needs `claude`, `script` (util-linux) and Node 24 or later.
    ```
 
 2. In another terminal, in this directory, start a background agent session.
-   `.claude/settings.json` here allows `node reply.mjs` and `sh wait.sh` without
+   `.claude/settings.json` here allows `node reply.mjs` and `sh busy.sh` without
    a permission prompt.
 
    ```sh
@@ -39,5 +39,6 @@ npm dependencies; it needs `claude`, `script` (util-linux) and Node 24 or later.
 
 5. Stop the agent session with `claude stop <id>`, then `claude rm <id>`.
 
-`wait.sh` runs `sleep 30`, to keep a turn busy for the busy test. Ask the agent
-to run `sh wait.sh` in the foreground, then send a message.
+`busy.sh` waits about 30 seconds in Node, to keep a turn busy for the busy test.
+Claude Code blocks a foreground `sleep 30`, so it doesn't use `sleep`. Ask the
+agent to run `sh busy.sh` in the foreground, then send a message.
