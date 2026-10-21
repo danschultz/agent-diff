@@ -308,7 +308,9 @@ function startQueued(
       deps.log(`${task.ref}: waiting on ${refs(h.blockers)}`);
       continue;
     }
-    if (started >= slots) break;
+    // Keep going once the slots are used up, so every brief that can't start
+    // is still sent back or logged.
+    if (started >= slots) continue;
     const previous = deps.state.briefs[task.id];
     if (previous && findSession(running, previous)) {
       deps.log(

@@ -622,6 +622,21 @@ test("briefs waiting on blockers don't use a concurrency slot or hold up the bri
   );
 });
 
+test('logs every brief waiting on blockers, even after the concurrency slots are used up', () => {
+  const h = harness({
+    tasks: [
+      task('1B', 'queued'),
+      task('2B', 'queued'),
+      task('3B', 'queued'),
+      task('4B', 'queued', { blockers: [blocker('9X', 'todo')] }),
+    ],
+  });
+  tick(h.deps);
+  assert.equal(h.started.length, 2);
+  assert.ok(h.logs.includes('AD-4B: waiting on AD-9X'), h.logs.join('\n'));
+  assert.equal(h.tasks.get('3BTASKID0000')!.agent, 'queued');
+});
+
 test('starts a queued brief whose blockers are all done', () => {
   const h = harness({
     tasks: [
