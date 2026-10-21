@@ -1,0 +1,5 @@
+{
+  "name": "agent-diff-messages",
+  "version": "0.0.0",
+  "description": "Research prototype: a monitor that carries review server messages into the agent session"
+}

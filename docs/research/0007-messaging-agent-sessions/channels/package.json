@@ -1,0 +1,12 @@
+{
+  "name": "messaging-agent-sessions-channels",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "review-server": "node review-server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "zod": "4.6.5"
+  }
+}

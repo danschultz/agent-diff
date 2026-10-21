@@ -1,0 +1,10 @@
+{
+  "name": "agent-diff-research-print-resume",
+  "private": true,
+  "type": "module",
+  "description": "Prototype: send a message to an agent session's conversation with print mode and --resume",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {}
+}

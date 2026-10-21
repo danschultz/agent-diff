@@ -1,0 +1,13 @@
+{
+  "name": "mcp-notifications-prototype",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "http": "node server.mjs --transport=http --port=47102",
+    "stdio": "node server.mjs --transport=stdio --port=47112"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "zod": "4.1.12"
+  }
+}

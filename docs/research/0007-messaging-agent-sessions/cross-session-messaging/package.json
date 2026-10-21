@@ -1,0 +1,8 @@
+{
+  "name": "agent-diff-research-cross-session-messaging",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.ts"
+  }
+}

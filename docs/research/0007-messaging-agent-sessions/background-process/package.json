@@ -1,0 +1,10 @@
+{
+  "name": "agent-diff-research-background-process",
+  "private": true,
+  "type": "module",
+  "description": "Prototype: a background process the agent starts carries review server messages to it.",
+  "scripts": {
+    "server": "node server.mjs"
+  },
+  "dependencies": {}
+}
