@@ -57,9 +57,8 @@ terms in the same files. See
 ## Waves
 
 Group the briefs into waves that can run together, with at most two briefs in a
-wave, so no more than two run at a time. More burns through Dan's usage limit. A
-dependency means waiting only for the brief it names, not for the whole wave
-it's in.
+wave, because more burns through Dan's usage limit. A dependency means waiting
+only for the brief it names, not for the whole wave it's in.
 
 ## The plan is an Aven epic
 

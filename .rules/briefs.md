@@ -12,8 +12,8 @@ Writing a brief turns one item of a plan, or a one-off request such as a bug
 fix, into a brief. Planning, which decides what to build and in what order,
 follows [`.rules/planning.md`](planning.md).
 
-1. **Interview Dan.** Before writing the brief, ask Dan about every choice the
-   decisions it builds to don't settle:
+1. **Interview Dan.** Before writing the brief, ask Dan about every choice that
+   accepted decisions don't settle:
    - Give each question options, with the one you recommend first, and say why.
    - Get Dan's agreement to new or changed terms, following
      [`.rules/glossary.md`](glossary.md).
@@ -121,7 +121,8 @@ These are the design choices agreed with Dan. Record them as written.
 
 ### Escalation criteria
 
-- A choice contradicts an accepted decision, the glossary, or the README.
+- A choice contradicts an accepted decision, the glossary, or the README, beyond
+  the amendments under Effect on earlier decisions and the changes under Terms.
 - Writing a decision needs a term or a design choice that isn't listed above.
 
 ### Notes
