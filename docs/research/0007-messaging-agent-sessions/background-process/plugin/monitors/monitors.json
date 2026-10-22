@@ -1,0 +1,7 @@
+[
+  {
+    "name": "review-messages",
+    "command": "node \"${CLAUDE_PLUGIN_ROOT}/../client.mjs\" listen",
+    "description": "agent-diff review server messages"
+  }
+]

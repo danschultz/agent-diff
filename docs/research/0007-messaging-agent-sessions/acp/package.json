@@ -1,0 +1,10 @@
+{
+  "name": "agent-diff-research-acp",
+  "private": true,
+  "type": "module",
+  "description": "Prototype: the review server as an Agent Client Protocol client of `cursor-agent acp`.",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "review": {
+      "command": "node",
+      "args": ["./channel-server.ts"]
+    }
+  }
+}
