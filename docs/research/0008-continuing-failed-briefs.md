@@ -98,9 +98,10 @@ change. Only Claude Code is covered.
   worker during a turn: `settled (done)` 0.2 s later, the same `state.json` and
   `timeline.jsonl`, the transcript cut off mid-turn, a `SessionEnd` hook and no
   `Stop` hook. No other cause tried gave `(done)` in the middle of a turn. What
-  sent the signal isn't recorded anywhere that was found. The last command, a
-  Node script launching Chromium through Playwright, doesn't send signals
-  itself.
+  sent the signal isn't recorded anywhere that was found. The last command ran a
+  Node script that launched Chromium through Playwright, and nothing in the
+  script signals other processes. Whether Playwright or Chromium could have
+  signalled the worker wasn't checked.
 - `implement` marked it failed at 05:28:50. Dan resumed it at 07:00 in a tmux
   pane, interactively:
   `claude --resume <session-id> --permission-mode auto --settings <implement's settings.json> --model claude-opus-5-5`.
@@ -220,11 +221,14 @@ A `(done)` after a finished turn, from a retire or an exit while idle, and a
 
 Every option below was tried with a prototype in
 [`0008-continuing-failed-briefs/`](0008-continuing-failed-briefs/), one
-directory each, against a throwaway agent session whose worker was killed with
-`SIGKILL` while idle. That's the state a brief is in when `implement` marks it
-failed. Cost is the first request after continuing. The throwaway conversations
-were about 53k tokens, almost all of it Claude Code's system prompt and tools,
-with the prompt cache warm. The two real resumes above show the cost for a
+directory each. The ways of continuing were tried on a throwaway agent session
+whose worker was killed with `SIGKILL` while idle, the state a brief is in when
+`implement` marks it failed. The daemon's own restart was tried by killing the
+worker during a turn, and the `Stop` hook on agent sessions told to end their
+turn without opening the "pull request". Cost is the first request after
+continuing, or after each block for the hook. The throwaway conversations were
+about 53k tokens, almost all of it Claude Code's system prompt and tools, with
+the prompt cache warm. The two real resumes above show the cost for a
 conversation of a real brief.
 
 | Option                                                                    | Stability                                                                              | Triggered by                                                 | Keeps the conversation                                                                       | Keeps the session ID                                    | Remote Control and hooks afterwards                                                                                                         | Background tasks                                                                                        | Cost                                                                                                    |
