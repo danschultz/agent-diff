@@ -1,7 +1,23 @@
 # 0018: Agents list a review session's open comments and mark each one addressed
 
-- Status: Accepted
+- Status: Accepted, amended by
+  [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md)
+  and [0038](0038-agents-reply-in-comment-threads.md)
 - Date: 2026-10-15
+
+> **Amended by
+> [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md):**
+> comments and the reviewer's replies are drafts until the reviewer submits a
+> review, and the review server sends the agent a review message naming
+> `agent-diff review show <review-id>`. The copyable prompt becomes that review
+> message, needed only when no agent session is listening. Claims stay removed,
+> IDs stay explicit, and review sessions are still archived or deleted.
+
+> **Amended by [0038](0038-agents-reply-in-comment-threads.md):**
+> `agent-diff comment addressed` is replaced by
+> `agent-diff comment reply <comment-id> --addressed|--needs-input <text>`.
+> Comment statuses are open, addressed, needs input, and resolved, and the
+> reviewer reopens a comment by replying to it.
 
 ## Problem
 

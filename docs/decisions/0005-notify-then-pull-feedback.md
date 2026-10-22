@@ -2,8 +2,9 @@
 
 - Status: Accepted, amended by [0009](0009-review-sessions-and-claims.md),
   [0010](0010-user-prompts-agent-to-fetch-review.md),
-  [0011](0011-api-core-with-cli-client.md), and
-  [0018](0018-agents-list-open-comments.md)
+  [0011](0011-api-core-with-cli-client.md),
+  [0018](0018-agents-list-open-comments.md), and
+  [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md)
 - Date: 2026-10-10
 
 > **Amended by [0009](0009-review-sessions-and-claims.md):** feedback goes to a
@@ -24,6 +25,15 @@
 > as drafts and delivered as a submitted batch. Each comment is available to
 > agents as soon as it's saved, and the agent lists open comments with
 > `agent-diff comment list <session-id>`.
+
+> **Amended by
+> [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md):**
+> comments are drafts until the reviewer submits a review again, and the review
+> server sends the agent a short review message, which names
+> `agent-diff review show <review-id>`. It reaches the agent through a listener
+> the agent starts
+> ([0037](0037-agents-get-review-messages-through-a-listener-they-start.md)),
+> not a harness typing into the terminal.
 
 ## Problem
 
