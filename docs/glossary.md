@@ -7,7 +7,7 @@ how to add, change, or remove terms.
 ### Actor
 
 A human or agent that requests changes, makes changes, or starts a
-[review session](#review-session).
+[session](#session).
 
 ### Agent
 
@@ -18,16 +18,16 @@ An AI coding agent that makes changes in one or more
 
 One running instance of an [agent](#agent), usually managed by a
 [harness](#harness). When an agent restarts, it runs in a new agent session.
-Always write "agent session" or "[review session](#review-session)", never just
-"session".
+Always write "agent session" in full. A bare "session" always means a
+[session](#session).
 
 ### Agent tree
 
 A [main agent](#main-agent) and the [sub-agents](#sub-agent) it started, as
 reported by the agents or their [harness](#harness). It's never inferred from
 git. The agent tree is used to show who changed what and to filter the
-[review UI](#review-ui) by agent. It doesn't define what a review session
-covers. See [0004](decisions/0004-agent-tree-is-an-input.md).
+[review UI](#review-ui) by agent. It doesn't define what a session covers. See
+[0004](decisions/0004-agent-tree-is-an-input.md).
 
 ### Anchor
 
@@ -59,12 +59,12 @@ changes are compared against.
 
 ### Comment
 
-A note the [reviewer](#reviewer) leaves in a [review session](#review-session).
-There are two kinds:
+A note the [reviewer](#reviewer) leaves in a [session](#session). There are two
+kinds:
 
 - **Line comment:** on a single line or a range of lines in a file. It has an
   [anchor](#anchor) and an [anchor state](#anchor-state).
-- **Overall comment:** not attached to code. It belongs to the review session.
+- **Overall comment:** not attached to code. It belongs to the session.
 
 A comment is a [draft](#draft) until its [review](#review) is submitted, and
 then it's available to agents. Each comment is a thread of [replies](#reply),
@@ -129,7 +129,7 @@ herdr, or otty. Harnesses can register agents.
 
 The `agent-diff session listen <session-id>` process an agent starts in the
 background. It prints each [review message](#review-message) for a
-[review session](#review-session) as a line, which starts a [turn](#turn). See
+[session](#session) as a line, which starts a [turn](#turn). See
 [0037](decisions/0037-agents-get-review-messages-through-a-listener-they-start.md).
 
 ### Main agent
@@ -153,9 +153,8 @@ input, and is saved at once. A reviewer's reply is a [draft](#draft) until its
 ### Review
 
 A batch of [drafts](#draft) the [reviewer](#reviewer) submits in a
-[review session](#review-session), identified by an ID. Submitting it sends a
-[review message](#review-message). A review session gets many reviews over time.
-See
+[session](#session), identified by an ID. Submitting it sends a
+[review message](#review-message). A session gets many reviews over time. See
 [0036](decisions/0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md).
 
 ### Review message
@@ -174,21 +173,10 @@ The local server that stores review state in SQLite, watches
 [review UI](#review-ui), and provides the API that the review UI and the
 `agent-diff` CLI call. See [0011](decisions/0011-api-core-with-cli-client.md).
 
-### Review session
-
-A set of [working directories](#working-directory) under review, identified by
-an ID. An [actor](#actor) starts a review session through an API call, working
-directories can be added after it starts, and the [reviewer](#reviewer) leaves
-[comments](#comment) in it and submits [reviews](#review). A review session is
-archived, which stops watching its working directories and makes it read-only,
-or deleted, which removes its data. See
-[0009](decisions/0009-review-sessions-and-claims.md) and
-[0018](decisions/0018-agents-list-open-comments.md).
-
 ### Review UI
 
-The local web app where the [reviewer](#reviewer) views a
-[review session](#review-session)'s diffs and writes [comments](#comment). See
+The local web app where the [reviewer](#reviewer) views a [session](#session)'s
+diffs and writes [comments](#comment). See
 [0001](decisions/0001-local-web-app.md).
 
 ### Reviewer
@@ -201,6 +189,17 @@ The human reviewing code and writing [comments](#comment) in the
 A review of an [agent session](#agent-session)'s changes by a
 [sub-agent](#sub-agent) that didn't write them, before the pull request opens.
 See [0030](decisions/0030-self-review-before-the-pull-request-opens.md).
+
+### Session
+
+A set of [working directories](#working-directory) under review, identified by
+an ID. An [actor](#actor) starts a session through an API call, working
+directories can be added after it starts, and the [reviewer](#reviewer) leaves
+[comments](#comment) in it and submits [reviews](#review). A session is
+archived, which stops watching its working directories and makes it read-only,
+or deleted, which removes its data. See
+[0009](decisions/0009-review-sessions-and-claims.md) and
+[0018](decisions/0018-agents-list-open-comments.md).
 
 ### Sub-agent
 
@@ -217,11 +216,11 @@ The state of a [working directory](#working-directory) recorded at a
 
 ### Working directory
 
-A directory on disk that agents make changes in and that
-[review sessions](#review-session) cover. It may be a git repo, a git worktree,
-or a directory inside a repo, or it may not use git at all. The diff and the
-[file view](#file-view) only include files under it, even when git runs against
-the whole repo. In a git working directory, the branch is whatever `HEAD` points
-to, and isn't part of the working directory. A working directory that doesn't
-use git has no diffs. A working directory can be in several review sessions. See
+A directory on disk that agents make changes in and that [sessions](#session)
+cover. It may be a git repo, a git worktree, or a directory inside a repo, or it
+may not use git at all. The diff and the [file view](#file-view) only include
+files under it, even when git runs against the whole repo. In a git working
+directory, the branch is whatever `HEAD` points to, and isn't part of the
+working directory. A working directory that doesn't use git has no diffs. A
+working directory can be in several sessions. See
 [0013](decisions/0013-working-directories.md).

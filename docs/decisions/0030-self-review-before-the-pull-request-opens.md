@@ -46,15 +46,15 @@ request can reach Dan with failing CI, because nothing waits for it.
   as one input, not the whole measure: a cost counts only when the work grows
   faster than it should, n is large in practice, and the code runs often. It
   sets the sizes to design for (about 50 working directories in a
-  [review session](../glossary.md#review-session), 10,000 files in a working
-  directory, 50,000 lines in one file's diff, 500 comments, and thousands of
-  file-system events a second), and calls out agent-diff's own risks:
-  synchronous `node:sqlite` queries blocking the event loop, recomputing
-  everything on one file-system event, hand-written LCS diffs, and re-rendering
-  the review UI. The sub-agent rates exponential work, worse-than-linear work on
-  a hot path, and unbounded reads as `high`, avoidable linear work, N+1 queries,
-  unbatched events, and serial `await`s as `medium`, and doesn't report
-  constant-factor tweaks or work over something that stays small.
+  [session](../glossary.md#session), 10,000 files in a working directory, 50,000
+  lines in one file's diff, 500 comments, and thousands of file-system events a
+  second), and calls out agent-diff's own risks: synchronous `node:sqlite`
+  queries blocking the event loop, recomputing everything on one file-system
+  event, hand-written LCS diffs, and re-rendering the review UI. The sub-agent
+  rates exponential work, worse-than-linear work on a hot path, and unbounded
+  reads as `high`, avoidable linear work, N+1 queries, unbatched events, and
+  serial `await`s as `medium`, and doesn't report constant-factor tweaks or work
+  over something that stays small.
 - **Rounds.** After checking the acceptance criteria and running the
   verification steps, and before pushing, the agent session starts the
   `self-review` sub-agent. It fixes the findings it agrees with, test-first, and

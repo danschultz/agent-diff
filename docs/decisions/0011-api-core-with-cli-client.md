@@ -15,9 +15,9 @@
 ## Problem
 
 Agents, harnesses, and the review UI all need to drive the review server: start
-and end review sessions, add working directories, take claims, and fetch
-reviews. Earlier decisions left the interface open, suggesting a CLI, an MCP
-server, or both ([0005](0005-notify-then-pull-feedback.md),
+and end sessions, add working directories, take claims, and fetch reviews.
+Earlier decisions left the interface open, suggesting a CLI, an MCP server, or
+both ([0005](0005-notify-then-pull-feedback.md),
 [0010](0010-user-prompts-agent-to-fetch-review.md)).
 
 The review UI needs an HTTP API whatever is chosen, because the browser talks to

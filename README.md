@@ -22,18 +22,18 @@ reply to each comment.
    repos.
 2. That agent, or a fleet of sub-agents it delegates to, makes the changes, each
    in its own working directory.
-3. An actor starts a review session over the working directories to review with
-   `agent-diff session new <working-dir>...`, which prints the review session's
-   ID and how to start a listener on it. For example, a human asks the main
-   agent to start one covering all of its sub-agents' working directories, or
-   asks a sub-agent to start one for its own. Working directories can be added
-   to the review session later.
-4. The agent that started the review session starts a listener in the background
-   with `agent-diff session listen <session-id>`: with the Monitor tool in
-   Claude Code, or as a watched background shell in the Cursor CLI. The listener
-   prints a line for each review message, which starts a turn.
-5. The review UI opens for that review session. The reviewer can switch between
-   working directories, and filter by agent when the agent tree is known.
+3. An actor starts a session over the working directories to review with
+   `agent-diff session new <working-dir>...`, which prints the session's ID and
+   how to start a listener on it. For example, a human asks the main agent to
+   start one covering all of its sub-agents' working directories, or asks a
+   sub-agent to start one for its own. Working directories can be added to the
+   session later.
+4. The agent that started the session starts a listener in the background with
+   `agent-diff session listen <session-id>`: with the Monitor tool in Claude
+   Code, or as a watched background shell in the Cursor CLI. The listener prints
+   a line for each review message, which starts a turn.
+5. The review UI opens for that session. The reviewer can switch between working
+   directories, and filter by agent when the agent tree is known.
 6. The reviewer sees the changed files in the file view and a diff comparing
    each working directory to its base ref. A working directory doesn't have to
    be a git repo. If it doesn't use git, the file view lists all its files and
@@ -50,14 +50,14 @@ reply to each comment.
    the review message is held until a listener connects, and the reviewer can
    copy it from the review UI and paste it into any agent session.
 9. The reviewer checks the work and resolves each comment, or replies to it,
-   which reopens it in the next review. Agents don't block while a review
-   session is open, so the human can keep working with them in the meantime.
+   which reopens it in the next review. Agents don't block while a session is
+   open, so the human can keep working with them in the meantime.
 10. Whenever any actor changes the code, the diff updates live. The review
     server watches the file system, so this includes agents in other processes
     and humans editing in their IDE.
 11. When the work is done, the reviewer, an agent, or other automation archives
-    the review session, which stops watching its working directories and keeps
-    its comments read-only, or deletes it.
+    the session, which stops watching its working directories and keeps its
+    comments read-only, or deletes it.
 
 ## Decisions
 
@@ -74,14 +74,13 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
 - The review UI live-reloads by watching the file system.
 - Comments follow the code as it changes, and are marked outdated rather than
   guessed when their lines change.
-- Review sessions cover working directories, with no claims. Agents list a
-  review session's open comments by its ID. Review sessions are archived or
-  deleted.
+- Sessions cover working directories, with no claims. Agents list a session's
+  open comments by its ID. Sessions are archived or deleted.
 - The review server has an API. Agents and harnesses use the `agent-diff` CLI,
   which calls it. There's no MCP server.
 - The review UI renders diffs with CodeMirror.
-- Review sessions cover working directories, which don't have to use git. Only
-  files under the working directory are shown, and the branch is whatever `HEAD`
+- Sessions cover working directories, which don't have to use git. Only files
+  under the working directory are shown, and the branch is whatever `HEAD`
   points to.
 - Briefs written as tasks in Aven, Dan's local task manager, are implemented by
   `implement`, which starts a headless agent session per brief and opens a pull
@@ -91,8 +90,8 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
 - The `agent-diff` CLI is built with Crust. Its commands are noun then verb,
   such as `session new` and `comment list`, and it doesn't start the review
   server unless told to with `server start`.
-- Each user runs one review server, which serves all their review sessions and
-  is the only process that opens their database.
+- Each user runs one review server, which serves all their sessions and is the
+  only process that opens their database.
 - A config file in `$XDG_STATE_HOME/agent-diff` (or `~/.local/state/agent-diff`)
   holds the user's review server port and token, and only the user can read it.
   The database is a file beside it.
@@ -123,10 +122,10 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
 - The review server serves the API and the review UI with Hono.
 - Breaking changes are allowed during early development, so there's no code to
   stay compatible with what earlier versions wrote or accepted.
-- Agents get review messages through a listener they start on the review
-  session, with the Monitor tool in Claude Code or a watched background shell in
-  the Cursor CLI. Review messages are addressed by review session ID, and held
-  while nobody listens.
+- Agents get review messages through a listener they start on the session, with
+  the Monitor tool in Claude Code or a watched background shell in the Cursor
+  CLI. Review messages are addressed by session ID, and held while nobody
+  listens.
 - Every comment is a thread. Agents reply to each one, marking it addressed or
   needs input, and the reviewer resolves it or reopens it with a reply.
 
@@ -166,8 +165,8 @@ them.
   has and how many lines were added and removed.
 - In the tree view, a directory shows when it contains changes, so collapsed
   folders still show where the work is.
-- With several working directories in the review session, files are grouped by
-  working directory.
+- With several working directories in the session, files are grouped by working
+  directory.
 - For a working directory that doesn't use git, there are no diff modes or git
   statuses, and the file view lists all its files.
 
@@ -180,10 +179,10 @@ helps, for example:
   terminal.
 - **otty** and **herdr**: equivalent hooks for opening the review UI.
 
-Agents and harnesses start review sessions, listen for review messages, and
-fetch and reply to comments through the `agent-diff` CLI, a small, documented
-interface that any harness can adopt. The CLI calls the review server's API,
-which the review UI also uses.
+Agents and harnesses start sessions, listen for review messages, and fetch and
+reply to comments through the `agent-diff` CLI, a small, documented interface
+that any harness can adopt. The CLI calls the review server's API, which the
+review UI also uses.
 
 ### Open in an IDE
 

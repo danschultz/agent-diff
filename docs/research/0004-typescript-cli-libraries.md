@@ -400,10 +400,10 @@ Review changes made by coding agents.
 
 Commands:
   start [<path>...] [--base <ref>] [--title <text>] [--open]
-      Start a review session over one or more working directories.
+      Start a session over one or more working directories.
       <path>          Working directories to review (default: the current directory)
       --base <ref>    Base ref to compare against
-      --title <text>  Title for the review session
+      --title <text>  Title for the session
       --open          Open the review UI in a browser
   review [--json]
       Print the most recent review for the current working directory.
@@ -422,10 +422,10 @@ Review changes made by coding agents.
 
 Commands:
   start [<path>...] [--base <ref>] [--title <text>] [--open]
-      Start a review session over one or more working directories.
+      Start a session over one or more working directories.
       <path>          Working directories to review (default: the current directory)
       --base <ref>    Base ref to compare against
-      --title <text>  Title for the review session
+      --title <text>  Title for the session
       --open          Open the review UI in a browser
   review [--json]
       Print the most recent review for the current working directory.
@@ -478,7 +478,7 @@ Options:
   -h, --help                 display help for command
 
 Commands:
-  start [options] [path...]  Start a review session over one or more working
+  start [options] [path...]  Start a session over one or more working
                              directories.
   review [options]           Print the most recent review for the current
                              working directory.
@@ -492,14 +492,14 @@ Commands:
 $ agent-diff start --help
 Usage: agent-diff start [options] [path...]
 
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 Arguments:
   path            Working directories to review (default: the current directory)
 
 Options:
   --base <ref>    Base ref to compare against
-  --title <text>  Title for the review session
+  --title <text>  Title for the session
   --open          Open the review UI in a browser (default: false)
   -h, --help      display help for command
 ```
@@ -548,7 +548,7 @@ agent-diff <command>
 Review changes made by coding agents.
 
 Commands:
-  agent-diff start [path..]  Start a review session over one or more working
+  agent-diff start [path..]  Start a session over one or more working
                              directories.
   agent-diff review          Print the most recent review for the current
                              working directory.
@@ -565,7 +565,7 @@ Options:
 $ agent-diff start --help
 agent-diff start [path..]
 
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 Positionals:
   path  Working directories to review (default: the current directory)
@@ -575,7 +575,7 @@ Options:
   --help     Show help                                                 [boolean]
   --version  Show version number                                       [boolean]
   --base     Base ref to compare against                                [string]
-  --title    Title for the review session                               [string]
+  --title    Title for the session                               [string]
   --open     Open the review UI in a browser          [boolean] [default: false]
 ```
 
@@ -585,7 +585,7 @@ Options:
 $ agent-diff start --nope
 agent-diff start [path..]
 
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 Positionals:
   path  Working directories to review (default: the current directory)
@@ -595,7 +595,7 @@ Options:
   --help     Show help                                                 [boolean]
   --version  Show version number                                       [boolean]
   --base     Base ref to compare against                                [string]
-  --title    Title for the review session                               [string]
+  --title    Title for the session                               [string]
   --open     Open the review UI in a browser          [boolean] [default: false]
 
 Unknown argument: nope
@@ -630,7 +630,7 @@ agent-diff <command>
 Review changes made by coding agents.
 
 Commands:
-  agent-diff start [path..]  Start a review session over one or more working
+  agent-diff start [path..]  Start a session over one or more working
                              directories.
   agent-diff review          Print the most recent review for the current
                              working directory.
@@ -675,14 +675,14 @@ TOPICS
 
 COMMANDS
   review  Print the most recent review for the current working directory.
-  start   Start a review session over one or more working directories.
+  start   Start a session over one or more working directories.
 ```
 
 `agent-diff start --help` (exit 0, stdout):
 
 ```text
 $ agent-diff start --help
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 USAGE
   $ agent-diff start [PATH...] [--base <value>] [--title <value>]
@@ -694,10 +694,10 @@ ARGUMENTS
 FLAGS
   --base=<value>   Base ref to compare against
   --open           Open the review UI in a browser
-  --title=<value>  Title for the review session
+  --title=<value>  Title for the session
 
 DESCRIPTION
-  Start a review session over one or more working directories.
+  Start a session over one or more working directories.
 ```
 
 `agent-diff start --nope` (exit 2, stderr):
@@ -717,7 +717,7 @@ ARGUMENTS
 FLAGS
   --base=<value>   Base ref to compare against
   --open           Open the review UI in a browser
-  --title=<value>  Title for the review session
+  --title=<value>  Title for the session
 ```
 
 `agent-diff hook claude Stopp` (exit 2, stderr):
@@ -763,7 +763,7 @@ $ agent-diff --help
     Print the most recent review for the current working directory.
 
   agent-diff start [--base #0] [--title #0] [--open] ...
-    Start a review session over one or more working directories.
+    Start a session over one or more working directories.
 
 You can also print more details about any of these commands by calling them with
 the `-h,--help` flag right after the command name.
@@ -773,7 +773,7 @@ the `-h,--help` flag right after the command name.
 
 ```text
 $ agent-diff start --help
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 ━━━ Usage ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -782,7 +782,7 @@ $ agent-diff start ...
 ━━━ Options ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   --base #0     Base ref to compare against
-  --title #0    Title for the review session
+  --title #0    Title for the session
   --open        Open the review UI in a browser
 
 ━━━ Examples ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -832,7 +832,7 @@ $ agent-diff --clipanion=definitions
   {
     "path": "agent-diff start",
     "usage": "agent-diff start ...",
-    "description": "Start a review session over one or more working directories.\n",
+    "description": "Start a session over one or more working directories.\n",
     "examples": [
       [
         "Review the current directory against main\n",
@@ -855,7 +855,7 @@ $ agent-diff --clipanion=definitions
           "--title"
         ],
         "definition": "--title #0",
-        "description": "Title for the review session",
+        "description": "Title for the session",
         "required": false
       },
       {
@@ -913,7 +913,7 @@ USAGE agent-diff start|review|hook
 
 COMMANDS
 
-   start    Start a review session over one or more working directories.
+   start    Start a session over one or more working directories.
   review    Print the most recent review for the current working directory.
     hook    Handle harness hook events.
 
@@ -924,7 +924,7 @@ Use agent-diff <command> --help for more information about a command.
 
 ```text
 $ agent-diff start --help
-Start a review session over one or more working directories. (agent-diff start)
+Start a session over one or more working directories. (agent-diff start)
 
 USAGE agent-diff start [OPTIONS] [PATH]
 
@@ -935,7 +935,7 @@ ARGUMENTS
 OPTIONS
 
     --base=<base>    Base ref to compare against
-  --title=<title>    Title for the review session
+  --title=<title>    Title for the session
            --open    Open the review UI in a browser (Default: false)
 ```
 
@@ -970,7 +970,7 @@ USAGE agent-diff start|review|hook
 
 COMMANDS
 
-   start    Start a review session over one or more working directories.
+   start    Start a session over one or more working directories.
   review    Print the most recent review for the current working directory.
     hook    Handle harness hook events.
 
@@ -1004,7 +1004,7 @@ COMMANDS:
   <OPTIONS>
   hook <OPTIONS>                Handle harness hook events.
   review <OPTIONS>              Print the most recent review for the current working directory.
-  start <OPTIONS>               Start a review session over one or more working directories.
+  start <OPTIONS>               Start a session over one or more working directories.
 
 For more info, run any command with the `--help` flag:
   agent-diff --help
@@ -1021,7 +1021,7 @@ OPTIONS:
 
 ```text
 $ agent-diff start --help
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 USAGE:
   agent-diff start <OPTIONS> [<path> ...]
@@ -1033,7 +1033,7 @@ OPTIONS:
   -h, --help               Display this help message
   -v, --version            Display this version
   --base <base>            Base ref to compare against
-  --title <title>          Title for the review session
+  --title <title>          Title for the session
   --open                   Open the review UI in a browser (default: false)
 ```
 
@@ -1078,7 +1078,7 @@ agent-diff <subcommand>
 
 where <subcommand> can be one of:
 
-- start - Start a review session over one or more working directories.
+- start - Start a session over one or more working directories.
 - review - Print the most recent review for the current working directory.
 - hook - Handle harness hook events.
 
@@ -1090,14 +1090,14 @@ For more help, try running `agent-diff <subcommand> --help`
 ```text
 $ agent-diff start --help
 agent-diff start
-> Start a review session over one or more working directories.
+> Start a session over one or more working directories.
 
 ARGUMENTS:
   [...path] - Working directories to review (default: the current directory)
 
 OPTIONS:
   --base <str>  - Base ref to compare against [optional]
-  --title <str> - Title for the review session [optional]
+  --title <str> - Title for the session [optional]
 
 FLAGS:
   --open     - Open the review UI in a browser [optional]
@@ -1172,7 +1172,7 @@ FLAGS
   -h --help  Print help information and exit
 
 COMMANDS
-  start   Start a review session over one or more working directories.
+  start   Start a session over one or more working directories.
   review  Print the most recent review for the current working directory.
   hook    Handle harness hook events.
 ```
@@ -1185,11 +1185,11 @@ USAGE
   agent-diff start [--base ref] [--title text] [--open] <path>...
   agent-diff start --help
 
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 FLAGS
      [--base]   Base ref to compare against
-     [--title]  Title for the review session
+     [--title]  Title for the session
      [--open]   Open the review UI in a browser [default = false]
   -h  --help    Print help information and exit
 
@@ -1236,7 +1236,7 @@ FLAGS
   -H --helpAll  Print help information (including hidden commands/flags) and exit
 
 COMMANDS
-  start   Start a review session over one or more working directories.
+  start   Start a session over one or more working directories.
   review  Print the most recent review for the current working directory.
   hook    Handle harness hook events.
 ```
@@ -1250,11 +1250,11 @@ USAGE
   agent-diff start [--base ref] [--title text] [--open] <path>...
   agent-diff start --help
 
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 FLAGS
      [--base]   Base ref to compare against
-     [--title]  Title for the review session
+     [--title]  Title for the session
      [--open]   Open the review UI in a browser [default = false]
   -h  --help    Print help information and exit
 
@@ -1315,7 +1315,7 @@ GLOBAL FLAGS
   --log-level <all|trace|debug|info|warn|warning|error|fatal|none>    Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
 
 SUBCOMMANDS
-  start     Start a review session over one or more working directories.
+  start     Start a session over one or more working directories.
   review    Print the most recent review for the current working directory.
   hook      Handle harness hook events.
 ```
@@ -1325,7 +1325,7 @@ SUBCOMMANDS
 ```text
 $ agent-diff start --help
 DESCRIPTION
-  Start a review session over one or more working directories.
+  Start a session over one or more working directories.
 
 USAGE
   agent-diff start [flags] [<path...>]
@@ -1335,7 +1335,7 @@ ARGUMENTS
 
 FLAGS
   --base string     Base ref to compare against
-  --title string    Title for the review session
+  --title string    Title for the session
   --open            Open the review UI in a browser
 
 GLOBAL FLAGS
@@ -1352,7 +1352,7 @@ GLOBAL FLAGS
 $ agent-diff start --nope
 [stdout]
 DESCRIPTION
-  Start a review session over one or more working directories.
+  Start a session over one or more working directories.
 
 USAGE
   agent-diff start [flags] [<path...>]
@@ -1362,7 +1362,7 @@ ARGUMENTS
 
 FLAGS
   --base string     Base ref to compare against
-  --title string    Title for the review session
+  --title string    Title for the session
   --open            Open the review UI in a browser
 
 GLOBAL FLAGS
@@ -1425,7 +1425,7 @@ GLOBAL FLAGS
   --log-level <all|trace|debug|info|warn|warning|error|fatal|none>    Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
 
 SUBCOMMANDS
-  start     Start a review session over one or more working directories.
+  start     Start a session over one or more working directories.
   review    Print the most recent review for the current working directory.
   hook      Handle harness hook events.
 [stderr]
@@ -1498,7 +1498,7 @@ Usage: agent-diff start [--base REF] [--title TEXT] [--open] [PATH...]
        agent-diff completion [SHELL] [ARG...]
        agent-diff --help
 
-  start                       Start a review session over one or more working directories.
+  start                       Start a session over one or more working directories.
   review                      Print the most recent review for the current working directory.
   hook                        Handle harness hook events.
   help                        Show help information.
@@ -1512,10 +1512,10 @@ Usage: agent-diff start [--base REF] [--title TEXT] [--open] [PATH...]
 $ agent-diff start --help
 Usage: agent-diff start [--base REF] [--title TEXT] [--open] [PATH...]
 
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
   --base REF                  Base ref to compare against
-  --title TEXT                Title for the review session
+  --title TEXT                Title for the session
   --open                      Open the review UI in a browser
   PATH                        Working directories to review (default: the current directory)
 ```
@@ -1632,7 +1632,7 @@ Usage:
   agent-diff [command]
 
 Available Commands:
-  start    Start a review session over one or more working directories.
+  start    Start a session over one or more working directories.
   review   Print the most recent review for the current working directory.
   hook     Handle harness hook events.
 
@@ -1646,14 +1646,14 @@ Flags:
 ```text
 $ agent-diff start --help
 
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 Usage:
   agent-diff start [path] [flags]
 
 Flags:
       --base string    Base ref to compare against
-      --title string   Title for the review session
+      --title string   Title for the session
       --open           Open the review UI in a browser (default: false)
   -h, --help           help for start
   -v, --version        version for agent-diff
@@ -1688,7 +1688,7 @@ $ node dump.ts
 {
   "start": {
     "name": "start",
-    "desc": "Start a review session over one or more working directories.",
+    "desc": "Start a session over one or more working directories.",
     "options": {
       "path": {
         "aliases": [],
@@ -1706,7 +1706,7 @@ $ node dump.ts
         "aliases": [],
         "type": "string",
         "name": "--title",
-        "description": "Title for the review session"
+        "description": "Title for the session"
       },
       "open": {
         "aliases": [],
@@ -1784,7 +1784,7 @@ Options:
   -h, --help                 display help for command
 
 Commands:
-  start [options] [path...]  Start a review session over one or more working
+  start [options] [path...]  Start a session over one or more working
                              directories.
   review [options]           Print the most recent review for the current
                              working directory.
@@ -1798,14 +1798,14 @@ Commands:
 $ agent-diff start --help
 Usage: agent-diff start [options] [path...]
 
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 Arguments:
   path              array path
 
 Options:
   --base [string]   Base ref to compare against
-  --title [string]  Title for the review session
+  --title [string]  Title for the session
   --open [boolean]  Open the review UI in a browser (default: false)
   -h, --help        display help for command
 ```
@@ -1821,14 +1821,14 @@ error: unknown option '--nope'
 
 Usage: agent-diff start [options] [path...]
 
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 Arguments:
   path              array path
 
 Options:
   --base [string]   Base ref to compare against
-  --title [string]  Title for the review session
+  --title [string]  Title for the session
   --open [boolean]  Open the review UI in a browser (default: false)
   -h, --help        display help for command
 ```
@@ -1868,7 +1868,7 @@ Options:
   -h, --help                 display help for command
 
 Commands:
-  start [options] [path...]  Start a review session over one or more working
+  start [options] [path...]  Start a session over one or more working
                              directories.
   review [options]           Print the most recent review for the current
                              working directory.
@@ -1890,7 +1890,7 @@ Options:
   -h, --help                 display help for command
 
 Commands:
-  start [options] [path...]  Start a review session over one or more working
+  start [options] [path...]  Start a session over one or more working
                              directories.
   review [options]           Print the most recent review for the current
                              working directory.
@@ -1900,14 +1900,14 @@ Commands:
 === agent-diff start ===
 Usage: agent-diff start [options] [path...]
 
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 Arguments:
   path              array path
 
 Options:
   --base [string]   Base ref to compare against
-  --title [string]  Title for the review session
+  --title [string]  Title for the session
   --open [boolean]  Open the review UI in a browser (default: false)
   -h, --help        display help for command
 
@@ -1952,7 +1952,7 @@ Options:
   "commands": [
     {
       "name": "start",
-      "description": "Start a review session over one or more working directories.",
+      "description": "Start a session over one or more working directories.",
       "usage": "[options] [path...]",
       "arguments": [
         {
@@ -1986,7 +1986,7 @@ Usage: agent-diff <command>
 Commands:
   hook    Handle harness hook events.
   review  Print the most recent review for the current working directory.
-  start   Start a review session over one or more working directories.
+  start   Start a session over one or more working directories.
 
 Integrations:
   completions  Generate shell completion script
@@ -2012,7 +2012,7 @@ Global Options:
 
 ```text
 $ agent-diff start --help
-agent-diff start — Start a review session over one or more working directories.
+agent-diff start — Start a session over one or more working directories.
 
 Usage: agent-diff start <paths...> [options]
 
@@ -2021,7 +2021,7 @@ Arguments:
 
 Options:
   --base <string>   Base ref to compare against
-  --title <string>  Title for the review session
+  --title <string>  Title for the session
   --open            Open the review UI in a browser
 
 Global Options:
@@ -2080,7 +2080,7 @@ Review changes made by coding agents.
 |---------|-------------|
 | `agent-diff hook claude <event>` | Handle a Claude Code hook event. |
 | `agent-diff review` | Print the most recent review for the current working directory. |
-| `agent-diff start <paths...>` | Start a review session over one or more working directories. |
+| `agent-diff start <paths...>` | Start a session over one or more working directories. |
 
 Run `agent-diff --llms-full` for full manifest. Run `agent-diff <command> --schema` for argument details.
 ```
@@ -2115,7 +2115,7 @@ Print the most recent review for the current working directory.
 
 ### agent-diff start
 
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 #### Arguments
 
@@ -2128,7 +2128,7 @@ Start a review session over one or more working directories.
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--base` | `string` |  | Base ref to compare against |
-| `--title` | `string` |  | Title for the review session |
+| `--title` | `string` |  | Title for the session |
 | `--open` | `boolean` | `false` | Open the review UI in a browser |
 ```
 
@@ -2169,7 +2169,7 @@ $ agent-diff --llms-full --format json
     },
     {
       "name": "start",
-      "description": "Start a review session over one or more working directories.",
+      "description": "Start a session over one or more working directories.",
       "schema": {
         "args": {
           "type": "object",
@@ -2252,7 +2252,7 @@ Global Flags
 Commands
   version      Prints current version
   help         Show help
-  start        Start a review session over one or more working directories.
+  start        Start a session over one or more working directories.
   review       Print the most recent review for the current working directory.
   hook claude  Handle a Claude Code hook event.
 ```
@@ -2261,7 +2261,7 @@ Commands
 
 ```text
 $ agent-diff start --help
-agent-diff start v0.0.0 - Start a review session over one or more working directories.
+agent-diff start v0.0.0 - Start a session over one or more working directories.
 
 Usage
   $ agent-diff start [path...] [flags]
@@ -2271,7 +2271,7 @@ Parameters
 
 Flags
   --base   String   Base ref to compare against
-  --title  String   Title for the review session
+  --title  String   Title for the session
   --open   Boolean  Open the review UI in a browser  [default: false]
 
 Global Flags
@@ -2322,7 +2322,7 @@ Usage: agent-diff [command]
 Review changes made by coding agents.
 
 Commands:
-  start              Start a review session over one or more working directories.
+  start              Start a session over one or more working directories.
   review             Print the most recent review for the current working directory.
   hook <subcommand>  Handle harness hook events.
 
@@ -2336,14 +2336,14 @@ Run "agent-diff [command] --help" for more information. Use "--all" for all glob
 $ agent-diff start --help
 Usage: agent-diff start [paths...] [options]
 
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 Arguments:
   paths...  Working directories to review (default: the current directory)
 
 Options:
   --base   <string>  Base ref to compare against
-  --title  <string>  Title for the review session
+  --title  <string>  Title for the session
   --open             Open the review UI in a browser (default: false)
 ```
 
@@ -2392,7 +2392,7 @@ Commands:
   help (h)           Display help for a command
   version            Display the version number
   repl               Start an interactive REPL
-  start              Start a review session over one or more working directories.
+  start              Start a session over one or more working directories.
   review             Print the most recent review for the current working directory.
   hook <subcommand>  Handle harness hook events.
 
@@ -2439,14 +2439,14 @@ Arguments:
 ────────────────────────────────────────────────────────────
 Usage: agent-diff start [paths...] [options]
 
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 Arguments:
   paths...  Working directories to review (default: the current directory)
 
 Options:
   --base   <string>  Base ref to compare against
-  --title  <string>  Title for the review session
+  --title  <string>  Title for the session
   --open             Open the review UI in a browser (default: false)
 
 ────────────────────────────────────────────────────────────
@@ -2473,7 +2473,7 @@ Commands:
 $ agent-diff start --help --format json
 {
   "name": "start",
-  "description": "Start a review session over one or more working directories.",
+  "description": "Start a session over one or more working directories.",
   "usage": {
     "command": "agent-diff start",
     "hasSubcommands": false,
@@ -2501,7 +2501,7 @@ $ agent-diff start --help --format json
     },
     {
       "name": "title",
-      "description": "Title for the review session",
+      "description": "Title for the session",
       "optional": true,
       "type": "string",
       "variadic": false,
@@ -2543,7 +2543,7 @@ Usage: agent-diff
 Review changes made by coding agents.
 
 Commands:
-  start - Start a review session over one or more working directories.
+  start - Start a session over one or more working directories.
   review - Print the most recent review for the current working directory.
   hook - Handle harness hook events.
 
@@ -2559,13 +2559,13 @@ Run `agent-diff [command] --help` for more information on a command
 ```text
 $ agent-diff start --help
 Usage: agent-diff start [path]
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 Options:
   --help, -h - Show help for the current command
   --version  - Show the version number for the CLI
   --base     - Base ref to compare against
-  --title    - Title for the review session
+  --title    - Title for the session
   --open     - Open the review UI in a browser
 ```
 
@@ -2574,13 +2574,13 @@ Options:
 ```text
 $ agent-diff start --nope
 Usage: agent-diff start [path]
-Start a review session over one or more working directories.
+Start a session over one or more working directories.
 
 Options:
   --help, -h - Show help for the current command
   --version  - Show the version number for the CLI
   --base     - Base ref to compare against
-  --title    - Title for the review session
+  --title    - Title for the session
   --open     - Open the review UI in a browser
 
 Validation failed for one or more options
@@ -2610,7 +2610,7 @@ Usage: agent-diff
 Review changes made by coding agents.
 
 Commands:
-  start - Start a review session over one or more working directories.
+  start - Start a session over one or more working directories.
   review - Print the most recent review for the current working directory.
   hook - Handle harness hook events.
 
@@ -2643,12 +2643,12 @@ Options:
     Show the version number for the CLI
 
 Subcommands:
-  start - Start a review session over one or more working directories.
+  start - Start a session over one or more working directories.
   review - Print the most recent review for the current working directory.
   hook - Handle harness hook events.
 
   ## agent-diff start
-  Start a review session over one or more working directories.
+  Start a session over one or more working directories.
 
   Usage: agent-diff start [path]
 
@@ -2665,7 +2665,7 @@ Subcommands:
     --base <string>
       Base ref to compare against
     --title <string>
-      Title for the review session
+      Title for the session
     --open <boolean>
       Open the review UI in a browser
       Default: false
@@ -2736,7 +2736,7 @@ Usage:
   agent-diff <command> [options]
 
 Commands:
-  start      Start a review session over one or more working directories.
+  start      Start a session over one or more working directories.
   review     Print the most recent review for the current working directory.
   hook       Handle harness hook events.
 
@@ -2748,7 +2748,7 @@ Options:
 
 ```text
 $ agent-diff start --help
-agent-diff start - Start a review session over one or more working directories.
+agent-diff start - Start a session over one or more working directories.
 
 Usage:
   agent-diff start [path...] [options]
@@ -2758,7 +2758,7 @@ Arguments:
 
 Options:
   --base                       Base ref to compare against
-  --title                      Title for the review session
+  --title                      Title for the session
   --open, --no-open            Open the review UI in a browser [default: false]
   -h, --help                   Show help
 ```

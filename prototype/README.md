@@ -53,7 +53,7 @@ cd .data/demo-repo
 
 `start` launches the [review server](../docs/glossary.md#review-server) in the
 background if it isn't running, starts a
-[review session](../docs/glossary.md#review-session), and prints the URL
+[review session](../docs/glossary.md#session), and prints the URL
 (`http://127.0.0.1:4317/?rs=...`). The server logs to `.data/server.log`.
 
 The demo repo has an `agent/order-validation` branch with committed, staged,

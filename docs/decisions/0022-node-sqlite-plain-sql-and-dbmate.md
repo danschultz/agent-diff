@@ -53,8 +53,8 @@ Benefits:
   per-platform builds wherever the review server runs.
 - In 0006, `node:sqlite` was the fastest driver at bulk and single inserts (141
   and 293 ms, against 236 and 397 ms for better-sqlite3), and plain SQL read a
-  review session about four times faster than Drizzle or Prisma, and loaded
-  fastest (267 ms with the store).
+  session about four times faster than Drizzle or Prisma, and loaded fastest
+  (267 ms with the store).
 - Synchronous calls make transactions atomic with respect to other requests,
   with no lock.
 - Plain SQL needs no query layer to learn or upgrade, and the prototype's schema

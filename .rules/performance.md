@@ -6,9 +6,9 @@ Catch obvious bottlenecks, and don't optimize what stays small. See
 ## Judging the cost
 
 Big-O is one input to how serious a cost is, not the whole measure. A quadratic
-loop over the working directories in a review session doesn't matter. A
-quadratic loop over the lines of a 40,000-line lockfile diff, run on every
-file-system event, does. Judge three things together:
+loop over the working directories in a session doesn't matter. A quadratic loop
+over the lines of a 40,000-line lockfile diff, run on every file-system event,
+does. Judge three things together:
 
 1. **Complexity:** how the work grows. Exponential is worse than polynomial,
    which is worse than linear, which is worse than constant.
@@ -24,13 +24,13 @@ every file-system event".
 
 ## Sizes to design for
 
-| What grows                              | Size to design for                                                                      |
-| --------------------------------------- | --------------------------------------------------------------------------------------- |
-| Working directories in a review session | ~50 (a fleet of agents)                                                                 |
-| Files in a working directory            | ~10,000. A working directory that doesn't use git lists every file, `node_modules` too. |
-| Lines in one file's diff                | ~50,000 (lockfiles, generated code)                                                     |
-| Comments in a review session            | ~500                                                                                    |
-| File-system events                      | Thousands per second during `npm install` or `git checkout`                             |
+| What grows                       | Size to design for                                                                      |
+| -------------------------------- | --------------------------------------------------------------------------------------- |
+| Working directories in a session | ~50 (a fleet of agents)                                                                 |
+| Files in a working directory     | ~10,000. A working directory that doesn't use git lists every file, `node_modules` too. |
+| Lines in one file's diff         | ~50,000 (lockfiles, generated code)                                                     |
+| Comments in a session            | ~500                                                                                    |
+| File-system events               | Thousands per second during `npm install` or `git checkout`                             |
 
 These are a starting point. Change them here when they turn out to be wrong.
 

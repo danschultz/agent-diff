@@ -1,4 +1,4 @@
-# 0009: Reviews are submitted to review sessions, and agents claim feedback per working directory
+# 0009: Reviews are submitted to sessions, and agents claim feedback per working directory
 
 - Status: Accepted, amended by
   [0010](0010-user-prompts-agent-to-fetch-review.md),
@@ -15,9 +15,9 @@
 > rather than part of what's reviewed.
 
 > **Amended by [0018](0018-agents-list-open-comments.md):** there are no reviews
-> or claims. The reviewer leaves comments in a review session, an agent lists
-> the open ones and marks each one addressed, and the reviewer decides which
-> agent works where. Review sessions are archived or deleted rather than ended.
+> or claims. The reviewer leaves comments in a session, an agent lists the open
+> ones and marks each one addressed, and the reviewer decides which agent works
+> where. Sessions are archived or deleted rather than ended.
 
 ## Problem
 
@@ -36,25 +36,25 @@ to agents, which leaves gaps:
 
 ## Solution
 
-### Review sessions
+### Sessions
 
-- An actor (human or agent) starts a **review session** through an API call.
-- A review session covers a list of **working directories**. As first decided
-  here, each one is a repo, the branch being reviewed, the directory it's
-  checked out in, and the **base ref** it's compared against.
-- Working directories can be added to a review session after it starts, for
-  example when a new sub-agent starts work in a new worktree.
-- The reviewer submits **reviews** to the review session. Each review is a batch
-  of comments, which can span several working directories. A review session can
-  receive many reviews over time.
-- A review session ends through an API call. That can come from the reviewer in
-  the review UI, an agent, or other automation.
+- An actor (human or agent) starts a **session** through an API call.
+- A session covers a list of **working directories**. As first decided here,
+  each one is a repo, the branch being reviewed, the directory it's checked out
+  in, and the **base ref** it's compared against.
+- Working directories can be added to a session after it starts, for example
+  when a new sub-agent starts work in a new worktree.
+- The reviewer submits **reviews** to the session. Each review is a batch of
+  comments, which can span several working directories. A session can receive
+  many reviews over time.
+- A session ends through an API call. That can come from the reviewer in the
+  review UI, an agent, or other automation.
 
 ### Claims
 
 - An agent **claims** a working directory to address its unaddressed feedback in
-  a review session. A working directory has at most one active claim at a time,
-  so two agents don't start work on the same working directory.
+  a session. A working directory has at most one active claim at a time, so two
+  agents don't start work on the same working directory.
 - A claim is a lease. The agent renews it while working, and it expires if the
   agent stops renewing it, for example because the agent died. The agent can
   also release it, or complete it when the feedback is addressed.
@@ -68,26 +68,25 @@ to agents, which leaves gaps:
 - **Agent tree ([0004](0004-agent-tree-is-an-input.md)).** The agent tree no
   longer defines what a review covers. It's still reported as described in 0004,
   and is used to show who changed what and to filter the review UI by agent.
-  Starting a review session from an agent's tree, with its working directories
-  added automatically, is a convenience.
+  Starting a session from an agent's tree, with its working directories added
+  automatically, is a convenience.
 - **Notifications ([0005](0005-notify-then-pull-feedback.md)).** A notification
-  now says that feedback is available in a review session. The agent claims a
-  working directory and then fetches the comments for it.
+  now says that feedback is available in a session. The agent claims a working
+  directory and then fetches the comments for it.
 
 ## Tradeoffs
 
 Benefits:
 
-- Multiple repos are handled naturally, because a review session is just a list
-  of working directories.
-- Reviews don't depend on agents. A human can start a review session on plain
-  repos with nothing registered.
+- Multiple repos are handled naturally, because a session is just a list of
+  working directories.
+- Reviews don't depend on agents. A human can start a session on plain repos
+  with nothing registered.
 - Feedback outlives the agent that caused it. If an agent exits, its working
-  directory's feedback waits in the review session until another agent claims
-  it.
+  directory's feedback waits in the session until another agent claims it.
 - Agents can work on different working directories in parallel without editing
   the same files.
-- Every review for a piece of work lives in one review session.
+- Every review for a piece of work lives in one session.
 
 Costs:
 
@@ -107,19 +106,19 @@ Costs:
 ## Follow-up design choices
 
 - **Overall comments.** Who handles comments on the review as a whole: the actor
-  that started the review session, or a separate claim.
+  that started the session, or a separate claim.
 - **Who gets first claim.** Whether the agent that made the changes in a working
   directory gets the first chance to claim it before others can.
 - **Who is notified.** Which agents are notified when a review is submitted.
 - **Lease timing.** How long a lease lasts and how agents renew it.
 - **New reviews during a claim.** Whether an active claim covers feedback from
   reviews submitted after it was taken.
-- **A working directory in several review sessions.** Whether a working
-  directory can belong to more than one review session at once, and if so,
-  whether a claim in one blocks work from the other.
+- **A working directory in several sessions.** Whether a working directory can
+  belong to more than one session at once, and if so, whether a claim in one
+  blocks work from the other.
 - **Removing working directories.** Whether working directories can be removed
-  from a review session.
+  from a session.
 - **Ending with open feedback.** What happens to unclaimed or unaddressed
-  feedback when a review session ends.
-- **API shape.** The calls for starting and ending review sessions, adding
-  working directories, and taking, renewing, releasing, and completing claims.
+  feedback when a session ends.
+- **API shape.** The calls for starting and ending sessions, adding working
+  directories, and taking, renewing, releasing, and completing claims.
