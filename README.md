@@ -23,11 +23,13 @@ reply to each comment.
 2. That agent, or a fleet of sub-agents it delegates to, makes the changes, each
    in its own working directory.
 3. An actor starts a session over the working directories to review with
-   `agent-diff session new <working-dir>...`, which prints the session's ID and
-   how to start a listener on it. For example, a human asks the main agent to
-   start one covering all of its sub-agents' working directories, or asks a
-   sub-agent to start one for its own. Working directories can be added to the
-   session later.
+   `agent-diff session new [--base <ref>] <working-dir>...`, which prints the
+   session's ID, its review UI link, and how to start a listener on it. Each git
+   working directory is compared against `--base`, or by default against
+   origin's default branch, `main`, or `master`. For example, a human asks the
+   main agent to start one covering all of its sub-agents' working directories,
+   or asks a sub-agent to start one for its own. Working directories can be
+   added to the session later.
 4. The agent that started the session starts a listener in the background with
    `agent-diff session listen <session-id>`: with the Monitor tool in Claude
    Code, or as a watched background shell in the Cursor CLI. The listener prints
@@ -116,9 +118,9 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
   the sizes agent-diff designs for, and they wait for CI to pass before handing
   the brief to Dan.
 - Every API call carries the token, and must name the review server in its
-  `Host` header. `server start` prints a URL with the token in its fragment, and
-  the review UI keeps the token in `localStorage` and sends it in a header.
-  There's no cookie.
+  `Host` header. `session new` and `session show` print a URL with the token in
+  its fragment, and the review UI keeps the token in `localStorage` and sends it
+  in a header. There's no cookie.
 - The review server serves the API and the review UI with Hono.
 - Breaking changes are allowed during early development, so there's no code to
   stay compatible with what earlier versions wrote or accepted.
@@ -126,6 +128,11 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
   the Monitor tool in Claude Code or a watched background shell in the Cursor
   CLI. Review messages are addressed by session ID, and held while nobody
   listens.
+- Session IDs are short, such as `s_7kq9a1`. Working directories are stored by
+  their real path, and each has its own base ref in each session it's in, which
+  is the ref given with `--base`, or by default origin/HEAD, `main`, `master`,
+  or `HEAD`. Only `session new` and `session show` print links with the token,
+  and the review UI shows a session at `/sessions/<id>`.
 - Every comment is a thread. Agents reply to each one, marking it addressed or
   needs input, and the reviewer resolves it or reopens it with a reply.
 

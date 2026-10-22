@@ -1,7 +1,17 @@
 # 0031: The review UI gets the token in the URL fragment and sends it in a header, with no cookie
 
-- Status: Accepted
+- Status: Accepted, amended by
+  [0039](0039-sessions-have-short-ids-and-cover-working-directories-by-real-path.md)
 - Date: 2026-10-16
+
+> **Amended by
+> [0039](0039-sessions-have-short-ids-and-cover-working-directories-by-real-path.md):**
+> `server start` and `npm run dev:ui` no longer print a URL with the token. The
+> links with the token are the ones `agent-diff session new` and
+> `agent-diff session show` print, such as
+> `http://127.0.0.1:<port>/sessions/<id>#token=<token>`, and the review UI's
+> message without a token is "Open the link printed by `agent-diff session new`
+> or `agent-diff session show`."
 
 ## Problem
 
