@@ -18,7 +18,8 @@ import { defaultUiDir, reviewUi } from './static.ts';
 import { Store } from './store.ts';
 
 export interface StartOptions {
-  // Where the state directory is found, through `XDG_STATE_HOME`.
+  // Where the state directory is found, through `XDG_STATE_HOME`, and the
+  // environment git runs with. Defaults to `process.env`.
   env?: NodeJS.ProcessEnv;
   // The built review UI. Defaults to packages/ui/dist.
   uiDir?: string;
@@ -80,7 +81,8 @@ async function listenOnSavedPort(
 export async function startReviewServer(
   options: StartOptions = {},
 ): Promise<ReviewServer> {
-  const paths = statePaths(options.env);
+  const env = options.env ?? process.env;
+  const paths = statePaths(env);
   const uiDir = options.uiDir ?? defaultUiDir;
   ensureStateDir(paths);
   await migrate(paths.database);
@@ -88,7 +90,7 @@ export async function startReviewServer(
   const token = saved?.token ?? createToken();
 
   const store = new Store(paths.database);
-  const handler = new RPCHandler(createRouter(store), {
+  const handler = new RPCHandler(createRouter(store, { env }), {
     interceptors: [requireToken(token)],
     clientInterceptors: [({ next }) => next().catch(readableValidationErrors)],
   });

@@ -1,47 +1,24 @@
 // Builds the review UI into dist, which the review server serves. The dev
 // server proxies API calls to the review server on the port saved in the
-// user's config file, so start the review server first, and prints its own
-// URL with the token from the config file (decision 0031).
-import { defineConfig, type Plugin } from 'vite';
+// user's config file, so start the review server first. It prints no URL with
+// the token: open a session's link from `agent-diff session new` or
+// `agent-diff session show` with its origin changed to the dev server's, such
+// as `http://localhost:5173/sessions/s_7kq9a1#token=…` (decision 0039).
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { apiPrefix } from '@agent-diff/shared/contract';
-import {
-  readConfig,
-  reviewUiUrl,
-  serverUrl,
-  statePaths,
-} from '@agent-diff/shared/state';
-
-// Prints the dev server's URL with the token after Vite's own URLs, such as
-// `http://localhost:5173/#token=…`. The review UI only works when opened
-// through it.
-function printUrlWithToken(token: string): Plugin {
-  return {
-    name: 'agent-diff:print-url-with-token',
-    configureServer(server) {
-      const printUrls = server.printUrls.bind(server);
-      server.printUrls = () => {
-        printUrls();
-        for (const url of server.resolvedUrls?.local ?? []) {
-          server.config.logger.info(
-            `  ➜  Open the review UI at ${reviewUiUrl(url, token)}`,
-          );
-        }
-      };
-    },
-  };
-}
+import { readConfig, serverUrl, statePaths } from '@agent-diff/shared/state';
 
 export default defineConfig(({ command }) => {
   if (command === 'build') return { plugins: [react()] };
   const config = readConfig(statePaths());
   if (!config) {
     throw new Error(
-      "The review server hasn't been started, so there's no port to proxy API calls to or token to send. Start it with `npx agent-diff server start --foreground`.",
+      "The review server hasn't been started, so there's no port to proxy API calls to. Start it with `npx agent-diff server start --foreground`.",
     );
   }
   return {
-    plugins: [react(), printUrlWithToken(config.token)],
+    plugins: [react()],
     server: {
       proxy: {
         [apiPrefix]: {
