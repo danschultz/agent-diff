@@ -1,12 +1,18 @@
 # 0008: Comments are re-anchored in layers and marked outdated rather than guessed
 
-- Status: Accepted, amended by [0018](0018-agents-list-open-comments.md)
+- Status: Accepted, amended by [0018](0018-agents-list-open-comments.md) and
+  [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md)
 - Date: 2026-10-10
 
 > **Amended by [0018](0018-agents-list-open-comments.md):** there are no drafts
 > or submitted comments, so the "Drafts and submitted comments" section no
 > longer applies. How anchor states are shown alongside comment statuses is left
 > open in 0018.
+
+> **Amended by
+> [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md):**
+> comments are drafts until the reviewer submits a review again, so the "Drafts
+> and submitted comments" section applies again.
 
 ## Problem
 

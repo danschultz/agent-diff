@@ -12,8 +12,9 @@ Agents (and fleets of agents) increasingly make changes across one or many
 repositories at once. Reviewing that work today means jumping between terminals,
 branches, and `git diff` invocations, then copy-pasting feedback back into a
 chat. `agent-diff` gives the reviewer a single UI that shows what changed in
-every working directory, lets them leave line-level and overall comments, and
-lets agents fetch those comments and mark them addressed.
+every working directory, lets them leave line-level and overall comments and
+submit them as a review, and sends the agent a message to fetch the review and
+reply to each comment.
 
 ## Typical workflow
 
@@ -23,31 +24,40 @@ lets agents fetch those comments and mark them addressed.
    in its own working directory.
 3. An actor starts a review session over the working directories to review with
    `agent-diff session new <working-dir>...`, which prints the review session's
-   ID. For example, a human asks the main agent to start one covering all of its
-   sub-agents' working directories, or asks a sub-agent to start one for its
-   own. Working directories can be added to the review session later.
-4. The review UI opens for that review session. The reviewer can switch between
+   ID and how to start a listener on it. For example, a human asks the main
+   agent to start one covering all of its sub-agents' working directories, or
+   asks a sub-agent to start one for its own. Working directories can be added
+   to the review session later.
+4. The agent that started the review session starts a listener in the background
+   with `agent-diff session listen <session-id>`: with the Monitor tool in
+   Claude Code, or as a watched background shell in the Cursor CLI. The listener
+   prints a line for each review message, which starts a turn.
+5. The review UI opens for that review session. The reviewer can switch between
    working directories, and filter by agent when the agent tree is known.
-5. The reviewer sees the changed files in the file view and a diff comparing
+6. The reviewer sees the changed files in the file view and a diff comparing
    each working directory to its base ref. A working directory doesn't have to
    be a git repo. If it doesn't use git, the file view lists all its files and
    there's no diff.
-6. The reviewer leaves line comments on a single line or a range of lines, and
-   overall comments that aren't attached to code. A comment is available to
-   agents as soon as it's saved.
-7. The reviewer tells the agent to address the comments, using a prompt copied
-   from the review UI that includes the review session's ID. The agent lists the
-   open comments with `agent-diff comment list <session-id>`, overall comments
-   first, addresses them, and marks each one with
-   `agent-diff comment addressed <comment-id>`. The reviewer checks the work and
-   resolves each comment, or reopens it. Agents don't block while a review
+7. The reviewer leaves line comments on a single line or a range of lines, and
+   overall comments that aren't attached to code. They're drafts until the
+   reviewer submits them as a review.
+8. When the review is submitted, the review server sends the listening agent
+   session a short review message, which tells it to finish what it's doing,
+   then run `agent-diff review show <review-id>`. The agent addresses each
+   comment and replies in its thread with
+   `agent-diff comment reply <comment-id>`, marking it `--addressed` with what
+   changed or `--needs-input` with a question. If no agent session is listening,
+   the review message is held until a listener connects, and the reviewer can
+   copy it from the review UI and paste it into any agent session.
+9. The reviewer checks the work and resolves each comment, or replies to it,
+   which reopens it in the next review. Agents don't block while a review
    session is open, so the human can keep working with them in the meantime.
-8. Whenever any actor changes the code, the diff updates live. The review server
-   watches the file system, so this includes agents in other processes and
-   humans editing in their IDE.
-9. When the work is done, the reviewer, an agent, or other automation archives
-   the review session, which stops watching its working directories and keeps
-   its comments read-only, or deletes it.
+10. Whenever any actor changes the code, the diff updates live. The review
+    server watches the file system, so this includes agents in other processes
+    and humans editing in their IDE.
+11. When the work is done, the reviewer, an agent, or other automation archives
+    the review session, which stops watching its working directories and keeps
+    its comments read-only, or deletes it.
 
 ## Decisions
 
@@ -58,16 +68,15 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
 - The file view can show unchanged files.
 - The reviewer can open the code in an IDE.
 - The agent tree is reported by agents and harnesses, not inferred from git.
-- The user prompts the agent to address comments, and the agent fetches them
-  from the review server. The server never contacts agents.
+- The reviewer submits comments as a review, and the review server sends the
+  agent a short review message telling it to fetch the review with the CLI.
 - Review state is stored in SQLite, so it survives crashes and restarts.
 - The review UI live-reloads by watching the file system.
 - Comments follow the code as it changes, and are marked outdated rather than
   guessed when their lines change.
-- Review sessions cover working directories. Comments are available as soon as
-  they're saved, with no drafts, reviews, or claims. Agents list a review
-  session's open comments by its ID and mark each one addressed. Review sessions
-  are archived or deleted.
+- Review sessions cover working directories, with no claims. Agents list a
+  review session's open comments by its ID. Review sessions are archived or
+  deleted.
 - The review server has an API. Agents and harnesses use the `agent-diff` CLI,
   which calls it. There's no MCP server.
 - The review UI renders diffs with CodeMirror.
@@ -114,6 +123,12 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
 - The review server serves the API and the review UI with Hono.
 - Breaking changes are allowed during early development, so there's no code to
   stay compatible with what earlier versions wrote or accepted.
+- Agents get review messages through a listener they start on the review
+  session, with the Monitor tool in Claude Code or a watched background shell in
+  the Cursor CLI. Review messages are addressed by review session ID, and held
+  while nobody listens.
+- Every comment is a thread. Agents reply to each one, marking it addressed or
+  needs input, and the reviewer resolves it or reopens it with a reply.
 
 ## Diff modes
 
@@ -165,9 +180,10 @@ helps, for example:
   terminal.
 - **otty** and **herdr**: equivalent hooks for opening the review UI.
 
-Agents and harnesses start review sessions and list and address comments through
-the `agent-diff` CLI, a small, documented interface that any harness can adopt.
-The CLI calls the review server's API, which the review UI also uses.
+Agents and harnesses start review sessions, listen for review messages, and
+fetch and reply to comments through the `agent-diff` CLI, a small, documented
+interface that any harness can adopt. The CLI calls the review server's API,
+which the review UI also uses.
 
 ### Open in an IDE
 
@@ -185,37 +201,6 @@ VS Code or IntelliJ:
 The review server launches the editor through its command-line tool (such as
 `code` or `idea`) or its URL scheme. Which editors are offered, and the default,
 are configurable.
-
-## Future ideas
-
-These ideas aren't committed yet. They're listed so the design doesn't rule them
-out.
-
-### Agents reply to comments
-
-Today an agent can only mark a comment addressed. Instead, the agent replies in
-each comment's thread and gives it a status, such as addressed, declined, or
-needs input. Comments become threads that both the reviewer and the agent can
-add to, and the reviewer resolves them. Replies are one more message from the
-agent to the review server, so no new kind of connection is needed.
-
-Examples of how this helps:
-
-- **Verifying fixes quickly.** "Addressed: added the null check," with a link to
-  the change. The reviewer jumps straight to the change that fixes the comment
-  instead of re-reading the whole diff.
-- **Pushback with reasons.** "Declined: this function runs on the hot path, and
-  the extra validation already happens in the caller." The reviewer sees why
-  instead of finding the comment silently ignored.
-- **Asking instead of guessing.** "Needs input: should this rename apply to the
-  public API too, or only to internal callers?" The agent stops and asks rather
-  than making a broad change on a guess.
-- **Showing extra scope.** "Fixed here and in three other files that had the
-  same bug." The reviewer knows to look at changes they didn't ask for.
-- **Reporting blockers.** "Couldn't address this: the test needs a database that
-  isn't available in this environment." The reviewer learns why nothing changed.
-- **Focused follow-up.** The reviewer sees only threads that are still open, so
-  they don't re-check comments that are already settled.
 
 ## To do
 

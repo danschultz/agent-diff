@@ -1,8 +1,9 @@
 # 0006: Review state is stored in SQLite
 
 - Status: Accepted, amended by
-  [0010](0010-user-prompts-agent-to-fetch-review.md) and
-  [0018](0018-agents-list-open-comments.md)
+  [0010](0010-user-prompts-agent-to-fetch-review.md),
+  [0018](0018-agents-list-open-comments.md), and
+  [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md)
 - Date: 2026-10-10
 
 > **Amended by [0010](0010-user-prompts-agent-to-fetch-review.md):** the review
@@ -13,6 +14,11 @@
 > comments with their statuses, and archived review sessions. There are no
 > drafts, reviews, or claims to store, and review sessions are archived or
 > deleted with `agent-diff session archive` and `agent-diff session delete`.
+
+> **Amended by
+> [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md):**
+> the database holds drafts, reviews, replies, and each review message's
+> delivery state again.
 
 ## Problem
 

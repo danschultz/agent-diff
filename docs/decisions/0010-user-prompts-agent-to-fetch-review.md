@@ -1,9 +1,16 @@
 # 0010: The user prompts the agent to fetch the latest review
 
-- Status: Accepted, amended by [0011](0011-api-core-with-cli-client.md),
-  [0013](0013-working-directories.md), and
-  [0018](0018-agents-list-open-comments.md)
+- Status: Superseded by
+  [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md)
 - Date: 2026-10-11
+
+> **Superseded by
+> [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md):**
+> the review server sends the agent a review message when a review is submitted,
+> through a listener the agent starts
+> ([0037](0037-agents-get-review-messages-through-a-listener-they-start.md)).
+> Copying the review message from the review UI is the fallback when no agent
+> session is listening.
 
 > **Amended by [0011](0011-api-core-with-cli-client.md):** there's no MCP tool.
 > Agents run `agent-diff review`, which calls the review server's API.

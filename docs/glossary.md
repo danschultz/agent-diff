@@ -66,22 +66,28 @@ There are two kinds:
   [anchor](#anchor) and an [anchor state](#anchor-state).
 - **Overall comment:** not attached to code. It belongs to the review session.
 
-A comment is available to agents as soon as it's saved, and has a
-[comment status](#comment-status). See
-[0018](decisions/0018-agents-list-open-comments.md).
+A comment is a [draft](#draft) until its [review](#review) is submitted, and
+then it's available to agents. Each comment is a thread of [replies](#reply),
+and has a [comment status](#comment-status). See
+[0018](decisions/0018-agents-list-open-comments.md),
+[0036](decisions/0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md),
+and [0038](decisions/0038-agents-reply-in-comment-threads.md).
 
 ### Comment status
 
 Whether a [comment](#comment) has been dealt with:
 
-- **Open:** not yet addressed. Every comment starts open.
-- **Addressed:** an agent has marked it addressed.
-- **Resolved:** the [reviewer](#reviewer) checked the agent's work and resolved
-  it.
+- **Open:** submitted in a [review](#review), or reopened, and waiting on the
+  agent.
+- **Addressed:** the agent's last [reply](#reply) says it's dealt with.
+- **Needs input:** the agent's last reply is waiting on the
+  [reviewer](#reviewer).
+- **Resolved:** the reviewer checked the agent's work and resolved it.
 
-The reviewer can reopen a comment, which sets it back to open. This is separate
-from its [anchor state](#anchor-state). See
-[0018](decisions/0018-agents-list-open-comments.md).
+The reviewer reopens a comment by replying to it, which sets it back to open
+when the reply's review is submitted. This is separate from its
+[anchor state](#anchor-state). See
+[0038](decisions/0038-agents-reply-in-comment-threads.md).
 
 ### Diff mode
 
@@ -95,6 +101,12 @@ What the diff compares for a git [working directory](#working-directory):
   state.
 
 A working directory that doesn't use git has no diff modes.
+
+### Draft
+
+A [comment](#comment), or a [reviewer](#reviewer)'s [reply](#reply), that hasn't
+been submitted in a [review](#review) yet. Agents can't see drafts. See
+[0036](decisions/0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md).
 
 ### File version
 
@@ -113,6 +125,13 @@ For a working directory that doesn't use git, it lists all files.
 A tool that runs and manages [agent sessions](#agent-session), such as cmux,
 herdr, or otty. Harnesses can register agents.
 
+### Listener
+
+The `agent-diff session listen <session-id>` process an agent starts in the
+background. It prints each [review message](#review-message) for a
+[review session](#review-session) as a line, which starts a [turn](#turn). See
+[0037](decisions/0037-agents-get-review-messages-through-a-listener-they-start.md).
+
 ### Main agent
 
 The agent at the top of an [agent tree](#agent-tree).
@@ -122,6 +141,31 @@ The agent at the top of an [agent tree](#agent-tree).
 An agent, or its [harness](#harness), reporting the agent to the
 [review server](#review-server): its ID, its parent, and its
 [working directories](#working-directory).
+
+### Reply
+
+A message in a [comment](#comment)'s thread, from the agent or the
+[reviewer](#reviewer). An agent's reply marks the comment addressed or needs
+input, and is saved at once. A reviewer's reply is a [draft](#draft) until its
+[review](#review) is submitted. See
+[0038](decisions/0038-agents-reply-in-comment-threads.md).
+
+### Review
+
+A batch of [drafts](#draft) the [reviewer](#reviewer) submits in a
+[review session](#review-session), identified by an ID. Submitting it sends a
+[review message](#review-message). A review session gets many reviews over time.
+See
+[0036](decisions/0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md).
+
+### Review message
+
+The short message the [review server](#review-server) sends an agent when a
+[review](#review) is submitted. It names the review and the command to fetch it,
+and never carries the comments. It reaches the agent through a
+[listener](#listener), and the reviewer can copy it from the
+[review UI](#review-ui) when no agent session is listening. See
+[0036](decisions/0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md).
 
 ### Review server
 
@@ -135,9 +179,10 @@ The local server that stores review state in SQLite, watches
 A set of [working directories](#working-directory) under review, identified by
 an ID. An [actor](#actor) starts a review session through an API call, working
 directories can be added after it starts, and the [reviewer](#reviewer) leaves
-[comments](#comment) in it. A review session is archived, which stops watching
-its working directories and makes it read-only, or deleted, which removes its
-data. See [0009](decisions/0009-review-sessions-and-claims.md) and
+[comments](#comment) in it and submits [reviews](#review). A review session is
+archived, which stops watching its working directories and makes it read-only,
+or deleted, which removes its data. See
+[0009](decisions/0009-review-sessions-and-claims.md) and
 [0018](decisions/0018-agents-list-open-comments.md).
 
 ### Review UI
