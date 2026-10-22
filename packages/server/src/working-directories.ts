@@ -13,20 +13,23 @@ export class WorkingDirectoryError extends Error {}
 async function realDirectory(
   path: string,
 ): Promise<{ path: string } | { problem: string }> {
-  let real: string;
   try {
-    real = await realpath(path);
+    const real = await realpath(path);
+    if (!(await stat(real)).isDirectory()) {
+      return { problem: `The working directory ${path} isn't a directory.` };
+    }
+    return { path: real };
   } catch (error) {
     const { code } = error as NodeJS.ErrnoException;
     if (code === 'ENOENT' || code === 'ENOTDIR') {
       return { problem: `The working directory ${path} doesn't exist.` };
     }
-    throw error;
+    // Such as EACCES, or ELOOP for a symlink loop, so the path is named
+    // rather than reported as an internal error.
+    return {
+      problem: `The working directory ${path} can't be read (${code ?? String(error)}).`,
+    };
   }
-  if (!(await stat(real)).isDirectory()) {
-    return { problem: `The working directory ${path} isn't a directory.` };
-  }
-  return { path: real };
 }
 
 // Whether a directory is still on disk.

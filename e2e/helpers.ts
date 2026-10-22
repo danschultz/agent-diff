@@ -3,7 +3,7 @@
 // directory, and creates a session with `agent-diff session new`.
 import { execFileSync, spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs';
+import { mkdtempSync, realpathSync, rmSync } from 'node:fs';
 import { createServer, type AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
@@ -159,7 +159,6 @@ export const test = base.extend<{
     );
     git('switch', '--quiet', '--create', 'feature');
     const plain = tempDir('agent-diff-e2e-plain-');
-    mkdirSync(path.join(plain, 'notes'));
 
     const output = agentDiff(
       env,
@@ -178,8 +177,8 @@ export const test = base.extend<{
     rmSync(plain, { recursive: true, force: true });
   },
   // `npm run dev:ui`, proxying API calls to the review server, which has to
-  // be started first, so the dev server can read its port and token. npm
-  // needs the user's environment, and the dev server doesn't run git.
+  // be started first, so the dev server can read its port. npm needs the
+  // user's environment, and the dev server doesn't run git.
   devServer: async ({ env, reviewServer }, use) => {
     void reviewServer;
     const port = await freePort();

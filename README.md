@@ -26,10 +26,10 @@ reply to each comment.
    `agent-diff session new [--base <ref>] <working-dir>...`, which prints the
    session's ID, its review UI link, and how to start a listener on it. Each git
    working directory is compared against `--base`, or by default against
-   origin's default branch, `main`, or `master`. For example, a human asks the
-   main agent to start one covering all of its sub-agents' working directories,
-   or asks a sub-agent to start one for its own. Working directories can be
-   added to the session later.
+   origin's default branch, `main`, `master`, or `HEAD`. For example, a human
+   asks the main agent to start one covering all of its sub-agents' working
+   directories, or asks a sub-agent to start one for its own. Working
+   directories can be added to the session later.
 4. The agent that started the session starts a listener in the background with
    `agent-diff session listen <session-id>`: with the Monitor tool in Claude
    Code, or as a watched background shell in the Cursor CLI. The listener prints

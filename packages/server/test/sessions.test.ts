@@ -153,6 +153,19 @@ test('session new fails, adding nothing, when a path does not exist or is not a 
   assert.deepEqual(workingDirectoryRows(env, t), []);
 });
 
+test("session new fails, naming the path, when a path can't be read", async (t) => {
+  const { env, api, repo } = await setUp(t);
+  const loop = path.join(tempDir(t), 'loop');
+  symlinkSync(loop, loop);
+  await rejects(
+    api.session.new({ workingDirectories: [repo, loop] }),
+    'BAD_REQUEST',
+    `The working directory ${loop} can't be read (ELOOP).`,
+  );
+  assert.deepEqual(await api.session.list({ all: true }), []);
+  assert.deepEqual(workingDirectoryRows(env, t), []);
+});
+
 test('session new rejects relative paths, no working directories, and bad titles', async (t) => {
   const { api } = await setUp(t);
   await rejects(
