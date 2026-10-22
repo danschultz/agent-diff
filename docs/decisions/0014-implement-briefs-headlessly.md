@@ -2,8 +2,9 @@
 
 - Status: Accepted, amended by
   [0015](0015-closing-a-brief-clears-its-labels.md),
-  [0030](0030-self-review-before-the-pull-request-opens.md), and
-  [0034](0034-briefs-are-aven-tasks.md)
+  [0030](0030-self-review-before-the-pull-request-opens.md),
+  [0034](0034-briefs-are-aven-tasks.md), and
+  [0035](0035-queued-briefs-wait-for-their-blockers.md)
 - Date: 2026-10-12
 
 > Amended by [0015](0015-closing-a-brief-clears-its-labels.md): a GitHub Actions
@@ -26,6 +27,11 @@
 > sets the task to `done`, or closed, or when Dan sets the task to `done` or
 > `canceled` or removes its `agent` metadata. Pull requests, pull request
 > reviews, and CI stay on GitHub.
+>
+> Amended by [0035](0035-queued-briefs-wait-for-their-blockers.md): a queued
+> brief starts only once every task it depends on in Aven is `done`. One waiting
+> on a blocker keeps `agent=queued` and uses no concurrency slot, and one with a
+> `canceled` or deleted blocker is sent back with a note.
 
 ## Problem
 

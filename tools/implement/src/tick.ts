@@ -7,6 +7,7 @@ import {
   isClosed,
   moveTo,
   type Aven,
+  type Blocker,
   type Task,
   type TaskChanges,
 } from './aven.ts';
@@ -250,6 +251,42 @@ function resume(deps: Deps, t: Tracked): boolean {
   return true;
 }
 
+/** Why a queued brief can't start yet. */
+type Hold =
+  /** Missing required fields: sent back. */
+  | { kind: 'missing'; fields: string[] }
+  /** Depends on tasks that are canceled or deleted, so they'll never be done: sent back. */
+  | { kind: 'abandoned'; blockers: Blocker[] }
+  /** Depends on tasks that aren't done yet: left queued. */
+  | { kind: 'waiting'; blockers: Blocker[] };
+
+/**
+ * Why a queued brief can't start yet, or undefined when it can. Only `done`
+ * unblocks a brief, unlike Aven, which counts canceled and deleted blockers as
+ * resolved.
+ */
+function hold(task: Task): Hold | undefined {
+  const missing = missingFields(task.description);
+  if (missing.length > 0) return { kind: 'missing', fields: missing };
+  const abandoned = task.blockers.filter(
+    (b) => b.deleted || b.status === 'canceled',
+  );
+  if (abandoned.length > 0) return { kind: 'abandoned', blockers: abandoned };
+  const open = task.blockers.filter((b) => b.status !== 'done');
+  if (open.length > 0) return { kind: 'waiting', blockers: open };
+  return undefined;
+}
+
+/** The queued briefs a tick leaves waiting on blockers, each with the blockers that aren't done. */
+export function waitingBriefs(
+  tasks: Task[],
+): { task: Task; blockers: Blocker[] }[] {
+  return tasks.flatMap((task) => {
+    const h = hold(task);
+    return h?.kind === 'waiting' ? [{ task, blockers: h.blockers }] : [];
+  });
+}
+
 /** Starts agent sessions for queued briefs, up to `slots`. Returns how many it started. */
 function startQueued(
   deps: Deps,
@@ -258,12 +295,22 @@ function startQueued(
 ): number {
   let started = 0;
   for (const task of deps.aven.queuedTasks()) {
-    const missing = missingFields(task.description);
-    if (missing.length > 0) {
-      guard(deps, task.ref, () => sendBack(deps, task, missing));
+    const h = hold(task);
+    if (h?.kind === 'missing') {
+      guard(deps, task.ref, () => sendBack(deps, task, h.fields));
       continue;
     }
-    if (started >= slots) break;
+    if (h?.kind === 'abandoned') {
+      guard(deps, task.ref, () => sendBackForBlockers(deps, task, h.blockers));
+      continue;
+    }
+    if (h?.kind === 'waiting') {
+      deps.log(`${task.ref}: waiting on ${refs(h.blockers)}`);
+      continue;
+    }
+    // Keep going once the slots are used up, so every brief that can't start
+    // is still sent back or logged.
+    if (started >= slots) continue;
     const previous = deps.state.briefs[task.id];
     if (previous && findSession(running, previous)) {
       deps.log(
@@ -295,6 +342,35 @@ function sendBack(deps: Deps, task: Task, missing: string[]): void {
     `This brief is missing required fields, so it won't be started:\n\n${missing.map((m) => `- ${m}`).join('\n')}\n\nFill them in under \`###\` headings, as in \`.rules/briefs.md\`, then set \`${AGENT_KEY}=${AGENT.queued}\` again.`,
   );
   deps.log(`${task.ref}: missing ${missing.join(', ')}, sent back`);
+}
+
+/**
+ * Removes `agent=queued` from a brief that depends on canceled or deleted
+ * tasks, with a note naming them and saying how to remove each dependency.
+ */
+function sendBackForBlockers(
+  deps: Deps,
+  task: Task,
+  blockers: Blocker[],
+): void {
+  deps.aven.edit(task.id, { agent: null });
+  const list = blockers
+    .map(
+      (b) =>
+        `- ${b.ref} ${b.title} (${b.deleted ? 'deleted' : b.status}): \`aven dep remove ${task.ref} ${b.ref}\``,
+    )
+    .join('\n');
+  deps.aven.note(
+    task.id,
+    `This brief depends on tasks that are canceled or deleted, so they'll never be done, and it won't be started:\n\n${list}\n\nRemove each dependency with the command after it, then set \`${AGENT_KEY}=${AGENT.queued}\` again.`,
+  );
+  deps.log(
+    `${task.ref}: depends on canceled or deleted ${refs(blockers)}, sent back`,
+  );
+}
+
+function refs(blockers: Blocker[]): string {
+  return blockers.map((b) => b.ref).join(', ');
 }
 
 function start(deps: Deps, task: Task): void {

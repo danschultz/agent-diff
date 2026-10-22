@@ -37,6 +37,23 @@ the brief, such as the task's ID, out of branch names, commits, and pull
 requests.`;
 }
 
+/** The tasks the brief depends on, all done by the time it starts, or nothing when it has none. */
+function blockersSection(task: Task): string {
+  if (task.blockers.length === 0) return '';
+  const list = task.blockers.map((b) => `- ${b.ref}: ${b.title}`).join('\n');
+  return `
+
+## Tasks this brief depends on
+
+The brief depends on these tasks in Aven, which are all done:
+
+${list}
+
+Read any of them with \`aven context <ref>\` if it helps, but don't change them.
+They're local to this server too. Keep their refs, and their IDs, out of branch
+names, commits, and pull requests.`;
+}
+
 /** The command that moves the brief to review. */
 function toReview(ref: string): string {
   return `aven edit ${ref} --metadata ${AGENT_KEY}=${AGENT.review}`;
@@ -66,7 +83,7 @@ ${task.description.trim()}
   code alone.
 - Commit as you go.
 
-${avenSection(task.ref)}
+${avenSection(task.ref)}${blockersSection(task)}
 
 ${ESCALATION}
 
