@@ -25,6 +25,7 @@ in [docs/research](docs/research/README.md), and agreed terms are defined in
 | [`.rules/decisions.md`](.rules/decisions.md)     | When the user settles a design question or answers an open question in `README.md`. |
 | [`.rules/research.md`](.rules/research.md)       | When the user or a brief asks for options to be researched.                         |
 | [`.rules/briefs.md`](.rules/briefs.md)           | When the user asks for a brief.                                                     |
+| [`.rules/planning.md`](.rules/planning.md)       | When the user asks what to work on next, or to plan a feature into briefs.          |
 | [`.rules/formatting.md`](.rules/formatting.md)   | When a change adds a file type the repo doesn't have yet.                           |
 | [`.rules/gitignore.md`](.rules/gitignore.md)     | When adding or changing ignore patterns.                                            |
 | [`.rules/testing.md`](.rules/testing.md)         | When changing code or tests.                                                        |

@@ -1,7 +1,11 @@
 # 0028: The project defines how agent sessions work, and `implement` adds only what running unattended needs
 
-- Status: Accepted
+- Status: Accepted, amended by [0039](0039-work-is-planned-into-briefs.md)
 - Date: 2026-10-16
+
+> Amended by [0039](0039-work-is-planned-into-briefs.md): skills Dan runs by
+> name, such as `/plan-work` and `/create-brief`, live in `.claude/skills/`. A
+> skill holds no process of its own, and points at the rules in `.rules/`.
 
 ## Problem
 

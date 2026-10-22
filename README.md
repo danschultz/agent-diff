@@ -129,6 +129,11 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
   while nobody listens.
 - Every comment is a thread. Agents reply to each one, marking it addressed or
   needs input, and the reviewer resolves it or reopens it with a reply.
+- Work is planned with an agent session into vertical slices, kept as an Aven
+  epic, and written just in time as decision, research, or build briefs, after
+  interviewing Dan about every choice the decisions don't settle. The
+  `/plan-work` and `/create-brief` skills point at the rules for this, and
+  skills hold no steps of their own.
 
 ## Diff modes
 
