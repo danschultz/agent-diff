@@ -25,10 +25,10 @@ Set `KEEP=1` to keep the agent session and scratch dir.
 
 ## Needs
 
-Claude Code 2.1.308 logged in, Node 24+, `tmux`. No `jq`. A script can only use
-`attach` through a pseudo-terminal such as tmux, and has to wait for the screen
-("/rc connecting..." first) before it types. The scratch dir is
-`.claude/worktrees/ad8-attach-<N>/` in this repo; override with `W`, `N`,
+Claude Code 2.1.308 logged in, Node 24+, `tmux` (tried with 3.5a). No `jq`. A
+script can only use `attach` through a pseudo-terminal such as tmux, and has to
+wait for the screen ("/rc connecting..." first) before it types. The scratch dir
+is `.claude/worktrees/ad8-attach-<N>/` in this repo; override with `W`, `N`,
 `SCRATCH`, `MODEL`.
 
 ## Files

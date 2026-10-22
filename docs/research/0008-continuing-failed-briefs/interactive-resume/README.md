@@ -10,8 +10,8 @@ Tried with Claude Code 2.1.308.
 ## Run it
 
 Needs `claude` 2.1.308 or later with the daemon, `node` 24 or later, `git`,
-`tmux`, and a clean checkout of the repo (the scratch directory goes under
-`.claude/worktrees/`).
+`tmux` (tried with 3.5a), and a clean checkout of the repo (the scratch
+directory goes under `.claude/worktrees/`).
 
 ```sh
 ./run.sh

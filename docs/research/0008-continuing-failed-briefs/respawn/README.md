@@ -47,8 +47,8 @@ never touches other agent sessions.
 ## Result on Claude Code 2.1.308 (haiku)
 
 - `claude respawn <id>` works on an agent session whose worker was killed while
-  idle: same short ID, session ID, name and Remote Control session, with its
-  saved options (`respawnFlags`: hooks from `--settings`, permission mode,
+  idle: same short ID, session ID, name and Remote Control registration, with
+  its saved options (`respawnFlags`: hooks from `--settings`, permission mode,
   model). It does not start a turn: the agent session comes back idle
   (`SessionStart` hook with `source: resume`, no `UserPromptSubmit`, no API
   request). Its background command was not stopped by the kill, but the
