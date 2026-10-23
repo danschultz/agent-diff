@@ -5,6 +5,9 @@
 // - Is an absolute path, such as `/docs/glossary.md`.
 // - Is a relative path that resolves outside the repo root.
 // - Points to a file or folder that git ignores.
+// - Is in a skill, under `.claude/skills/`, and points into `.rules/`. Rules
+//   can point to skills, but skills hold their own process and don't point
+//   back. See decision 0039.
 //
 // Links with any other URL scheme, and links that are only `#anchor`, are left
 // to remark-validate-links or not checked. The repo root is the working
@@ -19,6 +22,8 @@ import type { VFile } from 'vfile';
 
 const source = 'remark-local-links';
 const scheme = /^[a-z][a-z0-9+.-]*:/i;
+const skills = path.join('.claude', 'skills') + path.sep;
+const rules = '.rules';
 
 type Resource = { url: string; position?: Root['position'] };
 
@@ -46,13 +51,18 @@ export default function remarkLocalLinks(
     const base = file.path
       ? path.dirname(path.resolve(file.cwd, file.path))
       : root;
+    const inSkill = file.path
+      ? path
+          .relative(root, path.resolve(file.cwd, file.path))
+          .startsWith(skills)
+      : false;
     const targets: Target[] = [];
 
     visit(tree, function (node) {
       if (!('url' in node) || !node.url) {
         return;
       }
-      const reason = check(node.url, base, root);
+      const reason = check(node.url, base, root, inSkill);
       if (typeof reason === 'string') {
         warn(file, node, reason);
       } else if (reason) {
@@ -74,6 +84,7 @@ function check(
   url: string,
   base: string,
   root: string,
+  inSkill: boolean,
 ): string | { relative: string } | undefined {
   if (/^file:/i.test(url)) {
     return 'Link `' + url + '` is a `file:` URL; link to a file in the repo';
@@ -103,6 +114,16 @@ function check(
   }
   if (!relative) {
     return undefined;
+  }
+  if (
+    inSkill &&
+    (relative === rules || relative.startsWith(rules + path.sep))
+  ) {
+    return (
+      'Link `' +
+      url +
+      "` points to a rule in `.rules/`; skills don't link to rules"
+    );
   }
   return { relative };
 }
