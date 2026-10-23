@@ -25,6 +25,11 @@ const rootRoute = createRootRouteWithContext<{ queryClient: QueryClient }>()({
 const sessionRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/sessions/$id',
+  // The router also matches a trailing slash, as in `/sessions/<id>/`, which
+  // isn't a session's path.
+  beforeLoad: ({ location }) => {
+    if (!/^\/sessions\/[^/]+$/.test(location.pathname)) throw notFound();
+  },
   loader: async ({ context, params: { id } }) => {
     if (savedToken() === null) throw new NoTokenError();
     try {
@@ -53,8 +58,10 @@ export function createAppRouter() {
     routeTree,
     history: createBrowserHistory(),
     context: { queryClient },
-    // TanStack Query caches what loaders load, so the router's own cache
-    // never makes a loader run again.
+    // Paths match only in the case they're written in, such as `/sessions`.
+    caseSensitive: true,
+    // Loaders always run, and TanStack Query's cache, not the router's,
+    // decides whether `ensureQueryData` calls the API.
     defaultPreloadStaleTime: 0,
   });
 }

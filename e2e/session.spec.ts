@@ -177,3 +177,40 @@ test('a session that takes longer than a second to load shows Loading…', async
   await expectSession(page, session);
   await expect(page.getByText('Loading…')).toHaveCount(0);
 });
+
+test("a session's path in another case or with a trailing slash shows the not-found message", async ({
+  page,
+  reviewServer,
+  session,
+}) => {
+  await page.goto(session.url);
+  await expectSession(page, session);
+  for (const path of [
+    `sessions/${session.id}/`,
+    `SESSIONS/${session.id}`,
+    `Sessions/${session.id}`,
+  ]) {
+    await page.goto(`${reviewServer.origin}${path}`);
+    await expect(page.getByRole('alert')).toHaveText(notFound);
+    await expect(page.getByRole('heading')).toHaveCount(0);
+  }
+});
+
+test('a session that loads within a second never shows Loading…', async ({
+  page,
+  session,
+}) => {
+  // Records whether "Loading…" was ever rendered, however briefly. As a
+  // string, since e2e/ is typed for Node, without the DOM.
+  await page.addInitScript(`
+    window.sawLoading = false;
+    new MutationObserver(() => {
+      if (document.body?.textContent?.includes('Loading…')) {
+        window.sawLoading = true;
+      }
+    }).observe(document, { childList: true, subtree: true, characterData: true });
+  `);
+  await page.goto(session.url);
+  await expectSession(page, session);
+  expect(await page.evaluate('window.sawLoading')).toBe(false);
+});
