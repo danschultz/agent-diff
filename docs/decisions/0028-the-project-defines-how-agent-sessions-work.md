@@ -5,7 +5,8 @@
 
 > Amended by [0039](0039-work-is-planned-into-briefs.md): skills Dan runs by
 > name, such as `/plan-work` and `/create-brief`, live in `.claude/skills/`. A
-> skill holds no process of its own, and points at the rules in `.rules/`.
+> skill holds its process itself and never links to a rule in `.rules/`, and
+> rules can point to skills.
 
 ## Problem
 

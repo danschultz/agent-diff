@@ -23,9 +23,9 @@ as a bug fix, into a brief.
 ### Planning
 
 - **Choosing what's next.** When Dan asks what to work on next, the agent
-  session reads the README's open questions and to-dos, Aven's open tasks and
-  epics in `agent-diff`, and what merged recently. It recommends one thing with
-  its reasons, and lists the alternatives briefly.
+  session reads Aven's open tasks and epics in `agent-diff`, and what merged
+  recently. It recommends one thing with its reasons, and lists the alternatives
+  briefly.
 - **Vertical slices.** A feature is split into build briefs that each deliver
   one thing end to end, through every layer it touches: storage, the API, the
   CLI, and the [review UI](../glossary.md#review-ui). The first slice is the
@@ -81,15 +81,36 @@ as a bug fix, into a brief.
 
 ### Where it's written
 
-- **[`.rules/planning.md`](../../.rules/planning.md)** holds the planning steps.
-  It points to [`.rules/briefs.md`](../../.rules/briefs.md) for writing each
-  brief, rather than repeating those steps. `AGENTS.md`'s Rules table lists it
-  "When the user asks what to work on next, or to plan a feature into briefs."
-  The row for `.rules/briefs.md`, "When the user asks for a brief", stays.
-- **`.rules/briefs.md`** holds the steps for writing one brief, and a section on
-  the three kinds of brief, with a template for each under the headings it
-  already lists, saying what goes in each heading. The templates are based on
-  the briefs written so far:
+- **The process lives in two project skills**, in `.claude/skills/`. Each says
+  when to use it in its `description`, so the model may also use it on its own
+  when Dan's request matches, and holds its steps itself:
+  - **`/plan-work`**, in
+    [`.claude/skills/plan-work/SKILL.md`](../../.claude/skills/plan-work/SKILL.md),
+    holds the planning steps. It's for when Dan asks what to work on next, or to
+    plan a feature. It refers to the kinds of brief in `/create-brief` rather
+    than describing them again, and uses `/create-brief` for each brief it
+    writes.
+  - **`/create-brief`**, in
+    [`.claude/skills/create-brief/SKILL.md`](../../.claude/skills/create-brief/SKILL.md),
+    holds the steps for writing one brief, a section on the three kinds of
+    brief, and how to create, queue, depend on, and replace a brief in Aven.
+    It's for when Dan asks for a brief, on its own or as part of a plan.
+- **Rules point to skills, and skills don't point to rules.** There's no
+  planning rule. [`.rules/briefs.md`](../../.rules/briefs.md) keeps the headings
+  a brief uses, which `implement` checks and points to, and says to use
+  `/create-brief` to write a brief and `/plan-work` to plan. Its row in
+  `AGENTS.md`'s Rules table, "When the user asks for a brief", stays. A skill
+  never links to a file in `.rules/`, and `npm run lint:docs` fails when one
+  does. Templates can still name a rule, such as `.rules/research.md`, in the
+  brief text they hold, since that's for the agent session implementing the
+  brief.
+- **The README links to the docs instead of listing decisions.** Its Decisions
+  list is replaced by a Documentation section that summarizes each area of
+  documentation, such as decisions, research, the glossary, `AGENTS.md`, the
+  skills, and `implement`, with a link to read further.
+- **`/create-brief`'s kinds of brief** each have a template under the brief
+  headings, in their order, saying what goes in each heading. The templates are
+  based on the briefs written so far:
   - **Decision brief.**
     - Goal: the decisions to record, and that it only writes docs.
     - Out of scope: code, designing anything not listed, and changing earlier
@@ -100,7 +121,7 @@ as a bug fix, into a brief.
       follow-up design choices to include.
     - Acceptance criteria: decision files with the next free numbers and every
       template section, every listed choice recorded, index rows, amendment
-      notes, the README's Decisions list, glossary changes, and `npm run check`.
+      notes, glossary changes, and `npm run check`.
     - Verification: `npm run check`, and a list in the pull request mapping each
       Context heading to the section that records it.
     - Escalation criteria: a choice contradicts an accepted decision, the
@@ -144,24 +165,14 @@ as a bug fix, into a brief.
       ([0022](0022-node-sqlite-plain-sql-and-dbmate.md)), and which other brief
       may run at the same time and change the same files, so the agent session
       rebases.
-- **Two project skills**, each thin: it says when to use it, and tells the agent
-  session to read and follow its rule, so the process is written in one place.
-  The model may also use each on its own when Dan's request matches.
-  - **`/plan-work`**, in
-    [`.claude/skills/plan-work/SKILL.md`](../../.claude/skills/plan-work/SKILL.md),
-    follows `.rules/planning.md`. It's for when Dan asks what to work on next,
-    or to plan a feature. It uses `/create-brief` for each brief it writes.
-  - **`/create-brief`**, in
-    [`.claude/skills/create-brief/SKILL.md`](../../.claude/skills/create-brief/SKILL.md),
-    follows `.rules/briefs.md`. It's for when Dan asks for a brief, on its own
-    or as part of a plan.
 
 ### Effect on earlier decisions
 
 - **[0028](0028-the-project-defines-how-agent-sessions-work.md): amended.** The
   project defines agent sessions through `.claude/settings.json`,
   `.claude/agents/`, `.rules/`, and now `.claude/skills/` for skills Dan runs by
-  name. A skill holds no process of its own, and points at the rules.
+  name. A skill holds its process itself and never links to a rule, and rules
+  can point to skills.
 
 Reviewing brief pull requests, and how changes to them are asked for, are left
 out of this process for now.
@@ -178,9 +189,14 @@ Benefits:
   missing a required heading.
 - Build briefs that escalate on uncovered choices keep design decisions with
   Dan, rather than with an agent session running unattended.
-- The skills hold no steps, so changing the process is a change to one rule, in
-  a reviewed commit, as with any other rule
-  ([0028](0028-the-project-defines-how-agent-sessions-work.md)).
+- Each process is written in one place, its skill, and changing it is a reviewed
+  commit, as with a rule
+  ([0028](0028-the-project-defines-how-agent-sessions-work.md)). A skill loads
+  only when it's used, so its steps and templates don't fill the context of
+  agent sessions doing other work.
+- References only go one way, from rules to skills, and the doc lint enforces
+  it, so a skill can't end up depending on a rule that changes under it.
+- The README stays short, and doesn't need a line for every new decision.
 
 Costs:
 
@@ -192,8 +208,15 @@ Costs:
 - Writing briefs just in time means a plan's later waves are only notes, and can
   change after Dan has seen them.
 - The skills depend on Claude Code's skill format and on the model choosing to
-  use them, which may change. Agent sessions in other harnesses only get the
-  rules, through `AGENTS.md`.
+  use them, which may change. Agent sessions in other harnesses only reach them
+  by following `.rules/briefs.md` to the skill files and reading them.
+- The headings a brief uses are listed in both `.rules/briefs.md` and
+  `/create-brief`, since `implement` points to the rule and a skill can't link
+  to it.
+- The doc lint only checks links. A skill that names a rule in plain text or in
+  code isn't caught.
+- The README no longer lists what's been decided, so a reader has to open the
+  decisions index to see it.
 
 ## Follow-up design choices
 
