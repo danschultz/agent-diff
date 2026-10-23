@@ -1,4 +1,4 @@
-# 0039: Dan retries a failed brief with `agent=retry`, which resumes its agent session
+# 0040: Dan retries a failed brief with `agent=retry`, which resumes its agent session
 
 - Status: Accepted
 - Date: 2026-10-23

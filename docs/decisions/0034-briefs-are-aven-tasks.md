@@ -2,7 +2,7 @@
 
 - Status: Accepted, amended by
   [0035](0035-queued-briefs-wait-for-their-blockers.md) and
-  [0039](0039-dan-retries-a-failed-brief-by-resuming-its-agent-session.md)
+  [0040](0040-dan-retries-a-failed-brief-by-resuming-its-agent-session.md)
 - Date: 2026-10-20
 
 > Amended by [0035](0035-queued-briefs-wait-for-their-blockers.md): a queued
@@ -11,7 +11,7 @@
 > `canceled` or deleted blocker is sent back with a note.
 >
 > Amended by
-> [0039](0039-dan-retries-a-failed-brief-by-resuming-its-agent-session.md):
+> [0040](0040-dan-retries-a-failed-brief-by-resuming-its-agent-session.md):
 > `retry` is a new value of the `agent` metadata. Dan sets it on a failed brief
 > to resume its agent session in the kept worktree, with its conversation.
 > Queuing a failed brief again still starts over from a fresh worktree.

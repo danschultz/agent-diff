@@ -189,6 +189,53 @@ suite('lint-docs', { concurrency: true }, () => {
     assert.match(output, /10 warnings/);
   });
 
+  test('fails on links from a skill to a rule, but not from a rule to a skill', async (t) => {
+    const lines = [
+      '# Skill',
+      '',
+      '[rule](../../../.rules/a.md)',
+      '[rules folder](../../../.rules)',
+      '[rule reference][ref]',
+      '[glossary](../../../docs/glossary.md)',
+      '[other skill](../other/SKILL.md)',
+      '`[code](../../../.rules/a.md)`',
+      '',
+      '[ref]: ../../../.rules/a.md#a',
+      '',
+    ];
+    const { root, env } = repo(t, {
+      '.claude/skills/one/SKILL.md': lines.join('\n'),
+      '.claude/skills/other/SKILL.md': '# Other\n',
+      '.rules/a.md': '# A\n\n[skill](../.claude/skills/one/SKILL.md)\n',
+      'docs/glossary.md': '# Glossary\n',
+    });
+    const { status, output } = await lint({ root, env });
+    assert.equal(status, 1);
+
+    const at = (text: string) => lines.indexOf(text) + 1 + ':1';
+    const expected = [
+      [at('[rule](../../../.rules/a.md)'), '../../../.rules/a.md'],
+      [at('[rules folder](../../../.rules)'), '../../../.rules'],
+      [at('[ref]: ../../../.rules/a.md#a'), '../../../.rules/a.md#a'],
+    ];
+    assert.match(output, /^\.claude\/skills\/one\/SKILL\.md$/m);
+    assert.doesNotMatch(output, /^\.rules\/a\.md$/m);
+    for (const [place, url] of expected) {
+      const message =
+        'Link `' +
+        url +
+        "` points to a rule in `.rules/`; skills don't link to rules";
+      const line = output
+        .split('\n')
+        .find(
+          (line) =>
+            line.trim().startsWith(place + '-') && line.includes(message),
+        );
+      assert.ok(line, `expected ${place} ${message} in:\n${output}`);
+    }
+    assert.match(output, /3 warnings/);
+  });
+
   test('fails on shared numbers and broken links in the same run', async (t) => {
     const { root, env } = repo(t, {
       'docs/decisions/0001-b.md': '# 0001: B\n',

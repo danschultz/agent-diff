@@ -59,80 +59,22 @@ reply to each comment.
     the review session, which stops watching its working directories and keeps
     its comments read-only, or deletes it.
 
-## Decisions
+## Documentation
 
-Design decisions, with their tradeoffs and follow-up choices, are recorded in
-[docs/decisions](docs/decisions/README.md). So far:
-
-- The review UI is a local web app.
-- The file view can show unchanged files.
-- The reviewer can open the code in an IDE.
-- The agent tree is reported by agents and harnesses, not inferred from git.
-- The reviewer submits comments as a review, and the review server sends the
-  agent a short review message telling it to fetch the review with the CLI.
-- Review state is stored in SQLite, so it survives crashes and restarts.
-- The review UI live-reloads by watching the file system.
-- Comments follow the code as it changes, and are marked outdated rather than
-  guessed when their lines change.
-- Review sessions cover working directories, with no claims. Agents list a
-  review session's open comments by its ID. Review sessions are archived or
-  deleted.
-- The review server has an API. Agents and harnesses use the `agent-diff` CLI,
-  which calls it. There's no MCP server.
-- The review UI renders diffs with CodeMirror.
-- Review sessions cover working directories, which don't have to use git. Only
-  files under the working directory are shown, and the branch is whatever `HEAD`
-  points to.
-- Briefs written as tasks in Aven, Dan's local task manager, are implemented by
-  `implement`, which starts a headless agent session per brief and opens a pull
-  request on GitHub. A brief that depends on other tasks in Aven starts only
-  once they're done. Aven refs never appear on GitHub. When an agent session
-  needs input, Dan is alerted and answers through Remote Control.
-- Dan retries a brief whose agent session exited without a pull request by
-  setting `agent=retry`, and `implement` resumes the agent session in its kept
-  worktree, with its conversation and the notes Dan added since it failed.
-  `implement` never retries a brief by itself.
-- The `agent-diff` CLI is built with Crust. Its commands are noun then verb,
-  such as `session new` and `comment list`, and it doesn't start the review
-  server unless told to with `server start`.
-- Each user runs one review server, which serves all their review sessions and
-  is the only process that opens their database.
-- A config file in `$XDG_STATE_HOME/agent-diff` (or `~/.local/state/agent-diff`)
-  holds the user's review server port and token, and only the user can read it.
-  The database is a file beside it.
-- The review server's API is built with oRPC, and validated with Valibot.
-- Review state is stored with `node:sqlite` and plain SQL, and dbmate applies
-  migrations when the review server starts.
-- The API is declared contract-first, served with oRPC's RPC protocol, and
-  called through the same contract by the review UI and the CLI.
-- The code is split into npm workspaces on TypeScript 7. Only the review UI is
-  built, and the review server serves it.
-- The pre-commit hook runs only formatting, the doc lint and the typecheck. The
-  tests run in `npm run check` and CI, and tests that run git use an environment
-  built from an allowlist.
-- The project defines how agent sessions work: a committed
-  `.claude/settings.json` sets the model and effort, sub-agents live in
-  `.claude/agents/`, and rules live in `.rules/`. `implement` adds only what
-  running unattended needs.
-- Code is written test-first, in every package, except performance fixes, which
-  can't be tested reliably by timing.
-- Before opening a pull request, agent sessions started by `implement` have a
-  `self-review` sub-agent review their diff, including its performance against
-  the sizes agent-diff designs for, and they wait for CI to pass before handing
-  the brief to Dan.
-- Every API call carries the token, and must name the review server in its
-  `Host` header. `server start` prints a URL with the token in its fragment, and
-  the review UI keeps the token in `localStorage` and sends it in a header.
-  There's no cookie.
-- The review server serves the API and the review UI with Hono.
-- Breaking changes are allowed during early development, so there's no code to
-  stay compatible with what earlier versions wrote or accepted.
-- Agents get review messages through a listener they start on the review
-  session, with the Monitor tool in Claude Code or a watched background shell in
-  the Cursor CLI. Review messages are addressed by review session ID, and held
-  while nobody listens.
-- Every comment is a thread. Agents reply to each one, marking it addressed or
-  needs input, and the reviewer resolves it or reopens it with a reply.
+- **[Decisions](docs/decisions/README.md)** record each design decision, with
+  its tradeoffs and the follow-up design choices it leaves open. Their index
+  summarizes each one.
+- **[Research](docs/research/README.md)** records what was found while
+  investigating open questions, with the options and their tradeoffs.
+- **[The glossary](docs/glossary.md)** defines the terms every doc uses.
+- **[`AGENTS.md`](AGENTS.md)** tells agent sessions how to work in this repo:
+  the rules in `.rules/` and when to read each one, the checks, and how to run
+  the CLI, the review server, and the review UI.
+- **Skills** in `.claude/skills/` hold processes Dan runs by name:
+  [`/plan-work`](.claude/skills/plan-work/SKILL.md) plans work into briefs, and
+  [`/create-brief`](.claude/skills/create-brief/SKILL.md) writes one brief.
+- **[`implement`](tools/implement/README.md)** starts a headless agent session
+  for each brief, and brings the work back as a pull request.
 
 ## Diff modes
 

@@ -5,7 +5,7 @@
   [0030](0030-self-review-before-the-pull-request-opens.md),
   [0034](0034-briefs-are-aven-tasks.md),
   [0035](0035-queued-briefs-wait-for-their-blockers.md), and
-  [0039](0039-dan-retries-a-failed-brief-by-resuming-its-agent-session.md)
+  [0040](0040-dan-retries-a-failed-brief-by-resuming-its-agent-session.md)
 - Date: 2026-10-12
 
 > Amended by [0015](0015-closing-a-brief-clears-its-labels.md): a GitHub Actions
@@ -35,7 +35,7 @@
 > `canceled` or deleted blocker is sent back with a note.
 >
 > Amended by
-> [0039](0039-dan-retries-a-failed-brief-by-resuming-its-agent-session.md):
+> [0040](0040-dan-retries-a-failed-brief-by-resuming-its-agent-session.md):
 > `implement` also resumes an agent session when Dan retries its failed brief by
 > setting `agent=retry`, with `claude --bg --resume <session-id> "<prompt>"` and
 > no other options, as it does when its pull request gets a review.
