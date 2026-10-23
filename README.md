@@ -133,6 +133,8 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
   is the ref given with `--base`, or by default origin/HEAD, `main`, `master`,
   or `HEAD`. Only `session new` and `session show` print links with the token,
   and the review UI shows a session at `/sessions/<id>`.
+- The review UI loads data from the review server with TanStack Query, and keeps
+  the reviewer's own state in TanStack Store.
 - Every comment is a thread. Agents reply to each one, marking it addressed or
   needs input, and the reviewer resolves it or reopens it with a reply.
 

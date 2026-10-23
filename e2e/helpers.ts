@@ -7,7 +7,7 @@ import { mkdtempSync, realpathSync, rmSync } from 'node:fs';
 import { createServer, type AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
-import { test as base } from '@playwright/test';
+import { test as base, type Page } from '@playwright/test';
 import { readConfig, statePaths } from '@agent-diff/shared/state';
 import { gitTestEnv } from '../scripts/test/git-env.ts';
 
@@ -192,6 +192,19 @@ export const test = base.extend<{
     await stop();
   },
 });
+
+// Counts the page's calls to `session.show`, from now on.
+export function countShowCalls(page: Page): () => number {
+  let calls = 0;
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/session/show') calls += 1;
+  });
+  return () => calls;
+}
+
+// Long enough for a retry or a refetch to have started, if one were coming.
+// TanStack Query's first retry waits a second.
+export const settle = 1500;
 
 // The URL with its origin changed, such as a session's link opened on the
 // dev server.

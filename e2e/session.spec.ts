@@ -1,7 +1,13 @@
 // Opens a session in the review UI at the URL `agent-diff session new`
 // prints, as a user would.
 import { expect, type Page } from '@playwright/test';
-import { agentDiff, test, withOrigin } from './helpers.ts';
+import {
+  agentDiff,
+  countShowCalls,
+  settle,
+  test,
+  withOrigin,
+} from './helpers.ts';
 
 const notFound = "There's no session at this address.";
 
@@ -55,6 +61,37 @@ test('an unknown or malformed session ID shows the not-found message', async ({
     await expect(page.getByRole('alert')).toHaveText(notFound);
     await expect(page.getByRole('heading')).toHaveCount(0);
   }
+});
+
+test('a session is asked for once, and not again when the window regains focus', async ({
+  page,
+  session,
+}) => {
+  const calls = countShowCalls(page);
+  await page.goto(session.url);
+  await expectSession(page, session);
+  // A page shows what the API returned when it loaded, with no live updates.
+  // As a string, since e2e/ is typed for Node, without the DOM.
+  await page.evaluate(`
+    window.dispatchEvent(new Event('visibilitychange'));
+    window.dispatchEvent(new Event('focus'));
+  `);
+  await page.waitForTimeout(settle);
+  expect(calls()).toBe(1);
+});
+
+test('an unknown session ID is asked for once, without retrying', async ({
+  page,
+  reviewServer,
+  session,
+}) => {
+  await page.goto(session.url);
+  await expectSession(page, session);
+  const calls = countShowCalls(page);
+  await page.goto(`${reviewServer.origin}sessions/s_zzzzzz`);
+  await expect(page.getByRole('alert')).toHaveText(notFound);
+  await page.waitForTimeout(settle);
+  expect(calls()).toBe(1);
 });
 
 test('every other path shows the not-found message, including /', async ({

@@ -1,7 +1,7 @@
 // How the review UI gets the token from the URL `agent-diff session new`
 // prints, and what it shows without one (decisions 0031 and 0039).
 import { expect, type Page } from '@playwright/test';
-import { test } from './helpers.ts';
+import { countShowCalls, settle, test } from './helpers.ts';
 
 const message =
   'Open the link printed by agent-diff session new or agent-diff session show.';
@@ -67,10 +67,14 @@ test('with a wrong token the review UI says to open a printed link', async ({
   session,
 }) => {
   const address = `${reviewServer.origin}sessions/${session.id}`;
+  const calls = countShowCalls(page);
   await page.goto(`${address}#token=wrong`);
   await expect(page.getByRole('alert')).toHaveText(message);
   await expect(page).toHaveURL(address);
   expect(await savedToken(page)).toBe('wrong');
+  // The rejected call isn't retried.
+  await page.waitForTimeout(settle);
+  expect(calls()).toBe(1);
 
   // A token in the URL replaces the saved one, also when the link is opened
   // in the same tab, which only changes the fragment.
