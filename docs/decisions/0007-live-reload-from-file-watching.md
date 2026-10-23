@@ -13,8 +13,8 @@ report changes, or by watching the files directly.
 ## Solution
 
 The review server watches the file system of every working directory in the
-review session. When something changes, it recomputes the affected diffs and
-file statuses and pushes the update to the browser.
+session. When something changes, it recomputes the affected diffs and file
+statuses and pushes the update to the browser.
 
 The server watches both the working tree and the parts of the git directory that
 the diff modes depend on:

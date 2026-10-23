@@ -66,8 +66,8 @@ goes into polishing features a built-in tool already has.
 **Options.**
 
 - **Harness-agnostic reviewer for agent fleets (the current design).**
-  Differentiators: [review sessions](../../docs/glossary.md#review-session)
-  spanning many [workspaces](../../docs/glossary.md#working-directory) and repos
+  Differentiators: [review sessions](../../docs/glossary.md#session) spanning
+  many [workspaces](../../docs/glossary.md#working-directory) and repos
   ([0009](../../docs/decisions/0009-review-sessions-and-claims.md)), review
   state that survives restarts
   ([0006](../../docs/decisions/0006-sqlite-review-state.md)), comments that

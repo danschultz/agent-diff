@@ -18,17 +18,17 @@ guess, and make some commands ambiguous. In `agent-diff review progress`,
 Every command is a noun followed by a verb, then its arguments and flags:
 `agent-diff <noun> <verb>`. The commands so far:
 
-| Command                                                            | What it does                                                         | Decision                                      |
-| ------------------------------------------------------------------ | -------------------------------------------------------------------- | --------------------------------------------- |
-| `agent-diff server start`, `stop`, `status`                        | Starts or stops the review server, or says whether it's running.     | [0019](0019-cli-does-not-start-the-server.md) |
-| `agent-diff session new <working-dir>...`                          | Starts a review session and prints its ID.                           | [0018](0018-agents-list-open-comments.md)     |
-| `agent-diff session add <session-id> <working-dir>...`             | Adds working directories to a review session.                        | [0018](0018-agents-list-open-comments.md)     |
-| `agent-diff session show <session-id>`                             | Shows a review session, its working directories, and comment counts. | [0018](0018-agents-list-open-comments.md)     |
-| `agent-diff session list`                                          | Lists review sessions and their IDs.                                 | [0018](0018-agents-list-open-comments.md)     |
-| `agent-diff session archive <session-id>`                          | Archives a review session.                                           | [0018](0018-agents-list-open-comments.md)     |
-| `agent-diff session delete <session-id> [--yes]`                   | Permanently deletes a review session, after confirmation.            | [0018](0018-agents-list-open-comments.md)     |
-| `agent-diff comment list <session-id> [--working-directory <dir>]` | Lists a review session's open comments, overall comments first.      | [0018](0018-agents-list-open-comments.md)     |
-| `agent-diff comment addressed <comment-id>`                        | Marks a comment addressed.                                           | [0018](0018-agents-list-open-comments.md)     |
+| Command                                                            | What it does                                                     | Decision                                      |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------- | --------------------------------------------- |
+| `agent-diff server start`, `stop`, `status`                        | Starts or stops the review server, or says whether it's running. | [0019](0019-cli-does-not-start-the-server.md) |
+| `agent-diff session new <working-dir>...`                          | Starts a session and prints its ID.                              | [0018](0018-agents-list-open-comments.md)     |
+| `agent-diff session add <session-id> <working-dir>...`             | Adds working directories to a session.                           | [0018](0018-agents-list-open-comments.md)     |
+| `agent-diff session show <session-id>`                             | Shows a session, its working directories, and comment counts.    | [0018](0018-agents-list-open-comments.md)     |
+| `agent-diff session list`                                          | Lists sessions and their IDs.                                    | [0018](0018-agents-list-open-comments.md)     |
+| `agent-diff session archive <session-id>`                          | Archives a session.                                              | [0018](0018-agents-list-open-comments.md)     |
+| `agent-diff session delete <session-id> [--yes]`                   | Permanently deletes a session, after confirmation.               | [0018](0018-agents-list-open-comments.md)     |
+| `agent-diff comment list <session-id> [--working-directory <dir>]` | Lists a session's open comments, overall comments first.         | [0018](0018-agents-list-open-comments.md)     |
+| `agent-diff comment addressed <comment-id>`                        | Marks a comment addressed.                                       | [0018](0018-agents-list-open-comments.md)     |
 
 Crust supports nested commands like these (0017). 0017's code example, with
 `startCommand` and `reviewCommand`, comes from research written before this

@@ -33,9 +33,9 @@ reviewer needs a way to say that a batch is ready.
   or a reviewer's reply in a comment's thread
   ([0038](0038-agents-reply-in-comment-threads.md)) is a draft until the
   reviewer submits it. Agents can't see drafts.
-- **The reviewer submits a review.** Submitting turns every draft in the review
-  session into a review, with an ID. A review session gets many reviews over
-  time. A review with no drafts can't be submitted.
+- **The reviewer submits a review.** Submitting turns every draft in the session
+  into a review, with an ID. A session gets many reviews over time. A review
+  with no drafts can't be submitted.
 - **Comments keep their own status.** Submitting a review sets each new comment
   to open. Statuses then change per comment, as in
   [0038](0038-agents-reply-in-comment-threads.md), not per review.
@@ -43,13 +43,13 @@ reviewer needs a way to say that a batch is ready.
 ### The review message
 
 - **On submit, the review server sends a review message** to the agent session
-  listening on the review session, through its listener
+  listening on the session, through its listener
   ([0037](0037-agents-get-review-messages-through-a-listener-they-start.md)).
 - **The review message is small.** It names the review and says what to do, and
   never carries the comments. For example:
 
   ```text
-  [agent-diff review 12] The reviewer submitted review 12 in review session 4.
+  [agent-diff review 12] The reviewer submitted review 12 in session 4.
   Finish what you're doing first, then run `agent-diff review show 12`, address
   each comment, and reply to each one with `agent-diff comment reply`.
   ```
@@ -66,8 +66,8 @@ reviewer needs a way to say that a batch is ready.
 ### When no agent session is listening
 
 - **The review server holds the review message** and sends it when a listener
-  connects to the review session. Held review messages are sent in the order
-  their reviews were submitted.
+  connects to the session. Held review messages are sent in the order their
+  reviews were submitted.
 - **The review UI shows the reviewer** whether each review's message is held,
   sent to a listener, or fetched with `review show`.
 - **The reviewer can copy the review message** from the review UI and paste it
@@ -79,8 +79,8 @@ reviewer needs a way to say that a batch is ready.
 - `agent-diff review show <review-id>` is new.
 - `agent-diff comment list <session-id>` stays, and lists only submitted
   comments.
-- The review session commands, archiving, and deleting are unchanged from 0018.
-  An archived review session can't get a review.
+- The session commands, archiving, and deleting are unchanged from 0018. An
+  archived session can't get a review.
 
 ### Effect on earlier decisions
 
@@ -99,7 +99,7 @@ reviewer needs a way to say that a batch is ready.
   return. A comment is available to agents once its review is submitted, not
   when it's saved. The copyable prompt becomes the review message, and is only
   needed when no agent session is listening. Claims stay removed, IDs stay
-  explicit, and review sessions are still archived or deleted.
+  explicit, and sessions are still archived or deleted.
 
 ## Tradeoffs
 

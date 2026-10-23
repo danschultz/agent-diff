@@ -111,8 +111,7 @@ imports resolve from the example's own `node_modules`.
   stores.
 - **Throughput:**
   [`tools/throughput.mjs`](0006-review-server-libraries/tools/throughput.mjs)
-  runs autocannon 8.0.0 against "get review session" with 10 connections for 5
-  seconds.
+  runs autocannon 8.0.0 against "get session" with 10 connections for 5 seconds.
 - **Maintenance:**
   [`tools/maint.py`](0006-review-server-libraries/tools/maint.py) reads the npm
   registry's `time` field and counts the versions published from 2025-10-14 to
@@ -143,11 +142,11 @@ stored with the same `node:sqlite` store
 ([`shared/store.ts`](0006-review-server-libraries/shared/store.ts)).
 
 Each `client.ts` subscribes to the events, starts a
-[review session](../glossary.md#review-session) over two
+[session](../glossary.md#session) over two
 [working directories](../glossary.md#working-directory), adds a
 [comment](../glossary.md#comment), adds an invalid comment (empty body, end line
-before start line), fetches the review session, fetches one that doesn't exist,
-and prints the results with ids and times replaced. Frameworks without a typed
+before start line), fetches the session, fetches one that doesn't exist, and
+prints the results with ids and times replaced. Frameworks without a typed
 client use the same `fetch` client as the `node:http` baseline, which parses
 responses with the shared schemas. The baseline printed:
 
@@ -204,7 +203,7 @@ responses with the shared schemas. The baseline printed:
   "missing": {
     "status": 404,
     "body": {
-      "error": "Review session not found"
+      "error": "Session not found"
     }
   },
   "event": {
@@ -291,8 +290,8 @@ example installs (8,256 KB, 1 package), so the baseline's size is Zod alone.
   needs the contract at run time, which loads Zod and the schemas. The `fetch`
   client loads in 227 ms without Zod and 490 ms when it parses responses with
   the shared Zod schemas. An empty file took about 189 ms.
-- **Wrong response type caught**: each example's "get review session" handler
-  was changed to return `startedAt` as a number, by
+- **Wrong response type caught**: each example's "get session" handler was
+  changed to return `startedAt` as a number, by
   [`tools/probe-response.py`](0006-review-server-libraries/tools/probe-response.py).
   Fastify, Elysia, and oRPC check handlers against declared response schemas.
   Hono and tRPC infer response types from what the handler returns, so the wrong
@@ -478,7 +477,7 @@ const server = createServer(async (req, res) => {
     const session = store.getReviewSession(match[1]!);
     return session
       ? send(res, 200, session)
-      : send(res, 404, { error: 'Review session not found' });
+      : send(res, 404, { error: 'Session not found' });
   }
   if (match && req.method === 'POST' && match[2]) {
     const input = parse(AddComment, await readJson(req));
@@ -486,7 +485,7 @@ const server = createServer(async (req, res) => {
     const comment = store.addComment(match[1]!, input);
     return comment
       ? send(res, 201, comment)
-      : send(res, 404, { error: 'Review session not found' });
+      : send(res, 404, { error: 'Session not found' });
   }
 
   send(res, 404, { error: `No route for ${req.method} ${url.pathname}` });
@@ -651,13 +650,13 @@ const app = new Hono()
     const session = store.getReviewSession(c.req.param('id'));
     return session
       ? c.json(session, 200)
-      : c.json({ error: 'Review session not found' }, 404);
+      : c.json({ error: 'Session not found' }, 404);
   })
   .post('/api/review-sessions/:id/comments', json(AddComment), (c) => {
     const comment = store.addComment(c.req.param('id'), c.req.valid('json'));
     return comment
       ? c.json(comment, 201)
-      : c.json({ error: 'Review session not found' }, 404);
+      : c.json({ error: 'Session not found' }, 404);
   });
 
 export type App = typeof app;
@@ -817,7 +816,7 @@ app.get(
   (req, reply) => {
     const session = store.getReviewSession(req.params.id);
     if (session) reply.send(session);
-    else reply.code(404).send({ error: 'Review session not found' });
+    else reply.code(404).send({ error: 'Session not found' });
   },
 );
 
@@ -833,7 +832,7 @@ app.post(
   (req, reply) => {
     const comment = store.addComment(req.params.id, req.body);
     if (comment) reply.code(201).send(comment);
-    else reply.code(404).send({ error: 'Review session not found' });
+    else reply.code(404).send({ error: 'Session not found' });
   },
 );
 
@@ -900,7 +899,7 @@ app.post('/api/review-sessions', (req, res) => {
 app.get('/api/review-sessions/:id', (req, res) => {
   const session = store.getReviewSession(req.params.id);
   if (session) res.json(session);
-  else res.status(404).json({ error: 'Review session not found' });
+  else res.status(404).json({ error: 'Session not found' });
 });
 
 app.post('/api/review-sessions/:id/comments', (req, res) => {
@@ -908,7 +907,7 @@ app.post('/api/review-sessions/:id/comments', (req, res) => {
   if (!input) return;
   const comment = store.addComment(req.params.id, input);
   if (comment) res.status(201).json(comment);
-  else res.status(404).json({ error: 'Review session not found' });
+  else res.status(404).json({ error: 'Session not found' });
 });
 
 app.listen(port, '127.0.0.1');
@@ -969,14 +968,14 @@ const app = new H3({
   .get('/api/review-sessions/:id', (event) => {
     const session = store.getReviewSession(event.context.params!.id!);
     if (!session)
-      throw new HTTPError({ status: 404, message: 'Review session not found' });
+      throw new HTTPError({ status: 404, message: 'Session not found' });
     return session;
   })
   .post('/api/review-sessions/:id/comments', async (event) => {
     const input = await readValidatedBody(event, AddComment, { onError });
     const comment = store.addComment(event.context.params!.id!, input);
     if (!comment)
-      throw new HTTPError({ status: 404, message: 'Review session not found' });
+      throw new HTTPError({ status: 404, message: 'Session not found' });
     event.res.status = 201;
     return comment;
   });
@@ -1055,7 +1054,7 @@ const app = new Elysia({ adapter: node() })
     '/api/review-sessions/:id',
     ({ params, status }) =>
       store.getReviewSession(params.id) ??
-      status(404, { error: 'Review session not found' }),
+      status(404, { error: 'Session not found' }),
     {
       params: z.object({ id: z.string() }),
       response: { 200: ReviewSession, 404: ErrorBody },
@@ -1067,7 +1066,7 @@ const app = new Elysia({ adapter: node() })
       const comment = store.addComment(params.id, body);
       return comment
         ? status(201, comment)
-        : status(404, { error: 'Review session not found' });
+        : status(404, { error: 'Session not found' });
     },
     {
       params: z.object({ id: z.string() }),
@@ -1200,7 +1199,7 @@ const t = initTRPC.create({
 });
 
 const notFound = () =>
-  new TRPCError({ code: 'NOT_FOUND', message: 'Review session not found' });
+  new TRPCError({ code: 'NOT_FOUND', message: 'Session not found' });
 
 export const router = t.router({
   health: t.procedure.query(() => ({ ok: true })),
@@ -1387,7 +1386,7 @@ import {
   ReviewSession,
 } from './shared/schemas.ts';
 
-const NOT_FOUND = { message: 'Review session not found' };
+const NOT_FOUND = { message: 'Session not found' };
 const byId = z.object({ id: z.string() });
 
 export const contract = {
@@ -1596,8 +1595,8 @@ console.log(
 
 ### Validation libraries
 
-The same schemas were written with each library: creating a review session, and
-adding a comment that is either a range comment (`path`, `startLine`, `endLine`,
+The same schemas were written with each library: creating a session, and adding
+a comment that is either a range comment (`path`, `startLine`, `endLine`,
 `body`, with the check across fields) or an overall comment (`body` only), told
 apart by `kind`. Each `schemas.ts` exports the schemas, their inferred types,
 and a `check` function that returns the value or a message.
@@ -2008,7 +2007,7 @@ database file in WAL mode with `synchronous = normal`, then times three phases:
 - **Single:** 2,000 comments inserted one at a time, each in its own
   transaction, as saving each [comment](../glossary.md#comment) on its own
   would.
-- **Read:** 2,000 queries for one review session's comments, 120 rows each.
+- **Read:** 2,000 queries for one session's comments, 120 rows each.
 
 It ran three times per driver, on ext4 on the machine's disk, and the median is
 shown. A first run on `/tmp`, which is `tmpfs` here, gave similar bulk and read
@@ -2057,15 +2056,15 @@ varied between runs on this disk: a run of `node:sqlite` on Node 26.11.1 took
 
 ### Query layers
 
-Each query layer implements the same store: create a review session with its
-working directories in one transaction, get a review session with its working
-directories and comments, and add a comment if the review session exists.
+Each query layer implements the same store: create a session with its working
+directories in one transaction, get a session with its working directories and
+comments, and add a comment if the session exists.
 [`query/test.ts`](0006-review-server-libraries/query/test.ts) prints the same
 result for each. Tables are created from the same
 [`schema.sql`](0006-review-server-libraries/query/schema.sql) in every example,
-so migrations weren't compared. Reads are 2,000 calls to get a review session
-with 20 comments, in memory, the median of five rounds. Load time is
-`node import.ts`, which opens the store.
+so migrations weren't compared. Reads are 2,000 calls to get a session with 20
+comments, in memory, the median of five rounds. Load time is `node import.ts`,
+which opens the store.
 
 | Query layer        | Driver         |               `store.ts` lines | Install                                                                         |    Reads | Load time | Row types                                |
 | ------------------ | -------------- | -----------------------------: | ------------------------------------------------------------------------------- | -------: | --------: | ---------------------------------------- |

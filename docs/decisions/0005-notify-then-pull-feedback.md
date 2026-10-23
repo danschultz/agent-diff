@@ -8,10 +8,10 @@
 - Date: 2026-10-10
 
 > **Amended by [0009](0009-review-sessions-and-claims.md):** feedback goes to a
-> review session rather than to one fixed agent. A notification says feedback is
-> available in a review session, and an agent claims a working directory before
+> session rather than to one fixed agent. A notification says feedback is
+> available in a session, and an agent claims a working directory before
 > fetching its comments. Feedback for an agent that has exited waits in the
-> review session until another agent claims it.
+> session until another agent claims it.
 
 > **Amended by [0010](0010-user-prompts-agent-to-fetch-review.md):** the review
 > server no longer sends a message when a review is submitted. The reviewer

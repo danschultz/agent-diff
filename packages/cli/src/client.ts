@@ -5,7 +5,12 @@ import { createORPCClient, ORPCError } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
 import type { ContractRouterClient } from '@orpc/contract';
 import { apiPrefix, type Contract } from '@agent-diff/shared/contract';
-import { readConfig, serverUrl, statePaths } from '@agent-diff/shared/state';
+import {
+  readConfig,
+  serverUrl,
+  statePaths,
+  type Config,
+} from '@agent-diff/shared/state';
 
 export type Client = ContractRouterClient<Contract>;
 
@@ -42,19 +47,20 @@ export async function isRunning(port: number, token: string): Promise<boolean> {
   }
 }
 
-// Calls the API on the saved port with the saved token. Fails with 0019's
-// error when there's no valid config file or nothing answers on the port,
-// with 0031's error when the token is rejected, and with the review server's
-// message, such as a validation error, when it rejects the call.
+// Calls the API on the saved port with the saved token, which call also gets
+// to build links with. Fails with 0019's error when there's no valid config
+// file or nothing answers on the port, with 0031's error when the token is
+// rejected, and with the review server's message, such as a validation error
+// or an unknown session, when it rejects the call.
 export async function callReviewServer<T>(
   env: NodeJS.ProcessEnv,
-  call: (client: Client) => Promise<T>,
+  call: (client: Client, config: Config) => Promise<T>,
 ): Promise<T> {
   const paths = statePaths(env);
   const config = readConfig(paths);
   if (!config) throw new Error(notRunningMessage);
   try {
-    return await call(createClient(config.port, config.token));
+    return await call(createClient(config.port, config.token), config);
   } catch (error) {
     if (error instanceof ORPCError && error.status === 401) {
       throw new Error(rejectedTokenMessage(config.port, paths.config));

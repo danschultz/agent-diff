@@ -1,7 +1,12 @@
 # 0016: The review UI's state is held in TanStack Store, updated through Immer
 
-- Status: Accepted
+- Status: Accepted, amended by
+  [0041](0041-the-review-ui-loads-data-with-tanstack-query.md)
 - Date: 2026-10-14
+
+> **Amended by [0041](0041-the-review-ui-loads-data-with-tanstack-query.md):**
+> data loaded from the review server is held in TanStack Query's cache, and
+> stores hold the reviewer's UI state and drafts.
 
 ## Problem
 
@@ -172,9 +177,8 @@ Costs:
 - **Versions.** Whether to pin TanStack Store's exact version, and when to move
   to 1.0.
 - **How state is split into stores.** Which of the review UI's state, such as
-  the [review session](../glossary.md#review-session),
-  [diff mode](../glossary.md#diff-mode), [file view](../glossary.md#file-view),
-  selection, and drafts, shares a store.
+  the [session](../glossary.md#session), [diff mode](../glossary.md#diff-mode),
+  [file view](../glossary.md#file-view), selection, and drafts, shares a store.
 - **Data loaded from the review server.** Whether file lists, diffs, comments,
   and reviews are held in stores or in a data-fetching library such as TanStack
   Query, with stores holding the reviewer's UI state and drafts.

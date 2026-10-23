@@ -11,9 +11,9 @@
 > store.
 
 > **Amended by [0018](0018-agents-list-open-comments.md):** the database holds
-> comments with their statuses, and archived review sessions. There are no
-> drafts, reviews, or claims to store, and review sessions are archived or
-> deleted with `agent-diff session archive` and `agent-diff session delete`.
+> comments with their statuses, and archived sessions. There are no drafts,
+> reviews, or claims to store, and sessions are archived or deleted with
+> `agent-diff session archive` and `agent-diff session delete`.
 
 > **Amended by
 > [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md):**
@@ -37,8 +37,8 @@ The database holds the state the app creates:
 
 - Registered agents, the agent tree, and each agent's working directories and
   how to notify it ([0004](0004-agent-tree-is-an-input.md)).
-- Review sessions, their working directories, the reviews submitted to them, and
-  claims ([0009](0009-review-sessions-and-claims.md)).
+- Sessions, their working directories, the reviews submitted to them, and claims
+  ([0009](0009-review-sessions-and-claims.md)).
 - Comments, both drafts and submitted, with their anchors (file, line range,
   diff side, and the commit or snapshot they were written against).
 - Delivery status for feedback notifications

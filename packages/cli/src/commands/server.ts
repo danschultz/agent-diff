@@ -1,13 +1,8 @@
 // `agent-diff server` commands, from decisions 0019 and 0020.
 import { once } from 'node:events';
 import { defineCommand } from '@crustjs/core';
-import {
-  readConfig,
-  reviewUiUrl,
-  serverUrl,
-  statePaths,
-} from '@agent-diff/shared/state';
-import { callReviewServer, isRunning } from '../client.ts';
+import { readConfig, statePaths } from '@agent-diff/shared/state';
+import { isRunning } from '../client.ts';
 
 export interface ServerCommandOptions {
   env: NodeJS.ProcessEnv;
@@ -50,7 +45,7 @@ export function serverCommand({ env }: ServerCommandOptions) {
           const saved = readConfig(statePaths(env));
           if (saved && (await isRunning(saved.port, saved.token))) {
             stdout(
-              `The review server is already running at ${reviewUiUrl(serverUrl(saved.port), saved.token)}`,
+              `The review server is already running on port ${saved.port}.`,
             );
             return;
           }
@@ -58,8 +53,10 @@ export function serverCommand({ env }: ServerCommandOptions) {
           // server.
           const { startReviewServer } = await import('@agent-diff/server');
           const server = await startReviewServer({ env });
+          // Only `session new` and `session show` print a link with the
+          // token (decision 0040).
           stdout(
-            `The review server is running at ${reviewUiUrl(server.url, server.token)}\nPress Ctrl-C to stop it.`,
+            `The review server is running on port ${server.port}.\nPress Ctrl-C to stop it.`,
           );
           await stopRequested(signal);
           await server.close();
@@ -67,32 +64,9 @@ export function serverCommand({ env }: ServerCommandOptions) {
         }),
   );
 
-  // Placeholder for the hello world scaffolding. Remove it when real features
-  // land.
-  const hello = defineCommand(
-    'hello',
-    { description: "Call the review server's hello endpoint." },
-    (c) =>
-      c
-        .args({
-          name: 'name',
-          type: 'string',
-          required: true,
-          description: 'Who to greet',
-        })
-        .action(async ({ args, stdout }) => {
-          const { message, count } = await callReviewServer(env, (client) =>
-            client.hello({ name: args.name }),
-          );
-          stdout(
-            `${message} (${count} ${count === 1 ? 'greeting' : 'greetings'})`,
-          );
-        }),
-  );
-
   return defineCommand(
     'server',
     { description: 'Manage the review server.' },
-    (c) => c.add(start, hello),
+    (c) => c.add(start),
   );
 }

@@ -48,8 +48,8 @@ Costs:
 
 - **Running in the background.** Whether `server start` stays in the foreground
   or detaches, and where its logs go.
-- **Stopping with active review sessions.** Whether `server stop` warns or asks
-  first when review sessions are active.
+- **Stopping with active sessions.** Whether `server stop` warns or asks first
+  when sessions are active.
 - **Starting automatically.** Whether harnesses run `server start`, or the
   review server can be set to start when the user logs in.
 - **Server discovery and auth.** How the CLI finds a running review server, its

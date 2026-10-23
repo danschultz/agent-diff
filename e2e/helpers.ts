@@ -1,36 +1,58 @@
 // Starts the review server, and the review UI's dev server, as a user would,
 // with a temporary XDG_STATE_HOME, so the tests never use the real state
-// directory.
-import { spawn } from 'node:child_process';
+// directory, and creates a session with `agent-diff session new`.
+import { execFileSync, spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, realpathSync, rmSync } from 'node:fs';
 import { createServer, type AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
-import { test as base } from '@playwright/test';
+import { test as base, type Page } from '@playwright/test';
+import { readConfig, statePaths } from '@agent-diff/shared/state';
+import { gitTestEnv } from '../scripts/test/git-env.ts';
 
 const root = path.join(import.meta.dirname, '..');
 const bin = path.join(root, 'node_modules', '.bin', 'agent-diff');
 
 export interface Running {
-  // The URL with the token, as printed.
-  url: string;
-  // The URL without the token.
+  // The origin, such as `http://127.0.0.1:4321/`, without the token.
   origin: string;
+}
+
+export interface DevServer extends Running {
+  // What it has printed so far.
+  output(): string;
+}
+
+export interface ReviewServer extends Running {
   token: string;
 }
 
-// Spawns a command and waits for its output to match pattern. stop() ends the
-// command and everything it started.
+export interface CreatedSession {
+  id: string;
+  // The review UI's URL with the token, as `session new` printed it.
+  url: string;
+  // A git repo with a commit on main and the branch feature checked out.
+  repo: string;
+  // A directory that doesn't use git.
+  plain: string;
+}
+
+// Spawns a command with only the environment given, and waits for its output
+// to match pattern. stop() ends the command and everything it started.
 async function run(
   command: string,
   args: string[],
   env: NodeJS.ProcessEnv,
   pattern: RegExp,
-): Promise<{ match: RegExpExecArray; stop(): Promise<void> }> {
+): Promise<{
+  match: RegExpExecArray;
+  output(): string;
+  stop(): Promise<void>;
+}> {
   const child = spawn(command, args, {
     cwd: root,
-    env: { ...process.env, ...env, NO_COLOR: '1' },
+    env: { ...env, NO_COLOR: '1' },
     // Its own process group, so stop() also ends what npm starts.
     detached: true,
   });
@@ -53,11 +75,11 @@ async function run(
       // Within Playwright's 30 seconds for a test, so the command is stopped
       // below rather than left running.
       setTimeout(
-        () => reject(new Error(`${command} printed no URL:\n${output}`)),
+        () => reject(new Error(`${command} didn't start:\n${output}`)),
         20_000,
       ).unref();
     });
-    return { match, stop };
+    return { match, output: () => output, stop };
   } catch (error) {
     await stop();
     throw error;
@@ -72,39 +94,124 @@ async function freePort(): Promise<number> {
   return port;
 }
 
+function tempDir(prefix: string): string {
+  return realpathSync(mkdtempSync(path.join(os.tmpdir(), prefix)));
+}
+
+// Runs the CLI, and returns what it printed.
+export function agentDiff(env: NodeJS.ProcessEnv, ...args: string[]): string {
+  return execFileSync(bin, args, { cwd: root, env, encoding: 'utf8' });
+}
+
 export const test = base.extend<{
-  stateHome: string;
-  reviewServer: Running;
-  devServer: Running;
+  // The environment for the review server and the CLI: the one for running
+  // git, as AGENTS.md says, with a temporary XDG_STATE_HOME.
+  env: NodeJS.ProcessEnv;
+  reviewServer: ReviewServer;
+  session: CreatedSession;
+  devServer: DevServer;
 }>({
-  stateHome: async ({}, use) => {
-    const dir = mkdtempSync(path.join(os.tmpdir(), 'agent-diff-e2e-'));
-    await use(dir);
-    rmSync(dir, { recursive: true, force: true });
+  env: async ({}, use) => {
+    const cleanups: (() => void)[] = [];
+    const stateHome = tempDir('agent-diff-e2e-');
+    cleanups.push(() => rmSync(stateHome, { recursive: true, force: true }));
+    const env = gitTestEnv({ after: (cleanup) => cleanups.push(cleanup) });
+    await use({ ...env, XDG_STATE_HOME: stateHome });
+    for (const cleanup of cleanups) cleanup();
   },
-  // `agent-diff server start --foreground`, serving the built review UI.
-  reviewServer: async ({ stateHome }, use) => {
+  // `agent-diff server start --foreground`, serving the built review UI. The
+  // port and token are read from the config file once it says it's running.
+  reviewServer: async ({ env }, use) => {
     const { match, stop } = await run(
       bin,
       ['server', 'start', '--foreground'],
-      { XDG_STATE_HOME: stateHome },
-      /running at ((http:\/\/127\.0\.0\.1:\d+\/)#token=([A-Za-z0-9_-]+))\n/,
+      env,
+      /The review server is running on port (\d+)\.\n/,
     );
-    await use({ url: match[1]!, origin: match[2]!, token: match[3]! });
+    const config = readConfig(statePaths(env));
+    if (config?.port !== Number(match[1])) {
+      throw new Error(`The config file doesn't have port ${match[1]}.`);
+    }
+    await use({
+      origin: `http://127.0.0.1:${config.port}/`,
+      token: config.token,
+    });
     await stop();
   },
+  // A session over a git repo and a directory that doesn't use git, created
+  // with `agent-diff session new --title Check`.
+  session: async ({ env, reviewServer }, use) => {
+    void reviewServer;
+    const repo = tempDir('agent-diff-e2e-repo-');
+    const git = (...args: string[]) =>
+      execFileSync('git', args, { cwd: repo, env });
+    git('init', '--quiet', '--initial-branch', 'main');
+    git(
+      '-c',
+      'user.name=Test',
+      '-c',
+      'user.email=test@example.com',
+      'commit',
+      '--quiet',
+      '--allow-empty',
+      '--message',
+      'Commit',
+    );
+    git('switch', '--quiet', '--create', 'feature');
+    const plain = tempDir('agent-diff-e2e-plain-');
+
+    const output = agentDiff(
+      env,
+      'session',
+      'new',
+      '--title',
+      'Check',
+      repo,
+      plain,
+    );
+    const id = /^Created session (s_[0-9a-z]{6})\.$/m.exec(output)?.[1];
+    const url = /^Review UI: (\S+)$/m.exec(output)?.[1];
+    if (!id || !url) throw new Error(`Unexpected output:\n${output}`);
+    await use({ id, url, repo, plain });
+    rmSync(repo, { recursive: true, force: true });
+    rmSync(plain, { recursive: true, force: true });
+  },
   // `npm run dev:ui`, proxying API calls to the review server, which has to
-  // be started first, so the dev server can read its port and token.
-  devServer: async ({ stateHome, reviewServer }, use) => {
+  // be started first, so the dev server can read its port. npm needs the
+  // user's environment, and the dev server doesn't run git.
+  devServer: async ({ env, reviewServer }, use) => {
     void reviewServer;
     const port = await freePort();
-    const { match, stop } = await run(
+    const { match, output, stop } = await run(
       'npm',
       ['run', 'dev:ui', '--', '--port', String(port), '--strictPort'],
-      { XDG_STATE_HOME: stateHome },
-      /((http:\/\/localhost:\d+\/)#token=([A-Za-z0-9_-]+))\s/,
+      { ...process.env, XDG_STATE_HOME: env.XDG_STATE_HOME },
+      /Local:\s+(http:\/\/localhost:\d+\/)\s/,
     );
-    await use({ url: match[1]!, origin: match[2]!, token: match[3]! });
+    await use({ origin: match[1]!, output });
     await stop();
   },
 });
+
+// Counts the page's calls to `session.show`, from now on.
+export function countShowCalls(page: Page): () => number {
+  let calls = 0;
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/session/show') calls += 1;
+  });
+  return () => calls;
+}
+
+// Long enough for a retry or a refetch to have started, if one were coming.
+// TanStack Query's first retry waits a second.
+export const settle = 1500;
+
+// The URL with its origin changed, such as a session's link opened on the
+// dev server.
+export function withOrigin(url: string, origin: string): string {
+  const moved = new URL(url);
+  const { protocol, host } = new URL(origin);
+  moved.protocol = protocol;
+  moved.host = host;
+  return moved.href;
+}

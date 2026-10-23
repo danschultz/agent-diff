@@ -20,10 +20,10 @@
 > working directory that contains it.
 
 > **Amended by [0018](0018-agents-list-open-comments.md):** there's no review to
-> fetch and no claim. The prompt includes the review session's ID, the agent
-> runs `agent-diff comment list <session-id>` to list open comments, and marks
-> each one addressed with `agent-diff comment addressed <comment-id>`. The
-> agent's current directory isn't used.
+> fetch and no claim. The prompt includes the session's ID, the agent runs
+> `agent-diff comment list <session-id>` to list open comments, and marks each
+> one addressed with `agent-diff comment addressed <comment-id>`. The agent's
+> current directory isn't used.
 
 ## Problem
 
@@ -90,21 +90,21 @@ Costs:
 - Only the most recent review is returned. If the reviewer submits two reviews
   before prompting the agent, the earlier one isn't applied unless the agent
   asks for it.
-- The agent's current directory must match a working directory in a review
-  session, or the agent has to say which one it means.
+- The agent's current directory must match a working directory in a session, or
+  the agent has to say which one it means.
 
 ## Follow-up design choices
 
 - **Earlier reviews.** Whether `agent-diff review` can fetch a specific or
-  earlier review, and whether it warns when an earlier review in the review
-  session wasn't addressed.
+  earlier review, and whether it warns when an earlier review in the session
+  wasn't addressed.
 - **Copyable prompt.** What the prompt shown after submit says, and whether it
-  names the review session.
+  names the session.
 - **Working directory lookup.** What happens when the current directory matches
-  no working directory, or a working directory in several review sessions.
+  no working directory, or a working directory in several sessions.
 - **Output format.** Whether `agent-diff review` returns JSON or text formatted
   for a language model.
-- **CLI naming.** `agent-diff review` now fetches a review, so starting a review
+- **CLI naming.** `agent-diff review` now fetches a review, so starting a
   session needs a different command.
 - **Automatic wake-ups.** Whether to add them later, through harnesses or agent
   hooks, on top of the same pull command.

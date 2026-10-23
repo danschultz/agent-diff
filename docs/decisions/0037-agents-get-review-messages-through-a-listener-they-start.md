@@ -1,4 +1,4 @@
-# 0037: Agents get review messages through a listener they start on the review session
+# 0037: Agents get review messages through a listener they start on the session
 
 - Status: Accepted
 - Date: 2026-10-22
@@ -23,8 +23,8 @@ each review message is for.
 ### The listener
 
 - **`agent-diff session listen <session-id>`** connects to the review server and
-  waits for review messages for that review session. It prints each one as a
-  single line on stdout, and keeps running.
+  waits for review messages for that session. It prints each one as a single
+  line on stdout, and keeps running.
 - **Nothing else goes to stdout,** since each line starts a turn. Errors go to
   stderr, and the listener reconnects on its own when the connection drops.
 - **The listener tells the review server** once it has printed a review message,
@@ -45,21 +45,20 @@ each review message is for.
     its output matches `[agent-diff review`, so each line starts a turn and the
     listener keeps running. The notice doesn't include the line, so the agent
     reads the command's output.
-- **`agent-diff session new` prints how to start it.** After the review
-  session's ID and the review UI's URL, it prints the listener command and how
-  to run it in each agent, so the agent that started the review session starts
-  listening on it.
+- **`agent-diff session new` prints how to start it.** After the session's ID
+  and the review UI's URL, it prints the listener command and how to run it in
+  each agent, so the agent that started the session starts listening on it.
 - **There's no plugin, hook, or config to install,** and it works in an agent
   session that's already running.
 
 ### Addressing
 
-- **Review messages are addressed by review session ID.** Whoever listens on a
-  review session gets its review messages. Normally that's the agent that
-  started it, by following `session new`'s output. The review server doesn't
-  need agent session IDs, and the same approach works in both agents.
-- **A human who starts a review session** asks an agent to run the listener, or
-  copies the review message from the review UI.
+- **Review messages are addressed by session ID.** Whoever listens on a session
+  gets its review messages. Normally that's the agent that started it, by
+  following `session new`'s output. The review server doesn't need agent session
+  IDs, and the same approach works in both agents.
+- **A human who starts a session** asks an agent to run the listener, or copies
+  the review message from the review UI.
 - **With a fleet,** the main agent listens and hands work to its sub-agents. The
   docs say a background command started by a foreground sub-agent stops when the
   sub-agent finishes, so sub-agents shouldn't be the ones listening.
@@ -67,8 +66,8 @@ each review message is for.
 ### What wasn't chosen
 
 - **A Claude Code plugin monitor.** It starts with the agent session and has no
-  30-minute limit, but it starts before any review session exists, so it can
-  only listen by `CLAUDE_CODE_SESSION_ID`. That's a second way to address agent
+  30-minute limit, but it starts before any session exists, so it can only
+  listen by `CLAUDE_CODE_SESSION_ID`. That's a second way to address agent
   sessions, and Claude Code only.
 - **Monitor's WebSocket source.** It needs no process, but it's Claude Code
   only, it wasn't tested, and the token would go in the URL, where the
@@ -111,7 +110,7 @@ Costs:
 ## Follow-up design choices
 
 - **Several listeners.** Whether a review message goes to every listener on a
-  review session, the most recent, or the first to take it.
+  session, the most recent, or the first to take it.
 - **Showing listeners.** Whether the review UI shows that a listener is
   connected, and for how long it's been gone.
 - **The review server stopping.** Whether the listener prints a line when the

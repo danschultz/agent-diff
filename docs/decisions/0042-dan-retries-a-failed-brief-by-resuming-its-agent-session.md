@@ -1,4 +1,4 @@
-# 0040: Dan retries a failed brief with `agent=retry`, which resumes its agent session
+# 0042: Dan retries a failed brief with `agent=retry`, which resumes its agent session
 
 - Status: Accepted
 - Date: 2026-10-23
@@ -44,9 +44,9 @@ This decision calls that retrying a brief, and keeps "resume" for the
   likely happen again on an automatic retry, and failures are rare.
 - **`implement` retries by resuming the agent session** with
   `claude --bg --resume <session-id> "<prompt>"` and no other options, as it
-  does for pull request reviews. The agent session keeps its session ID, the ID
-  `claude stop` takes, its name, Remote Control and the hooks, since it's
-  started again with the options it was first started with.
+  does for pull request reviews. The agent session keeps its Claude Code session
+  ID, the ID `claude stop` takes, its name, Remote Control and the hooks, since
+  it's started again with the options it was first started with.
 - **The retry prompt** tells the agent session:
   - that it exited before finishing, without opening a pull request, and that
     `implement` doesn't know why;
@@ -72,10 +72,10 @@ This decision calls that retrying a brief, and keeps "resume" for the
   after launching as a new or resumed agent session before `implement` counts it
   as exited. If it exits again without a pull request, it's marked
   `agent=failed` again with a new failure note, and Dan can retry it again.
-- **When it can't be retried.** If `implement` has no session ID for the brief,
-  or the resume command fails, the brief goes back to `agent=failed` with a note
-  saying why. The worktree is kept. `implement` doesn't fall back to a new agent
-  session.
+- **When it can't be retried.** If `implement` has no Claude Code session ID for
+  the brief's agent session, or the resume command fails, the brief goes back to
+  `agent=failed` with a note saying why. The worktree is kept. `implement`
+  doesn't fall back to a new agent session.
 - **`agent=retry` on a brief `implement` isn't tracking**, such as one that was
   never started or was let go, has `agent=retry` removed and gets a note saying
   there's nothing to retry and to set `agent=queued` to start it.
@@ -120,7 +120,7 @@ Costs:
 - A new `agent` value to learn.
 - The conversation keeps whatever confused the agent session before.
 - It doesn't keep agent sessions from exiting, and can't help when there's no
-  session ID.
+  Claude Code session ID.
 
 ## Follow-up design choices
 

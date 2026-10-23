@@ -1,8 +1,9 @@
-# 0018: Agents list a review session's open comments and mark each one addressed
+# 0018: Agents list a session's open comments and mark each one addressed
 
 - Status: Accepted, amended by
-  [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md)
-  and [0038](0038-agents-reply-in-comment-threads.md)
+  [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md),
+  [0038](0038-agents-reply-in-comment-threads.md), and
+  [0040](0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md)
 - Date: 2026-10-15
 
 > **Amended by
@@ -11,13 +12,20 @@
 > review, and the review server sends the agent a review message naming
 > `agent-diff review show <review-id>`. The copyable prompt becomes that review
 > message, needed only when no agent session is listening. Claims stay removed,
-> IDs stay explicit, and review sessions are still archived or deleted.
+> IDs stay explicit, and sessions are still archived or deleted.
 
 > **Amended by [0038](0038-agents-reply-in-comment-threads.md):**
 > `agent-diff comment addressed` is replaced by
 > `agent-diff comment reply <comment-id> --addressed|--needs-input <text>`.
 > Comment statuses are open, addressed, needs input, and resolved, and the
 > reviewer reopens a comment by replying to it.
+
+> **Amended by
+> [0040](0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md):**
+> a session's ID is `s_` and 6 random characters of lowercase Crockford base32,
+> such as `s_7kq9a1`, and comment IDs will be `c_` with the same shape.
+> `session new` and `session add` take `--base <ref>`, and without it the base
+> ref defaults to origin/HEAD, then `main` or `master`, then `HEAD`.
 
 ## Problem
 
@@ -44,11 +52,11 @@ longer fit:
 - **Working out the working directory from the current directory is ambiguous.**
   It has no answer when the CLI runs outside every working directory, as a main
   agent coordinating sub-agents does, or when a working directory is in several
-  review sessions or inside another working directory. A command that guesses
-  which review session it means can act on the wrong one.
-- **Ending a review session is undefined.** 0009 says a review session ends
-  through an API call, but not what ending does to its comments, to file
-  watching, or to its data.
+  sessions or inside another working directory. A command that guesses which
+  session it means can act on the wrong one.
+- **Ending a session is undefined.** 0009 says a session ends through an API
+  call, but not what ending does to its comments, to file watching, or to its
+  data.
 
 ## Solution
 
@@ -57,7 +65,7 @@ longer fit:
 - **Two kinds of comment.** A line comment is on a single line or a range of
   lines, and has an anchor and an anchor state
   ([0008](0008-comment-reanchoring.md)). An overall comment isn't attached to
-  code and belongs to the review session.
+  code and belongs to the session.
 - **No drafts, submit, or reviews.** A comment is available to agents as soon as
   the reviewer saves it.
 
@@ -76,22 +84,22 @@ where it's shown. The two are independent.
 ### Agents
 
 - **The reviewer prompts the agent, as in 0010.** The review UI shows a prompt
-  to copy that includes the review session's ID, for example "Run
+  to copy that includes the session's ID, for example "Run
   `agent-diff comment list 4` and address the open comments." The review server
   never contacts agents.
 - **The agent lists open comments.** `agent-diff comment list <session-id>`
-  returns the review session's open comments. Overall comments come first, so
-  the agent reads any framing before the line comments, which follow grouped by
-  working directory and file. Each line comment includes its working directory's
-  path and its file path relative to the working directory.
+  returns the session's open comments. Overall comments come first, so the agent
+  reads any framing before the line comments, which follow grouped by working
+  directory and file. Each line comment includes its working directory's path
+  and its file path relative to the working directory.
 - **The list can be filtered by working directory.** `--working-directory <dir>`
   returns only that working directory's line comments, along with every overall
   comment. In a fleet, a sub-agent can list just its own working directory's
   comments and still see the framing.
 - **The agent marks each comment addressed.**
   `agent-diff comment addressed <comment-id>` sets a comment's status to
-  addressed. Comment IDs are unique across review sessions, so the command
-  doesn't need a session ID.
+  addressed. Comment IDs are unique across sessions, so the command doesn't need
+  a session ID.
 - **Output is written for agents.** Commands print text that's easy for an agent
   to read by default. There's no JSON output for now.
 
@@ -103,42 +111,41 @@ working directories to its sub-agents.
 
 ### Explicit IDs
 
-- Every command that acts on a review session takes the review session's ID.
-  Nothing works out a working directory or review session from the directory the
-  CLI runs in.
+- Every command that acts on a session takes the session's ID. Nothing works out
+  a working directory or session from the directory the CLI runs in.
 - Working directories are path arguments. A relative path is resolved like any
   other path argument.
-- A working directory can be in several review sessions.
+- A working directory can be in several sessions.
 
-### Review session commands
+### Session commands
 
-- `agent-diff session new <working-dir>...` starts a review session. At least
-  one working directory is required. It prints the review session's ID and the
-  review UI's URL.
+- `agent-diff session new <working-dir>...` starts a session. At least one
+  working directory is required. It prints the session's ID and the review UI's
+  URL.
 - `agent-diff session add <session-id> <working-dir>...` adds working
-  directories to a review session.
-- `agent-diff session show <session-id>` shows a review session, its working
+  directories to a session.
+- `agent-diff session show <session-id>` shows a session, its working
   directories, and how many comments have each status.
-- `agent-diff session list` lists review sessions and their IDs, so an agent can
-  find an ID it wasn't given.
+- `agent-diff session list` lists sessions and their IDs, so an agent can find
+  an ID it wasn't given.
 
 ### Archiving and deleting
 
-Review sessions are archived or deleted rather than ended.
+Sessions are archived or deleted rather than ended.
 
-- `agent-diff session archive <session-id>` archives a review session:
+- `agent-diff session archive <session-id>` archives a session:
   - The review server stops watching its working directories for it, and frees
-    the resources it held. A working directory that's also in an active review
-    session is still watched for that one.
-  - The review session becomes read-only. Comments can't be added or change
-    status, and working directories can't be added.
+    the resources it held. A working directory that's also in an active session
+    is still watched for that one.
+  - The session becomes read-only. Comments can't be added or change status, and
+    working directories can't be added.
   - It can still be queried through the API, the CLI, and the review UI.
   - Comments keep whatever status they had, including open, and archiving
     doesn't warn about open comments.
   - Archiving is one-way for now.
-- `agent-diff session delete <session-id>` permanently removes a review session
-  and its data from the database. An active review session can be deleted
-  without archiving it first.
+- `agent-diff session delete <session-id>` permanently removes a session and its
+  data from the database. An active session can be deleted without archiving it
+  first.
   - It asks for confirmation, and `--yes` skips it.
   - Without a terminal to ask in, as when an agent runs it, it fails unless
     `--yes` is given, with an error that says to pass `--yes`. It never waits
@@ -150,23 +157,22 @@ Review sessions are archived or deleted rather than ended.
   and delivered as a submitted batch. Each comment is available as soon as it's
   saved. Agents still pull, and still don't block.
 - **[0006](0006-sqlite-review-state.md).** The database holds comments with
-  their statuses, and archived review sessions. There are no drafts, reviews, or
-  claims to store.
+  their statuses, and archived sessions. There are no drafts, reviews, or claims
+  to store.
 - **[0008](0008-comment-reanchoring.md).** There are no drafts or submitted
   comments, so the "Drafts and submitted comments" section no longer applies.
-- **[0009](0009-review-sessions-and-claims.md).** Review sessions stay. Reviews
-  and claims are removed, and review sessions are archived or deleted rather
-  than ended. Comments in an archived review session keep their status, which
-  answers the follow-up about ending with open feedback. The follow-ups about
-  overall comments, first claim, lease timing, and new reviews during a claim no
-  longer apply.
+- **[0009](0009-review-sessions-and-claims.md).** Sessions stay. Reviews and
+  claims are removed, and sessions are archived or deleted rather than ended.
+  Comments in an archived session keep their status, which answers the follow-up
+  about ending with open feedback. The follow-ups about overall comments, first
+  claim, lease timing, and new reviews during a claim no longer apply.
 - **[0010](0010-user-prompts-agent-to-fetch-review.md).** The agent lists open
   comments with `agent-diff comment list <session-id>` rather than fetching the
   most recent review with `agent-diff review`, doesn't claim a working
-  directory, and marks each comment addressed. The prompt includes the review
-  session's ID instead of relying on the agent's current directory. The
-  follow-ups about earlier reviews, working directory lookup, output format, and
-  CLI naming are answered.
+  directory, and marks each comment addressed. The prompt includes the session's
+  ID instead of relying on the agent's current directory. The follow-ups about
+  earlier reviews, working directory lookup, output format, and CLI naming are
+  answered.
 - **[0011](0011-api-core-with-cli-client.md).** The CLI doesn't work out the
   working directory from the directory it runs in, and prints text written for
   agents. The API and CLI deal with comments and their statuses rather than
@@ -190,8 +196,8 @@ Benefits:
 - Overall comments are listed first, so the agent reads the framing before the
   line comments.
 - Agents don't have to renew anything while they work.
-- Commands act on the review session they name, never one they guessed, and work
-  the same from any directory.
+- Commands act on the session they name, never one they guessed, and work the
+  same from any directory.
 - Archiving stops the cost of watching files for finished work while keeping its
   comments to look back on.
 - Comment statuses lead into the "agents reply to comments" idea in the README.
@@ -212,9 +218,9 @@ Costs:
 - Comment text that's typed but not saved isn't stored by the review server, so
   it's lost if the browser tab dies. [0006](0006-sqlite-review-state.md)
   expected drafts to survive a restart.
-- Every prompt needs a review session ID, so a prompt can't be typed from memory
-  unless the agent already knows the ID. An agent that restarts in a new agent
-  session has to be given the ID again.
+- Every prompt needs a session ID, so a prompt can't be typed from memory unless
+  the agent already knows the ID. An agent that restarts in a new agent session
+  has to be given the ID again.
 - Archiving freezes open comments without a warning, so unaddressed work can be
   forgotten.
 - Deleting is permanent.
@@ -234,22 +240,22 @@ Costs:
   addressed it, which depends on how registration works
   ([0004](0004-agent-tree-is-an-input.md)).
 - **Overall comment scope.** Whether an overall comment can target one working
-  directory instead of the whole review session.
+  directory instead of the whole session.
 - **Listing other statuses.** Whether `comment list` can also return addressed
   or resolved comments.
 - **Unsaved comment text.** Whether the review UI keeps comment text that's
   typed but not saved across a reload, for example in browser storage.
 - **Copyable prompt.** What the prompt in the review UI says, and where it's
   shown now that there's no submit.
-- **ID format.** What review session and comment IDs look like, given that
-  people copy them into prompts.
+- **ID format.** What session and comment IDs look like, given that people copy
+  them into prompts.
 - **Base ref.** Whether `session new` and `session add` take a base ref, and
   what the default is.
 - **Removing working directories.** Whether working directories can be removed
-  from a review session.
-- **What an archived review session shows.** Its working directories may have
-  changed or been deleted since it was archived, so whether the review UI shows
-  current diffs, or only comments with the file versions they were written on.
+  from a session.
+- **What an archived session shows.** Its working directories may have changed
+  or been deleted since it was archived, so whether the review UI shows current
+  diffs, or only comments with the file versions they were written on.
 - **Cleaning up file versions.** How stored file versions that no comment refers
-  to are removed when a review session is deleted
+  to are removed when a session is deleted
   ([0008](0008-comment-reanchoring.md)).
