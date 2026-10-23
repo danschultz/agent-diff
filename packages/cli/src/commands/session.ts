@@ -1,4 +1,4 @@
-// `agent-diff session` commands, from decisions 0018 and 0039. Their output is
+// `agent-diff session` commands, from decisions 0018 and 0040. Their output is
 // plain text written for agents.
 import path from 'node:path';
 import { defineCommand } from '@crustjs/core';

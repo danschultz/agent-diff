@@ -1,11 +1,11 @@
 # 0031: The review UI gets the token in the URL fragment and sends it in a header, with no cookie
 
 - Status: Accepted, amended by
-  [0039](0039-sessions-have-short-ids-and-cover-working-directories-by-real-path.md)
+  [0040](0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md)
 - Date: 2026-10-16
 
 > **Amended by
-> [0039](0039-sessions-have-short-ids-and-cover-working-directories-by-real-path.md):**
+> [0040](0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md):**
 > `server start` and `npm run dev:ui` no longer print a URL with the token. The
 > links with the token are the ones `agent-diff session new` and
 > `agent-diff session show` print, such as

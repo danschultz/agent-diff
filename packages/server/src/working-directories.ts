@@ -1,5 +1,5 @@
 // Turns the paths given to `session new` and `session add` into working
-// directories, from decision 0039: each is stored by its real path, with its
+// directories, from decision 0040: each is stored by its real path, with its
 // base ref when it uses git.
 import { realpath, stat } from 'node:fs/promises';
 import type { WorkingDirectory } from '@agent-diff/shared/schemas';

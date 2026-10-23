@@ -57,7 +57,7 @@ is its [comment status](#comment-status). See
 The branch or commit that a git [working directory](#working-directory)'s
 changes are compared against. Each working directory has its own base ref in
 each [session](#session) it's in. See
-[0039](decisions/0039-sessions-have-short-ids-and-cover-working-directories-by-real-path.md).
+[0040](decisions/0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md).
 
 ### Comment
 
@@ -202,7 +202,7 @@ archived, which stops watching its working directories and makes it read-only,
 or deleted, which removes its data. See
 [0009](decisions/0009-review-sessions-and-claims.md),
 [0018](decisions/0018-agents-list-open-comments.md), and
-[0039](decisions/0039-sessions-have-short-ids-and-cover-working-directories-by-real-path.md).
+[0040](decisions/0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md).
 
 ### Sub-agent
 

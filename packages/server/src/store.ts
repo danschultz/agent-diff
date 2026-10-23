@@ -9,7 +9,7 @@ import type {
 } from '@agent-diff/shared/schemas';
 import { newSessionId } from './ids.ts';
 
-// Opens the database with the connection settings from decision 0039.
+// Opens the database with the connection settings from decision 0040.
 export function openDatabase(databasePath: string): DatabaseSync {
   const db = new DatabaseSync(databasePath);
   db.exec(`

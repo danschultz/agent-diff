@@ -1,10 +1,10 @@
 # 0016: The review UI's state is held in TanStack Store, updated through Immer
 
 - Status: Accepted, amended by
-  [0040](0040-the-review-ui-loads-data-with-tanstack-query.md)
+  [0041](0041-the-review-ui-loads-data-with-tanstack-query.md)
 - Date: 2026-10-14
 
-> **Amended by [0040](0040-the-review-ui-loads-data-with-tanstack-query.md):**
+> **Amended by [0041](0041-the-review-ui-loads-data-with-tanstack-query.md):**
 > data loaded from the review server is held in TanStack Query's cache, and
 > stores hold the reviewer's UI state and drafts.
 

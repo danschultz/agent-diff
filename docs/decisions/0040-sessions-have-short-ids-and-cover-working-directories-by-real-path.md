@@ -1,4 +1,4 @@
-# 0039: Sessions have short IDs, and cover working directories by real path, each with its own base ref
+# 0040: Sessions have short IDs, and cover working directories by real path, each with its own base ref
 
 - Status: Accepted
 - Date: 2026-10-22

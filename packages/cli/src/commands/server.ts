@@ -54,7 +54,7 @@ export function serverCommand({ env }: ServerCommandOptions) {
           const { startReviewServer } = await import('@agent-diff/server');
           const server = await startReviewServer({ env });
           // Only `session new` and `session show` print a link with the
-          // token (decision 0039).
+          // token (decision 0040).
           stdout(
             `The review server is running on port ${server.port}.\nPress Ctrl-C to stop it.`,
           );

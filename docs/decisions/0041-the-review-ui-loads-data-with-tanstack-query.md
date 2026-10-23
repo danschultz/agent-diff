@@ -1,4 +1,4 @@
-# 0040: The review UI loads data from the review server with TanStack Query
+# 0041: The review UI loads data from the review server with TanStack Query
 
 - Status: Accepted
 - Date: 2026-10-23
@@ -13,7 +13,7 @@ data-fetching library such as TanStack Query.
 
 The review UI's first page, a [session](../glossary.md#session) at
 `/sessions/<id>`
-([0039](0039-sessions-have-short-ids-and-cover-working-directories-by-real-path.md)),
+([0040](0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md)),
 loaded its session in a `useEffect`, with its own loading and error states and
 an `AbortController`. Every page that loads data would repeat that.
 

@@ -119,4 +119,4 @@ call needs the token, and the review UI only gets it from the URL, so without it
 the review UI asks for the link. See
 [0031](docs/decisions/0031-the-review-ui-gets-the-token-in-the-url-fragment.md)
 and
-[0039](docs/decisions/0039-sessions-have-short-ids-and-cover-working-directories-by-real-path.md).
+[0040](docs/decisions/0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md).

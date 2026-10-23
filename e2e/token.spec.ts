@@ -1,5 +1,5 @@
 // How the review UI gets the token from the URL `agent-diff session new`
-// prints, and what it shows without one (decisions 0031 and 0039).
+// prints, and what it shows without one (decisions 0031 and 0040).
 import { expect, type Page } from '@playwright/test';
 import { countShowCalls, settle, test } from './helpers.ts';
 

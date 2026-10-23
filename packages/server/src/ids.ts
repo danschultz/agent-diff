@@ -1,4 +1,4 @@
-// IDs that people copy into prompts, from decision 0039: a prefix, then 6
+// IDs that people copy into prompts, from decision 0040: a prefix, then 6
 // random characters of lowercase Crockford base32, which leaves out i, l, o,
 // and u, such as `s_7kq9a1` for a session. Comments will get `c_`.
 import { randomBytes } from 'node:crypto';

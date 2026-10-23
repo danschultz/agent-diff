@@ -3,7 +3,7 @@
 // user's config file, so start the review server first. It prints no URL with
 // the token: open a session's link from `agent-diff session new` or
 // `agent-diff session show` with its origin changed to the dev server's, such
-// as `http://localhost:5173/sessions/s_7kq9a1#token=…` (decision 0039).
+// as `http://localhost:5173/sessions/s_7kq9a1#token=…` (decision 0040).
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { apiPrefix } from '@agent-diff/shared/contract';

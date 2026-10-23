@@ -1,5 +1,5 @@
 // The git commands the review server runs in a working directory, from
-// decision 0039. They run with the environment the review server was started
+// decision 0040. They run with the environment the review server was started
 // with, so tests can give them their own.
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';

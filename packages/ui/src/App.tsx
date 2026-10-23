@@ -1,5 +1,5 @@
 // The review UI's only page is a session, at `/sessions/<id>` (decision
-// 0039). Every other path shows the not-found message. Routing reads
+// 0040). Every other path shows the not-found message. Routing reads
 // `location.pathname`, with no router library.
 import { NotFound } from './NotFound.tsx';
 import { SessionPage } from './SessionPage.tsx';

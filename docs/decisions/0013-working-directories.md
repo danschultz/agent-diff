@@ -1,7 +1,7 @@
 # 0013: Sessions cover working directories, which don't have to use git
 
 - Status: Accepted, amended by [0018](0018-agents-list-open-comments.md) and
-  [0039](0039-sessions-have-short-ids-and-cover-working-directories-by-real-path.md)
+  [0040](0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md)
 - Date: 2026-10-12
 
 > **Amended by [0018](0018-agents-list-open-comments.md):** the CLI doesn't look
@@ -10,7 +10,7 @@
 > removed.
 
 > **Amended by
-> [0039](0039-sessions-have-short-ids-and-cover-working-directories-by-real-path.md):**
+> [0040](0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md):**
 > the base ref belongs to a working directory's membership in a session, and
 > nested working directories are allowed, with no check. A working directory is
 > identified by its real path, with symlinks resolved, which partly answers

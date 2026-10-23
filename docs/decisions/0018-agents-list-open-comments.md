@@ -3,7 +3,7 @@
 - Status: Accepted, amended by
   [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md),
   [0038](0038-agents-reply-in-comment-threads.md), and
-  [0039](0039-sessions-have-short-ids-and-cover-working-directories-by-real-path.md)
+  [0040](0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md)
 - Date: 2026-10-15
 
 > **Amended by
@@ -21,7 +21,7 @@
 > reviewer reopens a comment by replying to it.
 
 > **Amended by
-> [0039](0039-sessions-have-short-ids-and-cover-working-directories-by-real-path.md):**
+> [0040](0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md):**
 > a session's ID is `s_` and 6 random characters of lowercase Crockford base32,
 > such as `s_7kq9a1`, and comment IDs will be `c_` with the same shape.
 > `session new` and `session add` take `--base <ref>`, and without it the base

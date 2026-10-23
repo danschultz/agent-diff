@@ -1,11 +1,11 @@
 # 0022: Review state is stored with `node:sqlite` and plain SQL, and migrated with dbmate
 
 - Status: Accepted, amended by
-  [0039](0039-sessions-have-short-ids-and-cover-working-directories-by-real-path.md)
+  [0040](0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md)
 - Date: 2026-10-15
 
 > **Amended by
-> [0039](0039-sessions-have-short-ids-and-cover-working-directories-by-real-path.md):**
+> [0040](0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md):**
 > every connection the store opens sets `PRAGMA foreign_keys = ON`,
 > `PRAGMA journal_mode = WAL`, and `PRAGMA busy_timeout = 5000`, which answers
 > the follow-up on connection settings.
