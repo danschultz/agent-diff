@@ -40,8 +40,7 @@ Costs:
 
 ## Follow-up design choices
 
-- One server per machine serving every review session, or one server per review
-  session?
+- One server per machine serving every session, or one server per session?
 - How agents discover a running server and its port.
 - How the browser authenticates to the server.
 - Which frontend and backend stack to use.

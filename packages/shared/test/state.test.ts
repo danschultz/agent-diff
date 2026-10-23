@@ -70,13 +70,9 @@ test('serverUrl is on 127.0.0.1', () => {
   assert.equal(serverUrl(4321), 'http://127.0.0.1:4321/');
 });
 
-test('reviewUiUrl carries the token in the fragment', () => {
+test('reviewUiUrl opens a session with the token in the fragment', () => {
   assert.equal(
-    reviewUiUrl(serverUrl(4321), 'a-b_c'),
-    'http://127.0.0.1:4321/#token=a-b_c',
-  );
-  assert.equal(
-    reviewUiUrl('http://localhost:5173/', 'a-b_c'),
-    'http://localhost:5173/#token=a-b_c',
+    reviewUiUrl(serverUrl(4321), 'a-b_c', 's_7kq9a1'),
+    'http://127.0.0.1:4321/sessions/s_7kq9a1#token=a-b_c',
   );
 });

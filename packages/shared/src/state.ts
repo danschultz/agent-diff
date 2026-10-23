@@ -59,11 +59,17 @@ export function serverUrl(port: number): string {
   return `http://127.0.0.1:${port}/`;
 }
 
-// The URL that opens the review UI at base with the token, such as
-// `http://127.0.0.1:4321/#token=…`. The review UI saves the token and removes
-// it from the address bar. A fragment is never sent to any server.
-export function reviewUiUrl(base: string, token: string): string {
-  const url = new URL(base);
+// The URL that opens a session in the review UI at base with the token, such
+// as `http://127.0.0.1:4321/sessions/s_7kq9a1#token=…`. `session new` and
+// `session show` print it, and nothing else builds a URL with the token. The
+// review UI saves the token and removes it from the address bar. A fragment is
+// never sent to any server.
+export function reviewUiUrl(
+  base: string,
+  token: string,
+  sessionId: string,
+): string {
+  const url = new URL(`sessions/${encodeURIComponent(sessionId)}`, base);
   url.hash = new URLSearchParams({ token }).toString();
   return url.href;
 }

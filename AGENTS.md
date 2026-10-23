@@ -99,23 +99,28 @@ stripping, with no build step. Only the review UI is built. See
 [0026](docs/decisions/0026-workspaces-typescript-7-and-test-stack.md).
 
 - **The CLI** runs from the repo root as `npx agent-diff`, such as
-  `npx agent-diff server hello Dan`.
+  `npx agent-diff session list`.
 - **The review server** runs in the foreground with
   `npx agent-diff server start --foreground`, or with `npm run dev:server`,
   which restarts it when its code changes. It serves the built review UI, so run
-  `npm run build -w packages/ui` first. It prints the review UI's URL with the
-  token, such as `http://127.0.0.1:40723/#token=…`.
+  `npm run build -w packages/ui` first. It prints its port, and no URL. To open
+  a session, use the link that `npx agent-diff session new <working-dir>` or
+  `npx agent-diff session show <session-id>` prints, such as
+  `http://127.0.0.1:40723/sessions/s_7kq9a1#token=…`.
 - **The review UI** runs on Vite's dev server with `npm run dev:ui`, which
   reloads as its code changes and proxies API calls to the review server. Start
-  the review server first, because the proxy reads its port and token from the
-  config file. It prints the dev server's URL with the token, such as
-  `http://localhost:5173/#token=…`.
+  the review server first, because the proxy reads its port from the config
+  file. To open a session on the dev server, take a session's link and change
+  its origin to the dev server's, such as
+  `http://localhost:5173/sessions/s_7kq9a1#token=…`.
 
 Both use the real state directory, `$XDG_STATE_HOME/agent-diff` or
 `~/.local/state/agent-diff`. Set `XDG_STATE_HOME` to another directory, in every
 shell, to keep development data separate.
 
-Open the review UI through one of the URLs with the token. Every API call needs
-the token, and the review UI only gets it from the URL, so without it the review
-UI asks for the link. See
-[0031](docs/decisions/0031-the-review-ui-gets-the-token-in-the-url-fragment.md).
+Open the review UI through a session's link, which carries the token. Every API
+call needs the token, and the review UI only gets it from the URL, so without it
+the review UI asks for the link. See
+[0031](docs/decisions/0031-the-review-ui-gets-the-token-in-the-url-fragment.md)
+and
+[0040](docs/decisions/0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md).

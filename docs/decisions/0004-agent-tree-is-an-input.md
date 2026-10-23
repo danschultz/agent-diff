@@ -4,9 +4,9 @@
 - Date: 2026-10-09
 
 > **Amended by [0009](0009-review-sessions-and-claims.md):** the agent tree no
-> longer defines what a review covers. Review sessions do. The tree is still
-> reported as described here, and is used to show who changed what and to filter
-> the review UI by agent.
+> longer defines what a review covers. Sessions do. The tree is still reported
+> as described here, and is used to show who changed what and to filter the
+> review UI by agent.
 
 ## Problem
 

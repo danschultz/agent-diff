@@ -27,7 +27,7 @@ covered where a candidate works alongside them.
 
 The review UI holds:
 
-- The [review session](../glossary.md#review-session) and its
+- The [session](../glossary.md#session) and its
   [working directories](../glossary.md#working-directory).
 - The selected [diff mode](../glossary.md#diff-mode).
 - The [file view](../glossary.md#file-view): tree or list, and whether unchanged

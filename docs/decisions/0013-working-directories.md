@@ -1,21 +1,29 @@
-# 0013: Review sessions cover working directories, which don't have to use git
+# 0013: Sessions cover working directories, which don't have to use git
 
-- Status: Accepted, amended by [0018](0018-agents-list-open-comments.md)
+- Status: Accepted, amended by [0018](0018-agents-list-open-comments.md) and
+  [0040](0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md)
 - Date: 2026-10-12
 
 > **Amended by [0018](0018-agents-list-open-comments.md):** the CLI doesn't look
 > for the working directory that contains the directory it runs in. Commands
-> take a review session ID, and working directories are given as paths. Claims
-> are removed.
+> take a session ID, and working directories are given as paths. Claims are
+> removed.
+
+> **Amended by
+> [0040](0040-sessions-have-short-ids-and-cover-working-directories-by-real-path.md):**
+> the base ref belongs to a working directory's membership in a session, and
+> nested working directories are allowed, with no check. A working directory is
+> identified by its real path, with symlinks resolved, which partly answers
+> identity.
 
 ## Problem
 
-A review session covered a list of workspaces, and each workspace was a repo,
-the branch being reviewed, the worktree or directory it was checked out in, and
-the base ref it was compared against. That bundle caused trouble:
+A session covered a list of workspaces, and each workspace was a repo, the
+branch being reviewed, the worktree or directory it was checked out in, and the
+base ref it was compared against. That bundle caused trouble:
 
 - Agents and registration also used "workspace" for wherever an agent works,
-  outside any review session, where there's no branch under review or base ref.
+  outside any session, where there's no branch under review or base ref.
 - Agents don't always work in git repos, and a workspace couldn't describe a
   directory that doesn't use git.
 - cmux, one of the harnesses, uses "workspace" for its own concept, which may
@@ -25,7 +33,7 @@ the base ref it was compared against. That bundle caused trouble:
 
 ## Solution
 
-- **Working directories replace workspaces.** A review session covers a list of
+- **Working directories replace workspaces.** A session covers a list of
   **working directories**. A working directory is a directory on disk. It may be
   a git repo, a git worktree, or a directory inside a repo, or it may not use
   git at all.
@@ -49,9 +57,9 @@ the base ref it was compared against. That bundle caused trouble:
 - **Show unchanged files ([0002](0002-show-unchanged-files.md)).** In a working
   directory that doesn't use git, every file is listed, because there are no
   changes to filter by.
-- **Review sessions and claims ([0009](0009-review-sessions-and-claims.md)).** A
-  review session covers working directories, and agents claim working
-  directories. The branch is no longer part of what's reviewed.
+- **Sessions and claims ([0009](0009-review-sessions-and-claims.md)).** A
+  session covers working directories, and agents claim working directories. The
+  branch is no longer part of what's reviewed.
 - **Fetching the review ([0010](0010-user-prompts-agent-to-fetch-review.md)).**
   `agent-diff review` finds the working directory that contains the agent's
   current directory, so the agent can run it from a subdirectory.
@@ -66,7 +74,7 @@ Benefits:
 - An agent can be pointed at a directory without knowing about branches or base
   refs.
 - Switching branches in a working directory doesn't make it a different working
-  directory, so its review session and comments carry on.
+  directory, so its session and comments carry on.
 
 Costs:
 
@@ -82,14 +90,14 @@ Costs:
 ## Follow-up design choices
 
 - **Base ref.** Whether the base ref belongs to the working directory, or to the
-  working directory's membership in a review session.
-- **Claim scope.** Whether "at most one active claim" applies per review session
-  or to the working directory overall.
+  working directory's membership in a session.
+- **Claim scope.** Whether "at most one active claim" applies per session or to
+  the working directory overall.
 - **Nested working directories.** Whether one working directory can be inside
   another, and which one the CLI picks for a current directory inside both.
 - **Diffs without git.** Whether directories that don't use git later get diffs,
-  for example from a baseline snapshot taken when they're added to a review
-  session, and whether "Last turn" applies to them.
+  for example from a baseline snapshot taken when they're added to a session,
+  and whether "Last turn" applies to them.
 - **Comments without diffs.** How comments are anchored on files in a working
   directory that doesn't use git, since there's no diff side.
 - **Identity.** How a working directory is identified when it's moved, deleted,

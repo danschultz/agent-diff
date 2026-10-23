@@ -18,10 +18,9 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { test, type TestContext } from 'node:test';
 import { ORPCError } from '@orpc/client';
-import { contract } from '@agent-diff/shared/contract';
 import { statePaths } from '@agent-diff/shared/state';
 import type { ReviewServer } from '../src/server.ts';
-import { client, start, tempStateHome } from './helpers.ts';
+import { client, start, tempDir, tempStateHome } from './helpers.ts';
 
 const tokenPattern = /^[A-Za-z0-9_-]{43}$/;
 
@@ -216,7 +215,7 @@ test('a saved port in use by another program is replaced and saved', async (t) =
   assert.equal(savedPort(env), server.port);
 });
 
-test('the migration is applied with dbmate before requests are served', async (t) => {
+test('the migrations are applied with dbmate before requests are served', async (t) => {
   const env = tempStateHome(t);
   const server = await start(t, { env });
   await server.close();
@@ -225,17 +224,48 @@ test('the migration is applied with dbmate before requests are served', async (t
   t.after(() => db.close());
   assert.deepEqual(
     db
-      .prepare('SELECT version FROM schema_migrations')
+      .prepare('SELECT version FROM schema_migrations ORDER BY version')
       .all()
-      .map((r) => ({ ...r })),
-    [{ version: '20261015000000' }],
+      .map((r) => r.version),
+    ['20261015000000', '20261022000000', '20261022000001'],
   );
+  const columns = (table: string) =>
+    db
+      .prepare(`PRAGMA table_info(${table})`)
+      .all()
+      .map((r) => r.name);
+  assert.deepEqual(columns('greetings'), []);
+  assert.deepEqual(columns('sessions'), [
+    'id',
+    'title',
+    'created_at',
+    'archived_at',
+  ]);
+  assert.deepEqual(columns('working_directories'), [
+    'id',
+    'path',
+    'created_at',
+  ]);
+  assert.deepEqual(columns('session_working_directories'), [
+    'session_id',
+    'working_directory_id',
+    'base_ref',
+    'added_at',
+  ]);
   assert.deepEqual(
     db
-      .prepare('PRAGMA table_info(greetings)')
+      .prepare('PRAGMA foreign_key_list(session_working_directories)')
       .all()
-      .map((r) => r.name),
-    ['id', 'name', 'created_at'],
+      .map((r) => ({ table: r.table, from: r.from, onDelete: r.on_delete }))
+      .sort((a, b) => String(a.table).localeCompare(String(b.table))),
+    [
+      { table: 'sessions', from: 'session_id', onDelete: 'CASCADE' },
+      {
+        table: 'working_directories',
+        from: 'working_directory_id',
+        onDelete: 'NO ACTION',
+      },
+    ],
   );
 });
 
@@ -253,16 +283,56 @@ test('health returns ok', async (t) => {
   assert.deepEqual(await client(server).health(), { ok: true });
 });
 
+// One call for every procedure in the contract, so adding a procedure
+// without adding it here fails the typecheck.
+type Calls<Router> = {
+  [K in keyof Router]: Router[K] extends (...args: never[]) => unknown
+    ? (api: ReturnType<typeof client>) => Promise<unknown>
+    : Calls<Router[K]>;
+};
+
+function flatten(
+  calls: object,
+  prefix = '',
+): [string, (api: ReturnType<typeof client>) => Promise<unknown>][] {
+  return Object.entries(calls).flatMap(([name, call]) =>
+    typeof call === 'function'
+      ? [[`${prefix}${name}`, call]]
+      : flatten(call, `${prefix}${name}.`),
+  );
+}
+
 test('every procedure rejects a call without the right token with 401', async (t) => {
   const server = await start(t, { env: tempStateHome(t) });
-  const calls: Record<
-    keyof typeof contract,
-    (api: ReturnType<typeof client>) => Promise<unknown>
-  > = {
+  const dir = tempDir(t);
+  const { id } = await client(server).session.new({
+    workingDirectories: [dir],
+  });
+  const calls: Calls<ReturnType<typeof client>> = {
     health: (api) => api.health(),
-    hello: (api) => api.hello({ name: 'Dan' }),
+    session: {
+      new: (api) => api.session.new({ workingDirectories: [dir] }),
+      add: (api) => api.session.add({ id, workingDirectories: [dir] }),
+      show: (api) => api.session.show({ id }),
+      list: (api) => api.session.list({}),
+      archive: (api) => api.session.archive({ id }),
+      delete: (api) => api.session.delete({ id }),
+    },
   };
-  for (const [procedure, call] of Object.entries(calls)) {
+  const procedures = flatten(calls);
+  assert.deepEqual(
+    procedures.map(([name]) => name),
+    [
+      'health',
+      'session.new',
+      'session.add',
+      'session.show',
+      'session.list',
+      'session.archive',
+      'session.delete',
+    ],
+  );
+  for (const [procedure, call] of procedures) {
     for (const token of [null, '', 'wrong', `${server.token}x`]) {
       await assert.rejects(call(client(server, token)), (error) => {
         assert.ok(error instanceof ORPCError, `${procedure} ${token}`);
@@ -273,7 +343,11 @@ test('every procedure rejects a call without the right token with 401', async (t
     }
   }
   // Nothing was written by the rejected calls.
-  assert.equal((await client(server).hello({ name: 'Dan' })).count, 1);
+  const sessions = await client(server).session.list({ all: true });
+  assert.deepEqual(
+    sessions.map((session) => [session.id, session.archivedAt]),
+    [[id, null]],
+  );
 });
 
 test('the token is only accepted as a bearer token in the Authorization header', async (t) => {
@@ -343,7 +417,7 @@ test('API calls whose Host is not the review server are rejected with 403', asyn
   const server = await start(t, { env: tempStateHome(t), uiDir: uiDir(t) });
   const requests = [
     { method: 'POST', path: '/api/health', headers: bearer(server) },
-    { method: 'POST', path: '/api/hello', headers: bearer(server) },
+    { method: 'POST', path: '/api/session/list', headers: bearer(server) },
     { method: 'POST', path: '/api/health' },
     { path: '/api/nothing', headers: bearer(server) },
   ];
@@ -359,7 +433,7 @@ test('API calls whose Host is not the review server are rejected with 403', asyn
 test("the review UI's files are served whatever the Host", async (t) => {
   const server = await start(t, { env: tempStateHome(t), uiDir: uiDir(t) });
   for (const host of foreignHosts(server.port)) {
-    for (const pathname of ['/', '/review-sessions/1', '/assets/app.js']) {
+    for (const pathname of ['/', '/sessions/s_7kq9a1', '/assets/app.js']) {
       const response = await send(server, { path: pathname, host });
       assert.equal(response.status, 200, `${host} ${pathname}`);
     }
@@ -435,72 +509,9 @@ test('the review server sends no CORS headers', async (t) => {
   }
 });
 
-test('hello greets the trimmed name and counts the greetings', async (t) => {
-  const env = tempStateHome(t);
-  const server = await start(t, { env });
-  const api = client(server);
-  assert.deepEqual(await api.hello({ name: ' Dan ' }), {
-    message: 'Hello, Dan!',
-    count: 1,
-  });
-  assert.deepEqual(await api.hello({ name: 'world' }), {
-    message: 'Hello, world!',
-    count: 2,
-  });
-  await server.close();
-
-  const db = new DatabaseSync(statePaths(env).database, { readOnly: true });
-  t.after(() => db.close());
-  const rows = db.prepare('SELECT name, created_at FROM greetings').all();
-  assert.deepEqual(
-    rows.map((row) => row.name),
-    ['Dan', 'world'],
-  );
-  for (const row of rows) {
-    assert.match(
-      String(row.created_at),
-      /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/,
-    );
-  }
-});
-
-test('the greeting count survives a restart', async (t) => {
-  const env = tempStateHome(t);
-  const first = await start(t, { env });
-  await client(first).hello({ name: 'Dan' });
-  await client(first).hello({ name: 'Dan' });
-  await first.close();
-
-  const second = await start(t, { env });
-  assert.deepEqual(await client(second).hello({ name: 'Dan' }), {
-    message: 'Hello, Dan!',
-    count: 3,
-  });
-});
-
-test('hello rejects an invalid name with a readable validation error', async (t) => {
-  const server = await start(t, { env: tempStateHome(t) });
-  const api = client(server);
-  for (const [name, message] of [
-    ['', 'The name must not be empty.'],
-    ['   ', 'The name must not be empty.'],
-    ['D'.repeat(101), 'The name must be at most 100 characters.'],
-  ]) {
-    await assert.rejects(api.hello({ name }), (error) => {
-      assert.ok(error instanceof ORPCError);
-      assert.equal(error.code, 'BAD_REQUEST');
-      assert.equal(error.status, 400);
-      assert.equal(error.message, message);
-      return true;
-    });
-  }
-  // Nothing was written.
-  assert.equal((await api.hello({ name: 'Dan' })).count, 1);
-});
-
 test('the review UI is served at / and for paths that are not files', async (t) => {
   const server = await start(t, { env: tempStateHome(t), uiDir: uiDir(t) });
-  for (const pathname of ['/', '/review-sessions/1']) {
+  for (const pathname of ['/', '/sessions/s_7kq9a1']) {
     const response = await fetch(new URL(pathname, server.url));
     assert.equal(response.status, 200);
     assert.equal(

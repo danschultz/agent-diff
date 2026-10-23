@@ -1,7 +1,8 @@
 // The token the review UI sends with every API call (decision 0031). It
-// arrives in the fragment of the URL `agent-diff server start` prints, such as
-// `http://127.0.0.1:4321/#token=…`, on any path, and is kept in localStorage,
-// which is scoped to the review server's origin.
+// arrives in the fragment of the URL `agent-diff session new` and
+// `agent-diff session show` print, such as
+// `http://127.0.0.1:4321/sessions/s_7kq9a1#token=…`, and is read on any path.
+// It's kept in localStorage, which is scoped to the review server's origin.
 const storageKey = 'agent-diff.token';
 
 // Saves a token in the URL's fragment, replacing a saved one, and removes the
