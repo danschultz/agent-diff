@@ -71,6 +71,10 @@ change. Only Claude Code is covered.
   (below), the prototypes waited for `state: done` first. The daemon itself was
   never signalled, since `implement`'s and this research's own agent sessions
   ran in it.
+- **A rerun on 2026-10-23.** Claude Code updated itself to 2.1.309 overnight.
+  Every prototype was run again on it, with the same results. Print mode now
+  warns when its stdin is an empty pipe, so `print-resume/` gives it
+  `/dev/null`.
 - **What's internal.** `~/.claude/daemon.log`, `~/.claude/daemon/roster.json`,
   `~/.claude/jobs/<short-id>/state.json` and `timeline.jsonl`, the transcript's
   entry types, and the settle reasons read from the `claude` binary aren't

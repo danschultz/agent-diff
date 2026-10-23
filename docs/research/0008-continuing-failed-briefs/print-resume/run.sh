@@ -15,7 +15,9 @@ print_turn() { # print_turn <label> <args...>
   local label=$1 out
   shift
   say "$label: claude -p $*"
-  out=$(cd "$AD8_SCRATCH" && cc -p --output-format json --model "$AD8_MODEL" "$@" 2>&1)
+  # stdin from /dev/null: since 2.1.309, print mode warns on stdout or stderr
+  # when stdin is an empty pipe, which breaks the JSON.
+  out=$(cd "$AD8_SCRATCH" && cc -p --output-format json --model "$AD8_MODEL" "$@" </dev/null 2>&1)
   echo "$out" | node "$AD8_COMMON/printresult.mjs" | sed 's/^/    | /' | tee -a "${AD8_NOTES:-/dev/null}"
 }
 
