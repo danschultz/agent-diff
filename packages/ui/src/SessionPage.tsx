@@ -6,6 +6,7 @@ import { ORPCError } from '@orpc/client';
 import type { SessionDetails } from '@agent-diff/shared/schemas';
 import { NotFound } from './NotFound.tsx';
 import { client } from './client.ts';
+import { Time } from './components/Time.tsx';
 import { savedToken } from './token.ts';
 
 type State =
@@ -15,11 +16,6 @@ type State =
   | { status: 'failed'; error: string }
   // There's no saved token, or the review server rejected it (decision 0031).
   | { status: 'unauthorized' };
-
-// An ISO 8601 timestamp in the reader's locale and time zone.
-function Time({ value }: { value: string }) {
-  return <time dateTime={value}>{new Date(value).toLocaleString()}</time>;
-}
 
 export function SessionPage({ id }: { id: string }) {
   const [state, setState] = useState<State>(() =>
