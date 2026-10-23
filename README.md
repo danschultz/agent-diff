@@ -88,6 +88,10 @@ Design decisions, with their tradeoffs and follow-up choices, are recorded in
   request on GitHub. A brief that depends on other tasks in Aven starts only
   once they're done. Aven refs never appear on GitHub. When an agent session
   needs input, Dan is alerted and answers through Remote Control.
+- Dan retries a brief whose agent session exited without a pull request by
+  setting `agent=retry`, and `implement` resumes the agent session in its kept
+  worktree, with its conversation and the notes Dan added since it failed.
+  `implement` never retries a brief by itself.
 - The `agent-diff` CLI is built with Crust. Its commands are noun then verb,
   such as `session new` and `comment list`, and it doesn't start the review
   server unless told to with `server start`.
