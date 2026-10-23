@@ -1,0 +1,6 @@
+Do these steps in order:
+1. Start a background Bash command (run_in_background true) that runs for 15 minutes: node -e "setTimeout(()=>{},900000)".
+2. Write a file progress.txt in the current directory containing exactly: step 1 done.
+3. Say the codeword the previous agent session was given: write CODEWORD_IS=<word>, or CODEWORD_IS=unknown if you do not know it.
+4. Say whether the background Bash command is still running: write BG_RUNNING=yes or BG_RUNNING=no.
+5. Create an empty file PR_OPENED in the current directory, then end your turn.
