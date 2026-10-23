@@ -11,7 +11,7 @@ a note with the end of its output, keeping the worktree and the local branch
 ([0014](0014-implement-briefs-headlessly.md),
 [0034](0034-briefs-are-aven-tasks.md)). The only ways on were queuing the brief
 again, which removes the worktree and starts over from `origin/main`, throwing
-the work away, or Dan resuming the agent session by hand at a terminal.
+the work away, or Dan resuming the agent session by hand, outside `implement`.
 
 [Research 0008](../research/0008-continuing-failed-briefs.md) looked at why
 these agent sessions exit, each way of continuing one, keeping it from exiting
@@ -19,10 +19,12 @@ with a `Stop` hook, who triggers continuing, what the continued agent session is
 told, and how it fits `implement`'s states. Both real failures it studied came
 from the machine: the Claude Code process that hosts every agent session was
 killed for lack of memory, and an agent session's own process got a signal in
-the middle of a [turn](../glossary.md#turn). Both were continued by hand with
-`claude --resume` and finished. It also found that an idle agent session with
-Remote Control is retired after 8 hours, so a brief waiting on Dan overnight is
-marked failed.
+the middle of a [turn](../glossary.md#turn). Both were continued without
+`implement` and finished: one by Dan at a terminal with an interactive
+`claude --resume`, and the other by a script running the same
+`claude --bg --resume` that `implement` runs for pull request reviews. It also
+found that an idle agent session with Remote Control is retired after 8 hours,
+so a brief waiting on Dan overnight is marked failed.
 
 What needed deciding was how a failed brief is continued with its worktree,
 branch and conversation: who triggers it, how `implement` continues the agent
