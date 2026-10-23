@@ -23,9 +23,11 @@ as a bug fix, into a brief.
 ### Planning
 
 - **Choosing what's next.** When Dan asks what to work on next, the agent
-  session reads Aven's open tasks and epics in `agent-diff`, and what merged
-  recently. It recommends one thing with its reasons, and lists the alternatives
-  briefly.
+  session reads the product docs, starting from the README and the decisions and
+  research it links to, the open questions in the README and in each decision's
+  follow-up design choices, Aven's open tasks and epics in `agent-diff`, and
+  what merged recently. It recommends one thing with its reasons, and lists the
+  alternatives briefly.
 - **Vertical slices.** A feature is split into build briefs that each deliver
   one thing end to end, through every layer it touches: storage, the API, the
   CLI, and the [review UI](../glossary.md#review-ui). The first slice is the

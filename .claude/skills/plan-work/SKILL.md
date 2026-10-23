@@ -14,12 +14,20 @@ covers one-off briefs, such as a bug fix, that aren't part of a plan. See
 
 ## Choosing what's next
 
-When Dan asks what to work on next, read:
+When Dan asks what to work on next, start from what agent-diff is meant to be,
+then what's left to decide and build. Read:
 
+- The product docs: [`README.md`](../../../README.md), for what agent-diff does
+  and how a review works, and the docs its Documentation section links to, such
+  as the [decisions](../../../docs/decisions/README.md) and
+  [research](../../../docs/research/README.md).
+- The open questions: the Open questions section of `README.md`, and the
+  Follow-up design choices section of each decision.
 - The open tasks and epics in the Aven project `agent-diff`, such as with
   `aven list --project agent-diff --open`.
 - What merged recently, such as with `git log --oneline origin/main`.
 
+Compare what the product docs describe with what's built, and what's open.
 Recommend one thing, with your reasons, and list the alternatives briefly.
 
 ## Kinds of brief
