@@ -423,17 +423,43 @@ prototypes, it would also need:
 - **Not to redo finished work.** Dan's prompt for #49 named what to skip:
   "report what the page showed in step 4, run step 5's git grep, rerun npm run
   check …, then push the branch and open the pull request".
-- **Any answer from Dan**, such as the latest note on the task, or a prompt Dan
-  gives when triggering it.
+- **Any answer from Dan**, such as the notes Dan added to the task after the
+  failure, or a prompt Dan gives when triggering it. The latest note on the task
+  isn't necessarily Dan's: it's often `implement`'s own failure note, and notes
+  have no author (see
+  [Telling Dan's notes from `implement`'s](#telling-dans-notes-from-implements)).
+
+### Telling Dan's notes from `implement`'s
+
+Checked on 2026-10-23 with aven 0.1.51, against a scratch database (`AVEN_DB`),
+and read-only on a real failed brief's task:
+
+- **Notes have no author.** `aven show <ref> --full --json` gives each note only
+  an `id`, a `body` and a `created_at`, so nothing says whether `implement`, an
+  agent session, its hooks or Dan added it.
+- **`aven note` prints the new note's ID**, as `noted <ref> note=<id>`.
+  `implement`'s `note()` in [`aven.ts`](../../tools/implement/src/aven.ts)
+  discards that output today.
+- **`created_at` is to the second.** Two notes added in the same second had the
+  same `created_at`, so time alone can't place a note before or after another.
+  The list is in the order the notes were added.
+
+So "Dan's latest note" is often `implement`'s own failure note, which is the
+last note when the brief is marked failed. To pass on only what Dan added,
+`implement` has to record the ID of the note it adds when it marks the brief
+failed, and pass every note after that one. Notes added after it by anything
+else, such as the agent session's hooks, would be passed on too.
 
 ### How continuing fits `implement`'s states
 
 - **State.** The brief goes from `agent=failed` back to `agent=working`, as
   Dan's script for #47 did with `moveTo`. `implement` already keeps the session
-  ID, worktree and branch of a failed brief, so `claude --bg --resume` needs
-  nothing new in `state.json`. A retry limit would need a count per brief.
-  Resetting `launchedAt` gives the agent session the 3-minute grace before
-  `reap` counts it missing, as `resume` does for reviews.
+  ID, worktree and branch of a failed brief, so `claude --bg --resume` itself
+  needs nothing new in `state.json`. Passing on the notes Dan added since the
+  failure needs one new field per brief: the ID of the failure note, from
+  `aven note`'s output. A retry limit would need a count per brief. Resetting
+  `launchedAt` gives the agent session the 3-minute grace before `reap` counts
+  it missing, as `resume` does for reviews.
 - **Notes.** One saying it was continued, by whom, and which attempt it was, as
   Dan's script added for #47.
 - **Concurrency.** A continued brief takes a slot, as a review resume does. It
@@ -442,19 +468,20 @@ prototypes, it would also need:
   limit, the note would say the limit was reached.
 - **Needs input.** An agent session waiting on Dan that's retired after 8 hours
   is marked failed although it was waiting. Continuing it, with Dan's answer as
-  the prompt, is the same as answering it.
+  the prompt, is the same as answering it. If Dan answers in a note, it's one of
+  the notes after the failure note.
 - **Being let go.** Queuing again, merging, closing or canceling works as today,
   and removes the worktree.
 
 ### Who triggers continuing
 
-| Trigger                                                                   | Aven                                                                                 | `implement`'s state                                            | Timer                                 | Decisions it changes                                                                                                                                                          |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `implement`, on the tick that finds the agent session gone, up to N times | A note per attempt; `agent=failed` only once the limit is reached                    | An attempt count per brief, reset when it opens a pull request | None; continues within 2 minutes      | [0014](../decisions/0014-implement-briefs-headlessly.md) and [0034](../decisions/0034-briefs-are-aven-tasks.md): a failed agent session no longer always means `agent=failed` |
-| Dan, by setting a new value such as `agent=continue`                      | A new `agent` value, read by the tick like `queued`; Dan's latest note as the prompt | None new                                                       | None; the next tick, within 2 minutes | 0014 and 0034: a new state                                                                                                                                                    |
-| Dan, by queuing again with a flag, such as metadata `continue=yes`        | A second metadata key, removed once read                                             | None new                                                       | None                                  | 0034, which says a brief queued again after failing starts over from a fresh worktree                                                                                         |
-| Dan, with an `implement continue <ref> [prompt]` command                  | None; the command moves the brief and adds the note                                  | Takes the tick's lock, as Dan's script for #47 did             | None; runs at once                    | 0014: a new way to start work outside the tick                                                                                                                                |
-| Claude Code itself: a `Stop` hook, or the daemon's own restart            | Possibly a note when the hook blocks                                                 | A block count per agent session, for the hook                  | None                                  | 0028, if the hook counts as something that running unattended needs; 0014, for the hook                                                                                       |
+| Trigger                                                                   | Aven                                                                                                      | `implement`'s state                                                  | Timer                                 | Decisions it changes                                                                                                                                                          |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `implement`, on the tick that finds the agent session gone, up to N times | A note per attempt; `agent=failed` only once the limit is reached                                         | An attempt count per brief, reset when it opens a pull request       | None; continues within 2 minutes      | [0014](../decisions/0014-implement-briefs-headlessly.md) and [0034](../decisions/0034-briefs-are-aven-tasks.md): a failed agent session no longer always means `agent=failed` |
+| Dan, by setting a new value such as `agent=retry`                         | A new `agent` value, read by the tick like `queued`; the notes added after the failure note as the prompt | The ID of the failure note, recorded when the brief is marked failed | None; the next tick, within 2 minutes | 0014 and 0034: a new state                                                                                                                                                    |
+| Dan, by queuing again with a flag, such as metadata `continue=yes`        | A second metadata key, removed once read; the notes added after the failure note, if they're passed on    | The ID of the failure note, if Dan's notes are passed on             | None                                  | 0034, which says a brief queued again after failing starts over from a fresh worktree                                                                                         |
+| Dan, with an `implement continue <ref> [prompt]` command                  | None; the command moves the brief and adds the note                                                       | Takes the tick's lock, as Dan's script for #47 did                   | None; runs at once                    | 0014: a new way to start work outside the tick                                                                                                                                |
+| Claude Code itself: a `Stop` hook, or the daemon's own restart            | Possibly a note when the hook blocks                                                                      | A block count per agent session, for the hook                        | None                                  | 0028, if the hook counts as something that running unattended needs; 0014, for the hook                                                                                       |
 
 Each of these can use `claude --bg --resume` or a new agent session. A retry
 from the tick can't ask Dan first, so it would continue agent sessions that
@@ -612,10 +639,11 @@ the others continues the rest.
     again, such as memory or a usage limit, using usage each time. Needs a count
     in `state.json`. Changes what `agent=failed` means.
 - **Dan, through Aven, with a new `agent` value or a flag on queuing.**
-  - Benefits: Dan decides, from the failure note, and can add instructions in a
-    note. Works from wherever Dan uses Aven.
+  - Benefits: Dan decides, from the failure note, and can add instructions in
+    notes. Works from wherever Dan uses Aven.
   - Costs: waits for Dan, and the cache may expire meanwhile. A new state or key
-    to document.
+    to document. Passing on Dan's instructions needs the failure note's ID in
+    `state.json`, since notes have no author.
 - **Dan, with an `implement continue` command.**
   - Benefits: runs at once, with a prompt Dan writes. It's the script Dan's
     agent session wrote for #47, made permanent.
@@ -628,6 +656,8 @@ the others continues the rest.
   every option in the table, the causes marked "Tried", the saved options, the
   copy made when an agent session is running, the messages Claude Code adds on a
   continue, and the token usage of the first request after each.
+- **Aven notes** were checked by hand on aven 0.1.51 only. Whether a later
+  version adds an author to notes wasn't looked into.
 - **What was only read in logs** of the real failures: the OOM kill of the
   daemon, the daemon killed with the tick's cgroup, `bg adopt` at startup, the
   usage limit with credits on, and the cost of resuming a real brief's
