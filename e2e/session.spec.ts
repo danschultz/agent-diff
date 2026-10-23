@@ -120,3 +120,97 @@ test("a session's link opens the session on the dev server", async ({
   await expectSession(page, session);
   await expect(page).toHaveURL(`${devServer.origin}sessions/${session.id}`);
 });
+
+test("opening a session's link asks for the session once, and leaves no fragment", async ({
+  page,
+  reviewServer,
+  session,
+}) => {
+  const calls = countShowCalls(page);
+  await page.goto(session.url);
+  await expectSession(page, session);
+  await page.waitForTimeout(settle);
+  expect(calls()).toBe(1);
+  expect(page.url()).toBe(`${reviewServer.origin}sessions/${session.id}`);
+  expect(await page.evaluate('window.location.hash')).toBe('');
+});
+
+test("a review server that can't be reached is reported", async ({
+  page,
+  session,
+}) => {
+  await page.route('**/api/session/show', (route) => route.abort());
+  await page.goto(session.url);
+  // TanStack Query retries a call that didn't reach the review server three
+  // times, waiting 1, 2, and 4 seconds.
+  await expect(page.getByRole('alert')).toHaveText(
+    /^Couldn't reach the review server: \S/,
+    { timeout: 15_000 },
+  );
+  await expect(page.getByRole('heading')).toHaveCount(0);
+});
+
+test('a session ID that needs decoding shows the not-found message', async ({
+  page,
+  reviewServer,
+  session,
+}) => {
+  await page.goto(session.url);
+  await expectSession(page, session);
+  for (const id of ['%E0%A4%A', 'a%2Fb', '%20']) {
+    await page.goto(`${reviewServer.origin}sessions/${id}`);
+    await expect(page.getByRole('alert')).toHaveText(notFound);
+    await expect(page.getByRole('heading')).toHaveCount(0);
+  }
+});
+
+test('a session that takes longer than a second to load shows Loading…', async ({
+  page,
+  session,
+}) => {
+  await page.route('**/api/session/show', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+    await route.continue();
+  });
+  await page.goto(session.url);
+  await expect(page.getByText('Loading…')).toBeVisible();
+  await expectSession(page, session);
+  await expect(page.getByText('Loading…')).toHaveCount(0);
+});
+
+test("a session's path in another case or with a trailing slash shows the not-found message", async ({
+  page,
+  reviewServer,
+  session,
+}) => {
+  await page.goto(session.url);
+  await expectSession(page, session);
+  for (const path of [
+    `sessions/${session.id}/`,
+    `SESSIONS/${session.id}`,
+    `Sessions/${session.id}`,
+  ]) {
+    await page.goto(`${reviewServer.origin}${path}`);
+    await expect(page.getByRole('alert')).toHaveText(notFound);
+    await expect(page.getByRole('heading')).toHaveCount(0);
+  }
+});
+
+test('a session that loads within a second never shows Loading…', async ({
+  page,
+  session,
+}) => {
+  // Records whether "Loading…" was ever rendered, however briefly. As a
+  // string, since e2e/ is typed for Node, without the DOM.
+  await page.addInitScript(`
+    window.sawLoading = false;
+    new MutationObserver(() => {
+      if (document.body?.textContent?.includes('Loading…')) {
+        window.sawLoading = true;
+      }
+    }).observe(document, { childList: true, subtree: true, characterData: true });
+  `);
+  await page.goto(session.url);
+  await expectSession(page, session);
+  expect(await page.evaluate('window.sawLoading')).toBe(false);
+});

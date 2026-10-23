@@ -247,7 +247,7 @@ These are the design choices agreed with Dan for this brief.
 ### Escalation criteria
 
 - A decision can't be followed as written.
-- A new dependency or a router library seems needed.
+- A new dependency seems needed.
 - A choice the decisions don't cover would change the CLI's output for agents,
   the API, or what the review UI shows.
 

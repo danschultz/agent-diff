@@ -1,38 +1,19 @@
 // Shows one session as the API returned it when the page loaded: its title
 // and ID, whether it's active or archived, when it was created, and its
 // working directories with their base refs.
-import { ORPCError } from '@orpc/client';
-import { useQuery } from '@tanstack/react-query';
-import { NotFound } from './NotFound.tsx';
-import { orpc } from './client.ts';
-import { Time } from './components/Time.tsx';
-import { savedToken } from './token.ts';
+import { useSuspenseQuery } from '@tanstack/react-query';
+import { getRouteApi } from '@tanstack/react-router';
+import { orpc } from '../client.ts';
+import { Time } from '../components/Time.tsx';
 
-export function SessionPage({ id }: { id: string }) {
-  const hasToken = savedToken() !== null;
-  const { data: session, error } = useQuery({
-    ...orpc.session.show.queryOptions({ input: { id } }),
-    enabled: hasToken,
-  });
+const route = getRouteApi('/sessions/$id');
 
-  // There's no saved token, or the review server rejected it (decision 0031).
-  if (!hasToken || (error instanceof ORPCError && error.status === 401)) {
-    return (
-      <p role="alert">
-        Open the link printed by <code>agent-diff session new</code> or{' '}
-        <code>agent-diff session show</code>.
-      </p>
-    );
-  }
-  if (error instanceof ORPCError && error.code === 'NOT_FOUND') {
-    return <NotFound />;
-  }
-  if (error) {
-    return (
-      <p role="alert">Couldn't reach the review server: {error.message}</p>
-    );
-  }
-  if (!session) return <p>Loading…</p>;
+// The route's loader has loaded the session, or failed, before this renders.
+export function SessionPage() {
+  const { id } = route.useParams();
+  const { data: session } = useSuspenseQuery(
+    orpc.session.show.queryOptions({ input: { id } }),
+  );
   return (
     <main>
       <h1>{session.title ?? `Session ${session.id}`}</h1>

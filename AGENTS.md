@@ -29,6 +29,7 @@ in [docs/research](docs/research/README.md), and agreed terms are defined in
 | [`.rules/gitignore.md`](.rules/gitignore.md)     | When adding or changing ignore patterns.                                            |
 | [`.rules/testing.md`](.rules/testing.md)         | When changing code or tests.                                                        |
 | [`.rules/performance.md`](.rules/performance.md) | When changing code.                                                                 |
+| [`.rules/review-ui.md`](.rules/review-ui.md)     | When changing the review UI.                                                        |
 
 ## Checks
 
