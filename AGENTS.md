@@ -56,6 +56,10 @@ working tree, not only what's staged. See
   - A Markdown file has a local link that leaves the repo: a relative path that
     resolves outside it, an absolute path such as `/docs/glossary.md`, or a
     `file:` URL.
+  - A skill, a Markdown file under `.claude/skills/`, links to a file or folder
+    in `.rules/`. Rules can link to skills, but skills hold their own process
+    and don't link to rules. See
+    [0039](docs/decisions/0039-work-is-planned-into-briefs.md).
 
   Every Markdown file the root `.gitignore` doesn't ignore is checked. Links
   with another URL scheme, such as `https:`, and links in code aren't checked.
