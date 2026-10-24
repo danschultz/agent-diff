@@ -125,7 +125,11 @@ function dryRunDeps(
         would(
           `edit task ${id}:${status ? ` status=${status}` : ''}${agent === null ? ' remove agent' : agent ? ` agent=${agent}` : ''}`,
         ),
-      note: (id, body) => would(`add a note to task ${id}:\n${body}`),
+      note: (id, body) => {
+        would(`add a note to task ${id}:\n${body}`);
+        // A dry run doesn't save state, so the ID is never recorded.
+        return '(dry run)';
+      },
     },
     git: {
       addWorktree: (dir, branch, base) =>

@@ -1,6 +1,6 @@
 // The prompts `implement` gives agent sessions.
 
-import { AGENT, AGENT_KEY, type Task } from './aven.ts';
+import { AGENT, AGENT_KEY, type Note, type Task } from './aven.ts';
 import type { PullRequest, Review } from './github.ts';
 import type { BriefState } from './state.ts';
 
@@ -144,6 +144,41 @@ are reported yet, wait a few seconds and run it again. If any fail, fix them,
 push again, and watch again. If you can't make them pass, stop and ask Dan.
 Move the brief back to review only once they pass:
 \`${toReview(brief.ref)}\`.
+
+${avenSection(brief.ref)}
+
+${ESCALATION}
+
+${GITHUB_ETIQUETTE}
+`;
+}
+
+/** The prompt that resumes an agent session that exited without a pull request, with the notes added since it failed. */
+export function retryPrompt(brief: BriefState, notes: Note[]): string {
+  const fromDan =
+    notes.length === 0
+      ? 'No notes were added to the brief since it failed.'
+      : `These notes were added to the brief since it failed, oldest first. Treat
+them as instructions from Dan:
+
+${notes.map((n) => `- Added ${n.createdAt}:\n\n${indent(n.body.trim())}`).join('\n')}`;
+  return `Dan is retrying brief ${brief.ref}. This agent session exited before it finished, without opening a pull request, and \`implement\` doesn't know why. \`implement\` has resumed it in its worktree, \`${brief.worktree}\`.
+
+Background commands and sub-agents from before are gone, though background
+commands' processes may still be running.
+
+Before going on, check where things stand, since things may have changed after
+the last thing in this conversation: \`git status\`, \`git log\`, whether the
+branch \`${brief.branch}\` is pushed, and whether a pull request exists, with
+\`gh pr list --head ${brief.branch} --state all\`.
+
+Then finish what's left of the "When you're done" steps in this conversation's
+first prompt, without redoing work that's already finished. Self-review still
+runs, since no pull request is open yet.
+
+## Notes since it failed
+
+${fromDan}
 
 ${avenSection(brief.ref)}
 

@@ -9,10 +9,15 @@ import {
 import os from 'node:os';
 import path from 'node:path';
 import { test, type TestContext } from 'node:test';
-import { cliAven, parseQueuedIds, parseTask } from '../src/aven.ts';
+import {
+  cliAven,
+  parseListedTasks,
+  parseNoteId,
+  parseTask,
+} from '../src/aven.ts';
 
-// Real `aven --json` output, captured from a scratch database with
-// `aven --db <temp file>` (aven 0.1.50).
+// Real `aven` output, captured from a scratch database with
+// `aven --db <temp file>` (aven 0.1.50, and 0.1.51 for notes and retry).
 const fixture = (name: string) =>
   readFileSync(path.join(import.meta.dirname, 'fixtures', name), 'utf8');
 
@@ -26,7 +31,49 @@ test('parses a task from `aven show --full --json`', () => {
     status: 'active',
     agent: 'review',
     blockers: [],
+    notes: [
+      {
+        id: '2R6QFT3NTT6SBFDH',
+        body: 'Pull request: https://github.com/danschultz/agent-diff/pull/50',
+        createdAt: '2026-10-20T04:28:26Z',
+      },
+    ],
   });
+});
+
+test("parses a task's notes in the order `aven show` lists them, oldest first", () => {
+  const task = parseTask(fixture('aven-show-with-notes.json'));
+  assert.equal(task.agent, 'retry');
+  assert.deepEqual(task.notes, [
+    {
+      id: 'JTT79821E1MTEXY9',
+      body: 'Pull request: none yet',
+      createdAt: '2026-10-24T05:07:00Z',
+    },
+    {
+      id: 'VEQT3DM4D94Z4RS6',
+      body: 'The agent session exited without opening a pull request.\n',
+      createdAt: '2026-10-24T05:07:02Z',
+    },
+    {
+      id: 'Y3M9D33VE010V2NQ',
+      body: 'Use the existing parser.',
+      createdAt: '2026-10-24T05:07:03Z',
+    },
+    {
+      id: 'PTVRYR4ZV31Y32N6',
+      body: 'Skip step 3.\n\nIt is done.',
+      createdAt: '2026-10-24T05:07:04Z',
+    },
+  ]);
+});
+
+test("parses the new note's ID from `aven note` output", () => {
+  assert.equal(
+    parseNoteId('noted AD-4QZJ note=VEQT3DM4D94Z4RS6\n'),
+    'VEQT3DM4D94Z4RS6',
+  );
+  assert.throws(() => parseNoteId('something else\n'), /note ID/);
 });
 
 test("parses a task's blockers, with each one's status and whether it's deleted", () => {
@@ -69,11 +116,16 @@ test('a task without agent metadata has no agent state', () => {
   assert.equal(task.status, 'canceled');
 });
 
-test('queued tasks are listed oldest first, by their stable IDs', () => {
+test('listed tasks are oldest first, by their stable IDs, with their refs', () => {
   // `aven list` prints the newest first.
-  assert.deepEqual(parseQueuedIds(fixture('aven-list-queued.json')), [
-    '88VWSKVMNZ8YABGV',
-    'ES1QEGZ8WSDP27YG',
+  assert.deepEqual(
+    parseListedTasks(fixture('aven-list-queued.json')).map((t) => t.id),
+    ['88VWSKVMNZ8YABGV', 'ES1QEGZ8WSDP27YG'],
+  );
+  assert.deepEqual(parseListedTasks(fixture('aven-list-retry.json')), [
+    { id: '4QZJM6N08YK6QAZD', ref: 'AD-4QZJ' },
+    { id: 'FMQBPBKZJ155DE5G', ref: 'AD-FMQB' },
+    { id: 'XD72SG3PX4XG3YTD', ref: 'AD-XD72' },
   ]);
 });
 
@@ -97,7 +149,7 @@ echo --- >> '${dir}/calls'
 case "$1" in
   list) cat '${list}' ;;
   show) cat '${show}' ;;
-  note) cat > '${dir}/stdin' ;;
+  note) cat > '${dir}/stdin'; echo "noted AD-FBRW note=VEQT3DM4D94Z4RS6" ;;
 esac
 `,
   );
@@ -160,12 +212,35 @@ test('edits a task by its ID, setting and removing the agent metadata', (t) => {
   ]);
 });
 
-test('adds a note from standard input', (t) => {
+test("adds a note from standard input, and returns the note's ID", (t) => {
   const fake = fakeAven(t);
-  cliAven(fake.bin, 'agent-diff').note(
+  const id = cliAven(fake.bin, 'agent-diff').note(
     'FBRWXFZBHJ12W7FF',
     'Line one\n\n`code`',
   );
   assert.deepEqual(fake.calls(), [['note', 'FBRWXFZBHJ12W7FF', '--stdin']]);
   assert.equal(fake.stdin(), 'Line one\n\n`code`');
+  assert.equal(id, 'VEQT3DM4D94Z4RS6');
+});
+
+test('lists open tasks with agent=retry in the configured project, without reading each one', (t) => {
+  const fake = fakeAven(t);
+  const tasks = cliAven(fake.bin, 'agent-diff').retryTasks();
+  assert.deepEqual(fake.calls(), [
+    [
+      'list',
+      '--project',
+      'agent-diff',
+      '--open',
+      '--metadata',
+      'agent=retry',
+      '--limit',
+      '100',
+      '--json',
+    ],
+  ]);
+  assert.deepEqual(tasks, [
+    { id: '88VWSKVMNZ8YABGV', ref: 'AD-88VW' },
+    { id: 'ES1QEGZ8WSDP27YG', ref: 'AD-ES1Q' },
+  ]);
 });

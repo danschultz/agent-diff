@@ -13,6 +13,7 @@ export const AGENT = {
   needsInput: 'needs-input',
   review: 'review',
   failed: 'failed',
+  retry: 'retry',
 } as const;
 
 export type AgentState = (typeof AGENT)[keyof typeof AGENT];
@@ -32,6 +33,24 @@ export interface Task {
   agent: string | undefined;
   /** The tasks this one depends on, in any project. */
   blockers: Blocker[];
+  notes: Note[];
+}
+
+/**
+ * A note on a task. Notes have no author, so `implement` can't tell Dan's from
+ * its own, or from an agent session's.
+ */
+export interface Note {
+  id: string;
+  body: string;
+  /** To the second. */
+  createdAt: string;
+}
+
+/** A task as `aven list` gives it, without its description, metadata, or notes. */
+export interface ListedTask {
+  id: string;
+  ref: string;
 }
 
 /** A task another task depends on, from `aven dep add <ref> <blocker ref>`. */
@@ -52,9 +71,12 @@ export interface TaskChanges {
 export interface Aven {
   /** Open tasks in the project with `agent=queued`, oldest first. */
   queuedTasks(): Task[];
+  /** Open tasks in the project with `agent=retry`, oldest first, without reading each one. */
+  retryTasks(): ListedTask[];
   task(id: string): Task;
   edit(id: string, changes: TaskChanges): void;
-  note(id: string, body: string): void;
+  /** Adds a note, and returns its ID. */
+  note(id: string, body: string): string;
 }
 
 /** Done or canceled: Dan is finished with it. */
@@ -64,6 +86,7 @@ export function isClosed(task: Task): boolean {
 
 interface RawListedTask {
   id: string;
+  ref: string;
   created_at: string;
 }
 
@@ -80,13 +103,21 @@ interface RawTask {
       deleted: boolean;
     }[];
   };
+  notes: { id: string; body: string; created_at: string }[];
 }
 
-/** The IDs of the tasks in `aven list --json` output, oldest first. */
-export function parseQueuedIds(json: string): string[] {
+/** The tasks in `aven list --json` output, oldest first. */
+export function parseListedTasks(json: string): ListedTask[] {
   return (JSON.parse(json) as RawListedTask[])
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
-    .map((t) => t.id);
+    .map((t) => ({ id: t.id, ref: t.ref }));
+}
+
+/** The new note's ID from `aven note` output, `noted <ref> note=<id>`. */
+export function parseNoteId(output: string): string {
+  const id = /\bnote=(\S+)/.exec(output)?.[1];
+  if (!id) throw new Error(`no note ID in aven note output: ${output.trim()}`);
+  return id;
 }
 
 /** A task from `aven show --full --json` output. */
@@ -108,6 +139,13 @@ export function parseTask(json: string): Task {
       status: d.status,
       deleted: d.deleted,
     })),
+    // Oldest first. Notes added in the same second are ordered by ID, not by
+    // when they were added.
+    notes: raw.notes.map((n) => ({
+      id: n.id,
+      body: n.body,
+      createdAt: n.created_at,
+    })),
   };
 }
 
@@ -126,22 +164,27 @@ export function cliAven(
     run(avenBin, args, { input, env });
   const task = (id: string) =>
     parseTask(aven(['show', id, '--full', '--json']));
+  const list = (agent: AgentState) =>
+    parseListedTasks(
+      aven([
+        'list',
+        '--project',
+        project,
+        '--open',
+        '--metadata',
+        `${AGENT_KEY}=${agent}`,
+        '--limit',
+        '100',
+        '--json',
+      ]),
+    );
   return {
     queuedTasks() {
       // `list` output has no metadata or description, so each task is read in full.
-      return parseQueuedIds(
-        aven([
-          'list',
-          '--project',
-          project,
-          '--open',
-          '--metadata',
-          `${AGENT_KEY}=${AGENT.queued}`,
-          '--limit',
-          '100',
-          '--json',
-        ]),
-      ).map(task);
+      return list(AGENT.queued).map((t) => task(t.id));
+    },
+    retryTasks() {
+      return list(AGENT.retry);
     },
     task,
     edit(id, { status, agent }) {
@@ -152,7 +195,7 @@ export function cliAven(
       if (args.length > 2) aven(args);
     },
     note(id, body) {
-      aven(['note', id, '--stdin'], body);
+      return parseNoteId(aven(['note', id, '--stdin'], body));
     },
   };
 }
