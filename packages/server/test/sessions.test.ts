@@ -76,6 +76,7 @@ test('session new creates a session with its working directories and title', asy
       { path: repo, baseRef: 'main', missing: false },
       { path: plain, baseRef: null, missing: false },
     ],
+    commentCounts: { open: 0, addressed: 0, needs_input: 0, resolved: 0 },
   });
 });
 

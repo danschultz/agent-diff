@@ -2,9 +2,12 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as v from 'valibot';
 import {
+  AddCommentInput,
   AddWorkingDirectoriesInput,
+  EditCommentInput,
   ListSessionsInput,
   NewSessionInput,
+  ReplyInput,
 } from '../src/schemas.ts';
 
 function messages(schema: v.GenericSchema, input: unknown): string[] {
@@ -92,4 +95,68 @@ test('session add needs at least one working directory', () => {
 test('session list lists only active sessions unless told otherwise', () => {
   assert.deepEqual(v.parse(ListSessionsInput, {}), { all: false });
   assert.deepEqual(v.parse(ListSessionsInput, { all: true }), { all: true });
+});
+
+test('comment and reply text is trimmed, and may be up to 10,000 characters', () => {
+  assert.deepEqual(
+    v.parse(AddCommentInput, { sessionId: 's_aaaaaa', text: '  Fix it \n' }),
+    { sessionId: 's_aaaaaa', text: 'Fix it' },
+  );
+  assert.deepEqual(
+    v.parse(EditCommentInput, { id: 'c_aaaaaa', text: ' Fix it ' }),
+    { id: 'c_aaaaaa', text: 'Fix it' },
+  );
+  assert.deepEqual(
+    v.parse(ReplyInput, {
+      id: 'c_aaaaaa',
+      status: 'needs_input',
+      text: ' Which? ',
+    }),
+    { id: 'c_aaaaaa', status: 'needs_input', text: 'Which?' },
+  );
+  assert.ok(
+    v.is(AddCommentInput, { sessionId: 's_aaaaaa', text: 'T'.repeat(10_000) }),
+  );
+  assert.ok(
+    v.is(ReplyInput, {
+      id: 'c_aaaaaa',
+      status: 'addressed',
+      text: ` ${'T'.repeat(10_000)} `,
+    }),
+  );
+});
+
+test('comment and reply text that is empty or too long fails with readable messages', () => {
+  for (const [text, message] of [
+    ['', 'The comment must not be empty.'],
+    [' \n\t ', 'The comment must not be empty.'],
+    ['T'.repeat(10_001), 'The comment must be at most 10,000 characters.'],
+    [42, 'The comment must be a string.'],
+  ] as const) {
+    assert.deepEqual(
+      messages(AddCommentInput, { sessionId: 's_aaaaaa', text }),
+      [message],
+      String(text),
+    );
+    assert.deepEqual(
+      messages(EditCommentInput, { id: 'c_aaaaaa', text }),
+      [message],
+      String(text),
+    );
+    assert.deepEqual(
+      messages(ReplyInput, { id: 'c_aaaaaa', status: 'addressed', text }),
+      [message.replace('comment', 'reply')],
+      String(text),
+    );
+  }
+});
+
+test("a reply's status is addressed or needs input", () => {
+  for (const status of ['open', 'resolved', 'needs-input', undefined]) {
+    assert.deepEqual(
+      messages(ReplyInput, { id: 'c_aaaaaa', status, text: 'Done.' }),
+      ["The reply's status must be addressed or needs_input."],
+      String(status),
+    );
+  }
 });
