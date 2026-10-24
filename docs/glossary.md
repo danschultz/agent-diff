@@ -170,7 +170,8 @@ A batch of [comments](#comment) and [replies](#reply) the [reviewer](#reviewer)
 submits in a [session](#session), identified by an ID such as `r_4m2x9p`.
 Submitting the [draft review](#draft-review) turns it into a review and sends a
 [review message](#review-message). A submitted review can't be withdrawn or
-edited. A session gets many reviews over time. See
+edited. Until it's submitted, a review is the session's draft review. A session
+gets many reviews over time. See
 [0036](decisions/0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md)
 and
 [0043](decisions/0043-each-session-has-one-draft-review-and-submitted-reviews-dont-change.md).

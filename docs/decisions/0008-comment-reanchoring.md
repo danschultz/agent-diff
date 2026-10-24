@@ -5,9 +5,9 @@
 - Date: 2026-10-10
 
 > **Amended by [0018](0018-agents-list-open-comments.md):** there's no draft
-> review, so the "Comments in the draft review and submitted comments" section
-> no longer applies. How anchor states are shown alongside comment statuses is
-> left open in 0018.
+> review and no submitted comments, so the "Comments in the draft review and
+> submitted comments" section no longer applies. How anchor states are shown
+> alongside comment statuses is left open in 0018.
 
 > **Amended by
 > [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md):**

@@ -159,9 +159,9 @@ Sessions are archived or deleted rather than ended.
 - **[0006](0006-sqlite-review-state.md).** The database holds comments with
   their statuses, and archived sessions. There are no draft reviews, reviews, or
   claims to store.
-- **[0008](0008-comment-reanchoring.md).** There's no draft review, so the
-  "Comments in the draft review and submitted comments" section no longer
-  applies.
+- **[0008](0008-comment-reanchoring.md).** There's no draft review and no
+  submitted comments, so the "Comments in the draft review and submitted
+  comments" section no longer applies.
 - **[0009](0009-review-sessions-and-claims.md).** Sessions stay. Reviews and
   claims are removed, and sessions are archived or deleted rather than ended.
   Comments in an archived session keep their status, which answers the follow-up
