@@ -1,7 +1,16 @@
 # 0038: Agents reply in comment threads, marking each comment addressed or needs input
 
-- Status: Accepted
+- Status: Accepted, amended by
+  [0043](0043-each-session-has-one-draft-review-and-submitted-reviews-dont-change.md)
 - Date: 2026-10-22
+
+> **Amended by
+> [0043](0043-each-session-has-one-draft-review-and-submitted-reviews-dont-change.md):**
+> an agent's reply on a resolved comment moves it to addressed or needs input,
+> so the reviewer isn't the only one who can reopen a comment. The agent's
+> latest reply always sets the comment's status, and the agent can reply several
+> times in a row. Comments and replies are plain text, at most 10,000
+> characters.
 
 ## Problem
 
@@ -29,8 +38,8 @@ the agent go back and forth more often, and a status alone says too little.
   ```
 
   Exactly one of `--addressed` and `--needs-input` is required. The command adds
-  the reply and sets the comment's status in one step. An agent's reply isn't a
-  draft. It shows in the review UI as soon as it's saved.
+  the reply and sets the comment's status in one step. An agent's reply isn't in
+  the draft review. It shows in the review UI as soon as it's saved.
 
 - **Addressed** replies say what changed. **Needs input** replies ask a
   question, push back with reasons, or say what blocked the agent, instead of
@@ -44,9 +53,9 @@ the agent go back and forth more often, and a status alone says too little.
 - **Resolved:** the reviewer checked the agent's work and resolved it.
 
 The reviewer resolves a comment in the review UI at once, without a review. The
-reviewer reopens a comment by replying to it. The reply is a draft, and when its
-review is submitted the comment goes back to open and the reply is part of that
-review, so the agent gets it through the review message
+reviewer reopens a comment by replying to it. The reply is in the draft review,
+and when the draft review is submitted the comment goes back to open and the
+reply is part of that review, so the agent gets it through the review message
 ([0037](0037-agents-get-review-messages-through-a-listener-they-start.md)).
 
 ### Effect on earlier decisions
@@ -67,8 +76,8 @@ Benefits:
 - The agent asks instead of guessing, and pushes back with reasons instead of
   silently ignoring a comment.
 - The reviewer sees which threads are still open and skips the settled ones.
-- Answering the agent is the same as any other feedback: a draft reply, sent
-  with the next review.
+- Answering the agent is the same as any other feedback: a reply in the draft
+  review, sent with the next review.
 
 Costs:
 

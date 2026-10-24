@@ -22,14 +22,14 @@
 > through the CLI, which calls the review server's API. There's no MCP tool.
 
 > **Amended by [0018](0018-agents-list-open-comments.md):** comments aren't held
-> as drafts and delivered as a submitted batch. Each comment is available to
-> agents as soon as it's saved, and the agent lists open comments with
-> `agent-diff comment list <session-id>`.
+> in a draft review and delivered as a submitted batch. Each comment is
+> available to agents as soon as it's saved, and the agent lists open comments
+> with `agent-diff comment list <session-id>`.
 
 > **Amended by
 > [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md):**
-> comments are drafts until the reviewer submits a review again, and the review
-> server sends the agent a short review message, which names
+> comments are in the draft review until the reviewer submits it again, and the
+> review server sends the agent a short review message, which names
 > `agent-diff review show <review-id>`. It reaches the agent through a listener
 > the agent starts
 > ([0037](0037-agents-get-review-messages-through-a-listener-they-start.md)),
@@ -49,9 +49,9 @@ can't do that.
 
 ## Solution
 
-- **Review is synchronous at the feedback level.** Comments stay in draft until
-  the reviewer submits them, and the agent receives the submitted batch as a
-  whole. Comments are not delivered one at a time as they're written.
+- **Review is synchronous at the feedback level.** Comments stay in the draft
+  review until the reviewer submits them, and the agent receives the submitted
+  batch as a whole. Comments are not delivered one at a time as they're written.
 - **Agents don't block on review.** Opening a review returns immediately, and
   the agent stays free to work with the human.
 - **The app sends a small notification, not the review.** On submit, the app

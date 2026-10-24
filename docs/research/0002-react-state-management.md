@@ -33,7 +33,8 @@ The review UI holds:
 - The [file view](../glossary.md#file-view): tree or list, and whether unchanged
   files are shown.
 - The selected file and line.
-- Drafts, and each [comment](../glossary.md#comment)'s
+- The [draft review](../glossary.md#draft-review), and each
+  [comment](../glossary.md#comment)'s
   [anchor state](../glossary.md#anchor-state).
 - File lists, diffs, comments, reviews, and
   [turn snapshots](../glossary.md#turn-snapshot) loaded from the review server.
@@ -77,10 +78,10 @@ changed.
 - **Running the examples.** Each example was bundled with esbuild and run in
   Node with [happy-dom](https://github.com/capricorn86/happy-dom) as the DOM. A
   test mounted `<DraftCount path="a.ts" />` with `react-dom/client` and `act`,
-  then added three drafts, edited one, discarded one, replaced them all as a
-  pushed update would, edited a draft that doesn't exist, and pushed an update
+  then added three comments, edited one, discarded one, replaced them all as a
+  pushed update would, edited a comment that doesn't exist, and pushed an update
   equal to the current state. After each step it checked the rendered count and
-  the stored drafts. A `Profiler` counted how often `DraftCount` re-rendered.
+  the stored comments. A `Profiler` counted how often `DraftCount` re-rendered.
   All twelve examples passed all nine checks.
 - **Maintenance** data comes from `npm view <package> time`, the npm downloads
   API, and the GitHub repo API.
@@ -200,12 +201,12 @@ How state, actions, and selectors are typed in each example:
 
 **What `tsc` caught.** Each probe file made these mistakes against its example:
 
-1. Passing a number as a draft's body when editing.
+1. Passing a number as a comment's body when editing.
 2. Calling a misspelled action, such as `editDraf`.
-3. Adding a draft without its `line`.
-4. Mutating a draft read from state in a component or selector, such as
+3. Adding a comment without its `line`.
+4. Mutating a comment read from state in a component or selector, such as
    `drafts['1'].body = 'x'`.
-5. Assigning the whole drafts record to a `number`.
+5. Assigning the whole record of comments to a `number`.
 
 Mistakes 1, 2, 3, and 5 were reported for all twelve candidates. Mistake 4 was
 only reported for Valtio, because `useSnapshot` returns readonly types. The
@@ -222,23 +223,24 @@ development mode):
 The plain `useReducer` example wasn't run this way, because its state is held
 inside React.
 
-MobX gave no warning for the mutation above because the draft wasn't being
+MobX gave no warning for the mutation above because the comment wasn't being
 observed. Its default `enforceActions: "observed"` only warns about changes
 outside actions to state that something observes
 ([configuration](https://mobx.js.org/configuration.html#enforceactions)).
 
 **A gap in Legend-State's types.** Indexing a record observable with a missing
 key and setting a field, such as `drafts$['missing'].body.set('y')`, type-checks
-and stores `{"missing":{"body":"y"}}`: a partial draft without `id`, `path`, or
-`line`. The example guards against it with `peek()`.
+and stores `{"missing":{"body":"y"}}`: a partial comment without `id`, `path`,
+or `line`. The example guards against it with `peek()`.
 
 ### The same example in each candidate
 
-Each example below defines drafts keyed by ID, lets the reviewer add, edit, and
-discard a draft, replaces all drafts as an update pushed from the review server
-would, and renders a `DraftCount` component that shows the number of drafts on a
-file. They all import this shared type, which isn't counted. It simplifies a
-draft's [anchor](../glossary.md#anchor) to a path and line.
+Each example below defines comments in the
+[draft review](../glossary.md#draft-review) keyed by ID, lets the reviewer add,
+edit, and discard a comment, replaces all comments as an update pushed from the
+review server would, and renders a `DraftCount` component that shows the number
+of comments on a file. They all import this shared type, which isn't counted. It
+simplifies a comment's [anchor](../glossary.md#anchor) to a path and line.
 
 ```ts
 export interface Draft {
@@ -611,7 +613,7 @@ Based on the
 [`@xstate/store` README](https://github.com/statelyai/xstate/tree/main/packages/xstate-store)
 and [React docs](https://stately.ai/docs/xstate-store/react). Handlers return
 the next context. Returning `undefined` marks the event as not allowed, so
-`edited` returns `ctx` for a missing draft.
+`edited` returns `ctx` for a missing comment.
 
 ```tsx
 import { createStore, useSelector } from '@xstate/store-react';
@@ -809,8 +811,8 @@ without the prototype's `useRef` workaround:
 | Preact Signals               | Assign `drafts.value`                                                                                                 | `drafts.peek()` or `.value`          |
 
 **What re-renders.** The run measured how often `DraftCount` re-rendered when
-one draft's body was edited, which doesn't change the count, and when the review
-server pushed drafts equal to the current ones, as new objects:
+one comment's body was edited, which doesn't change the count, and when the
+review server pushed comments equal to the current ones, as new objects:
 
 | Candidate                                                                                                          | Body edit | Equal update pushed |
 | ------------------------------------------------------------------------------------------------------------------ | --------: | ------------------: |
@@ -825,16 +827,16 @@ server pushed drafts equal to the current ones, as new objects:
   Legend-State's `useValue(() => ...)`, TanStack Store) compare the selected
   number and skip the render when it's unchanged.
 - Valtio skipped both renders without a selector, because `useSnapshot` tracks
-  which properties the render read, here each draft's `path`
+  which properties the render read, here each comment's `path`
   ([useSnapshot](https://valtio.dev/docs/api/basic/useSnapshot)).
-- MobX's `ObservableMap.replace` stores the new draft objects, so the `observer`
-  component re-rendered even though the content was equal.
+- MobX's `ObservableMap.replace` stores the new comment objects, so the
+  `observer` component re-rendered even though the content was equal.
 - Context, Nanostores' `useStore`, and the signal holding the whole record
   re-render whenever the record changes. Nanostores can narrow this with
   `computed` stores, and Signals with `computed`, at the cost of more code.
 
-Replacing state with new objects also changes the identity of every draft. A
-component that selects one draft object, rather than a number, would re-render
+Replacing state with new objects also changes the identity of every comment. A
+component that selects one comment object, rather than a number, would re-render
 on each pushed update in every candidate unless it compares by value, such as
 Zustand's `useShallow`
 ([useShallow](https://zustand.docs.pmnd.rs/reference/hooks/use-shallow)). This
@@ -851,7 +853,7 @@ sync plugins
 | Jotai           | Many atom kinds: primitive, derived, write-only, and `jotai/utils` helpers                                                                                                             | Atoms are config objects; their values live in a store, and the default store is used outside a `<Provider>` ([atom](https://jotai.org/docs/core/atom))                                        | No (404)                                                                                                    | `createStore()`, then `store.get` and `store.set` ([testing](https://jotai.org/docs/guides/testing))    |                         6,793,760 |
 | Valtio          | One: `proxy`                                                                                                                                                                           | Proxies and render tracking (`proxy-compare`); mutating the snapshot instead of the proxy is a common mistake, caught by the readonly types                                                    | No (404)                                                                                                    | Mutate the proxy and read it                                                                            |                         2,116,074 |
 | MobX            | Classes with `makeAutoObservable`, `makeObservable`, Stage 3 decorators, or `observable({...})` ([CHANGELOG](https://github.com/mobxjs/mobx/blob/main/packages/mobx/CHANGELOG.md#700)) | Proxies, implicit dependency tracking, and `observer`; components not wrapped in `observer` silently don't update                                                                              | No (404)                                                                                                    | Call methods and read fields                                                                            |                         3,809,223 |
-| Redux Toolkit   | One main way: `createSlice` and `configureStore`                                                                                                                                       | Immer drafts in reducers: mutate _or_ return, never both ([Immer reducers](https://redux-toolkit.js.org/usage/immer-reducers))                                                                 | No (404 on [redux.js.org](https://redux.js.org/) and [redux-toolkit.js.org](https://redux-toolkit.js.org/)) | Reducers are pure; `store.dispatch` and `getState`                                                      |                        33,582,978 |
+| Redux Toolkit   | One main way: `createSlice` and `configureStore`                                                                                                                                       | Immer recipes in reducers: mutate _or_ return, never both ([Immer reducers](https://redux-toolkit.js.org/usage/immer-reducers))                                                                | No (404 on [redux.js.org](https://redux.js.org/) and [redux-toolkit.js.org](https://redux-toolkit.js.org/)) | Reducers are pure; `store.dispatch` and `getState`                                                      |                        33,582,978 |
 | `@xstate/store` | One: `createStore` with `context` and `on`                                                                                                                                             | Returning `undefined` from a handler rejects the event                                                                                                                                         | Yes, on the [Stately site](https://stately.ai/llms.txt)                                                     | `store.trigger.*` and `getSnapshot()`                                                                   |                           212,002 |
 | Legend-State    | Observables, computed functions inside observables, `useObservable`, reactive components                                                                                               | Proxies; fine-grained tracking; `get()` vs `peek()` decides tracking                                                                                                                           | [Yes (v3)](https://www.legendapp.com/open-source/state/v3/llms.txt)                                         | `.set` and `.peek()`                                                                                    |                           126,693 |
 | Nanostores      | `atom`, `map`, `computed`, and more                                                                                                                                                    | Few; `onMount` callbacks run when a store gets its first subscriber ([lazy stores](https://github.com/nanostores/nanostores#lazy-stores))                                                      | No (404)                                                                                                    | `.set` and `.get()`                                                                                     |                        12,417,034 |
@@ -891,7 +893,7 @@ Agent-relevant observations from writing the examples:
   package ([RTK Query](https://redux-toolkit.js.org/rtk-query/overview)).
 - The others have no specific integration. They sit next to a data-fetching
   library, which would hold data loaded from the review server while the state
-  library holds the reviewer's UI state and drafts.
+  library holds the reviewer's UI state and the draft review.
 
 ## Options
 
@@ -987,7 +989,7 @@ Benefits:
 - One main pattern, well documented, and the second most downloaded.
 - State is frozen in development, so mutating read state throws.
 - Reducers are pure and testable; `createEntityAdapter` fits collections such as
-  drafts, and RTK Query is included if needed.
+  the draft review's comments, and RTK Query is included if needed.
 - Stable: version 2 since December 2023.
 
 Costs:
@@ -1027,7 +1029,7 @@ Costs:
   stable release is 2.1.15 from August 2024.
 - 12.1 KB.
 - Missing record keys aren't caught by the types: setting a field on a missing
-  draft created a partial draft.
+  comment created a partial comment.
 - Proxies and the `get()` versus `peek()` distinction are hidden behavior.
 - Few downloads (126,693 a week).
 
@@ -1085,13 +1087,13 @@ Costs:
   committed.
 - **Not checked in a browser.** The examples ran in happy-dom, not in a real
   browser or the prototype.
-- **Bigger examples.** Only drafts were modelled. The diff mode, file view,
-  selection, and data loaded from the review server weren't, so how each
-  candidate scales to the review UI's full state, and how state is split between
-  stores or atoms, wasn't compared.
+- **Bigger examples.** Only comments in the draft review were modelled. The diff
+  mode, file view, selection, and data loaded from the review server weren't, so
+  how each candidate scales to the review UI's full state, and how state is
+  split between stores or atoms, wasn't compared.
 - **Selecting objects after a pushed update.** Re-renders were only measured for
-  a component that selects a number. Components that select a draft object after
-  the review server replaces state weren't measured.
+  a component that selects a number. Components that select a comment object
+  after the review server replaces state weren't measured.
 - **Variants not measured.** Zustand's Immer middleware, Redux Toolkit's
   `createEntityAdapter`, Nanostores' `computed`, and the Preact Signals Babel
   transform would change the line counts and re-render results.

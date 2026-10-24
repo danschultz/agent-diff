@@ -184,7 +184,7 @@ Options B, C, and D all set Status from labels, so each needs:
   `agent:failed` could share Needs input instead, but the two need different
   things from Dan: a failed brief's agent session has exited, so Dan re-queues
   or closes it rather than answering a question. Open issues with no `agent:*`
-  label, such as drafts, don't need a Status.
+  label, such as briefs still being written, don't need a Status.
 
 - **Status options on the board** that match the mapping, with Status as the
   board's column field.

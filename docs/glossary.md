@@ -68,12 +68,14 @@ kinds:
   [anchor](#anchor) and an [anchor state](#anchor-state).
 - **Overall comment:** not attached to code. It belongs to the session.
 
-A comment is a [draft](#draft) until its [review](#review) is submitted, and
-then it's available to agents. Each comment is a thread of [replies](#reply),
-and has a [comment status](#comment-status). See
+A comment is in the [draft review](#draft-review) until it's submitted in a
+[review](#review), and then it's available to agents and can't be edited or
+deleted. Each comment is a thread of [replies](#reply), and has a
+[comment status](#comment-status). See
 [0018](decisions/0018-agents-list-open-comments.md),
 [0036](decisions/0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md),
-and [0038](decisions/0038-agents-reply-in-comment-threads.md).
+[0038](decisions/0038-agents-reply-in-comment-threads.md), and
+[0043](decisions/0043-each-session-has-one-draft-review-and-submitted-reviews-dont-change.md).
 
 ### Comment status
 
@@ -81,15 +83,19 @@ Whether a [comment](#comment) has been dealt with:
 
 - **Open:** submitted in a [review](#review), or reopened, and waiting on the
   agent.
-- **Addressed:** the agent's last [reply](#reply) says it's dealt with.
-- **Needs input:** the agent's last reply is waiting on the
+- **Addressed:** the agent's latest [reply](#reply) says it's dealt with.
+- **Needs input:** the agent's latest reply is waiting on the
   [reviewer](#reviewer).
-- **Resolved:** the reviewer checked the agent's work and resolved it.
+- **Resolved:** the reviewer resolved it, usually after checking the agent's
+  work.
 
-The reviewer reopens a comment by replying to it, which sets it back to open
-when the reply's review is submitted. This is separate from its
+The agent's latest reply sets addressed or needs input, including on a resolved
+comment. The reviewer can resolve a comment with any status, at once, without a
+review. The reviewer reopens a comment by replying to it, which sets it back to
+open when the reply's review is submitted. This is separate from its
 [anchor state](#anchor-state). See
-[0038](decisions/0038-agents-reply-in-comment-threads.md).
+[0038](decisions/0038-agents-reply-in-comment-threads.md) and
+[0043](decisions/0043-each-session-has-one-draft-review-and-submitted-reviews-dont-change.md).
 
 ### Diff mode
 
@@ -104,11 +110,15 @@ What the diff compares for a git [working directory](#working-directory):
 
 A working directory that doesn't use git has no diff modes.
 
-### Draft
+### Draft review
 
-A [comment](#comment), or a [reviewer](#reviewer)'s [reply](#reply), that hasn't
-been submitted in a [review](#review) yet. Agents can't see drafts. See
-[0036](decisions/0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md).
+The one [review](#review) the [reviewer](#reviewer) is writing in a
+[session](#session), holding the [comments](#comment) and [replies](#reply) they
+haven't submitted yet. A session has at most one. Agents can't see it. A comment
+or reply is "in the draft review" until it's submitted. See
+[0036](decisions/0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md)
+and
+[0043](decisions/0043-each-session-has-one-draft-review-and-submitted-reviews-dont-change.md).
 
 ### File version
 
@@ -148,16 +158,23 @@ An agent, or its [harness](#harness), reporting the agent to the
 
 A message in a [comment](#comment)'s thread, from the agent or the
 [reviewer](#reviewer). An agent's reply marks the comment addressed or needs
-input, and is saved at once. A reviewer's reply is a [draft](#draft) until its
-[review](#review) is submitted. See
-[0038](decisions/0038-agents-reply-in-comment-threads.md).
+input, and is saved at once. A reviewer's reply is in the
+[draft review](#draft-review) until it's submitted in a [review](#review).
+Replies are plain text. See
+[0038](decisions/0038-agents-reply-in-comment-threads.md) and
+[0043](decisions/0043-each-session-has-one-draft-review-and-submitted-reviews-dont-change.md).
 
 ### Review
 
-A batch of [drafts](#draft) the [reviewer](#reviewer) submits in a
-[session](#session), identified by an ID. Submitting it sends a
-[review message](#review-message). A session gets many reviews over time. See
-[0036](decisions/0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md).
+A batch of [comments](#comment) and [replies](#reply) the [reviewer](#reviewer)
+submits in a [session](#session), identified by an ID such as `r_4m2x9p`.
+Submitting the [draft review](#draft-review) turns it into a review and sends a
+[review message](#review-message). A submitted review can't be withdrawn or
+edited. Until it's submitted, a review is the session's draft review. A session
+gets many reviews over time. See
+[0036](decisions/0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md)
+and
+[0043](decisions/0043-each-session-has-one-draft-review-and-submitted-reviews-dont-change.md).
 
 ### Review message
 

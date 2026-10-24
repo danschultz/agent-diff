@@ -6,7 +6,7 @@
 
 > **Amended by [0041](0041-the-review-ui-loads-data-with-tanstack-query.md):**
 > data loaded from the review server is held in TanStack Query's cache, and
-> stores hold the reviewer's UI state and drafts.
+> stores hold the reviewer's UI state and the draft review.
 
 ## Problem
 
@@ -23,7 +23,7 @@ replaced by updates pushed from the
 [0001](0001-local-web-app.md).
 
 [0002](../research/0002-react-state-management.md) compared plain React and ten
-libraries on those criteria with the same drafts example.
+libraries on those criteria with the same example store.
 [0003](../research/0003-immer-and-inferred-store-types.md) followed up on
 Zustand and TanStack Store with Immer, on which libraries infer a store's type
 from methods with typed parameters, and on a `createImmerStore` helper for
@@ -141,7 +141,7 @@ Benefits:
 - The only option checked where both `tsc` and the run time catch mutating state
   read from a store: `tsc` through Immer's `Immutable` types, and the run time
   because Immer freezes state.
-- Short stores: the drafts example is 32 lines, with one-line updates and no
+- Short stores: the example store is 32 lines, with one-line updates and no
   spreading.
 - Components that select a value re-render only when it changes. `DraftCount`
   didn't re-render on a body edit or on an equal pushed update.
@@ -178,10 +178,11 @@ Costs:
   to 1.0.
 - **How state is split into stores.** Which of the review UI's state, such as
   the [session](../glossary.md#session), [diff mode](../glossary.md#diff-mode),
-  [file view](../glossary.md#file-view), selection, and drafts, shares a store.
+  [file view](../glossary.md#file-view), selection, and the draft review, shares
+  a store.
 - **Data loaded from the review server.** Whether file lists, diffs, comments,
   and reviews are held in stores or in a data-fetching library such as TanStack
-  Query, with stores holding the reviewer's UI state and drafts.
+  Query, with stores holding the reviewer's UI state and the draft review.
 - **Selecting objects after pushed updates.** Replacing state creates new
   objects, so components that select an object rather than a value re-render on
   each pushed update unless they compare by value. 0003 only measured a

@@ -4,15 +4,15 @@
   [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md)
 - Date: 2026-10-10
 
-> **Amended by [0018](0018-agents-list-open-comments.md):** there are no drafts
-> or submitted comments, so the "Drafts and submitted comments" section no
-> longer applies. How anchor states are shown alongside comment statuses is left
-> open in 0018.
+> **Amended by [0018](0018-agents-list-open-comments.md):** there's no draft
+> review and no submitted comments, so the "Comments in the draft review and
+> submitted comments" section no longer applies. How anchor states are shown
+> alongside comment statuses is left open in 0018.
 
 > **Amended by
 > [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md):**
-> comments are drafts until the reviewer submits a review again, so the "Drafts
-> and submitted comments" section applies again.
+> comments are in the draft review until the reviewer submits it again, so the
+> "Comments in the draft review and submitted comments" section applies again.
 
 ## Problem
 
@@ -60,11 +60,12 @@ The UI shows each comment's anchor state, so a guessed position never looks
 certain. When in doubt, the comment is marked outdated rather than placed on
 code that might not match.
 
-### Drafts and submitted comments
+### Comments in the draft review and submitted comments
 
-- **Drafts:** if a draft is current, any shift happens silently. If it's moved
-  or outdated, the reviewer is told clearly that the code they're commenting on
-  changed, because the comment may no longer apply.
+- **Comments in the draft review:** if a comment in the draft review is current,
+  any shift happens silently. If it's moved or outdated, the reviewer is told
+  clearly that the code they're commenting on changed, because the comment may
+  no longer apply.
 - **Submitted comments:** once the agent addresses a comment, the lines changing
   is usually the point. Outdated, with a link to the change, acts as a signal
   that the comment was acted on.

@@ -16,7 +16,7 @@ questions:
 - What does TanStack Store look like with Immer, with a small helper that hides
   `produce`, and with a generic version of that helper for every store?
 
-This research answers those questions with the same drafts example as 0002. It
+This research answers those questions with the same example store as 0002. It
 doesn't choose a library.
 
 ## Findings
@@ -41,17 +41,17 @@ are the ones 0002 checked, plus Immer 11.1.21: `zustand` 5.0.15,
   Its code blocks were reformatted at width 80 after it was merged, so they no
   longer have the line counts it reports.
 - **Type-checker probes.** For each example, `tsc` was run on a file that passes
-  a number as a draft's body, calls a misspelled action, adds a draft without
-  its `line`, mutates a draft read from the store, and assigns `count`'s result
-  to a `string`.
+  a number as a comment's body, calls a misspelled action, adds a comment
+  without its `line`, mutates a comment read from the store, and assigns
+  `count`'s result to a `string`.
 - **Running the examples.** Each example was bundled with esbuild and run in
   Node with happy-dom, in development mode. A test mounted
   `<DraftCount path="a.ts" />` with `react-dom/client` and `act`, then added
-  three drafts, edited one, discarded one, replaced them all as a pushed update
-  would, edited a draft that doesn't exist, and pushed an update equal to the
-  current state, checking the rendered count and the stored drafts after each
-  step. A `Profiler` counted how often `DraftCount` re-rendered. Last, it
-  mutated a draft read from the store.
+  three comments, edited one, discarded one, replaced them all as a pushed
+  update would, edited a comment that doesn't exist, and pushed an update equal
+  to the current state, checking the rendered count and the stored comments
+  after each step. A `Profiler` counted how often `DraftCount` re-rendered.
+  Last, it mutated a comment read from the store.
 - **Size** is measured as in 0002: the functions an example imports are bundled
   with esbuild, minified, with React external, then compressed with `gzip -9`.
   Immer is included.
@@ -176,8 +176,8 @@ export function DraftCount({ path }: { path: string }) {
   several lines, so the example is 6 lines longer than without Immer.
 - **Frozen state.** Immer freezes the state it produces
   ([auto freezing](https://immerjs.github.io/immer/freezing)), so mutating a
-  draft read from the store threw "Cannot assign to read only property" instead
-  of silently changing it, as in Redux Toolkit.
+  comment read from the store threw "Cannot assign to read only property"
+  instead of silently changing it, as in Redux Toolkit.
 - **Objects passed in are frozen too.** After `addDraft(draft)`, the caller's
   `draft` object was frozen. Code that keeps a reference and changes it later
   would throw.
@@ -289,7 +289,7 @@ functions or atoms, which are already inferred.
 **Valtio's snapshots include the methods.** With methods on the proxy,
 `useSnapshot` returns them too. Calling a mutating method on the snapshot, such
 as `snap.addDraft(draft)` instead of `state.addDraft(draft)`, type-checks,
-doesn't throw, and adds the draft to the snapshot, not the store. Editing an
+doesn't throw, and adds the comment to the snapshot, not the store. Editing an
 existing field through the snapshot does throw, because the snapshot's existing
 properties are read-only.
 
@@ -504,9 +504,9 @@ export function DraftCount({ path }: { path: string }) {
   TypeScript can't check for a generic `T`, so the helper passes the initial
   state `as never`. The comment in the helper explains it.
 - **Naming.** Immer calls the object a recipe changes a "draft" and its type
-  `Draft`. The helper imports that type as `Writable`, because draft means an
-  unsubmitted comment in this project, and the examples' `Draft` type is that
-  comment.
+  `Draft`. The helper imports that type as `Writable`, because the examples'
+  `Draft` type is a comment in the project's
+  [draft review](../glossary.md#draft-review).
 - **Not documented by TanStack.** The helper is local code. Agents won't know it
   from training data and would learn it from the repo.
 
@@ -599,9 +599,9 @@ Costs:
   freezing wasn't checked in a production build.
 - **Not checked in a browser** or in the prototype; the examples ran in
   happy-dom.
-- **Only drafts were modelled.** The helper wasn't tried on other parts of the
-  review UI's state, on several stores, or on large state, and Immer's cost on
-  large updates wasn't measured.
+- **Only comments in the draft review were modelled.** The helper wasn't tried
+  on other parts of the review UI's state, on several stores, or on large state,
+  and Immer's cost on large updates wasn't measured.
 - **TanStack Store 1.0.** The helper wasn't tried against the 1.0 alpha.
 - **Other middleware.** `combine` wasn't checked with Zustand's other
   middleware, such as `devtools` or `persist`.

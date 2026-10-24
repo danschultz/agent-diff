@@ -8,11 +8,11 @@
 
 > **Amended by
 > [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md):**
-> comments and the reviewer's replies are drafts until the reviewer submits a
-> review, and the review server sends the agent a review message naming
-> `agent-diff review show <review-id>`. The copyable prompt becomes that review
-> message, needed only when no agent session is listening. Claims stay removed,
-> IDs stay explicit, and sessions are still archived or deleted.
+> comments and the reviewer's replies are in the draft review until the reviewer
+> submits it as a review, and the review server sends the agent a review message
+> naming `agent-diff review show <review-id>`. The copyable prompt becomes that
+> review message, needed only when no agent session is listening. Claims stay
+> removed, IDs stay explicit, and sessions are still archived or deleted.
 
 > **Amended by [0038](0038-agents-reply-in-comment-threads.md):**
 > `agent-diff comment addressed` is replaced by
@@ -42,13 +42,13 @@ longer fit:
   do reliably, and which is only advisory anyway.
 - **Nothing records whether a comment was addressed.** Completing a claim was
   the only signal, and it covered a whole working directory, not a comment.
-- **Reviews add questions without helping the reviewer.** Comments were drafts
-  until submitted as a review, but a draft belonged to a review that didn't
-  exist yet. The agent fetched only the most recent review, so an earlier one
-  that hadn't been applied was skipped. Review IDs and published groups of
-  comments would answer those questions, but add concepts the reviewer doesn't
-  need. The reviewer wants to leave comments, sometimes with an overall comment,
-  and have an agent address them.
+- **Reviews add questions without helping the reviewer.** Comments were held
+  back until submitted as a review, but an unsubmitted comment belonged to a
+  review that didn't exist yet. The agent fetched only the most recent review,
+  so an earlier one that hadn't been applied was skipped. Review IDs and
+  published groups of comments would answer those questions, but add concepts
+  the reviewer doesn't need. The reviewer wants to leave comments, sometimes
+  with an overall comment, and have an agent address them.
 - **Working out the working directory from the current directory is ambiguous.**
   It has no answer when the CLI runs outside every working directory, as a main
   agent coordinating sub-agents does, or when a working directory is in several
@@ -66,8 +66,8 @@ longer fit:
   lines, and has an anchor and an anchor state
   ([0008](0008-comment-reanchoring.md)). An overall comment isn't attached to
   code and belongs to the session.
-- **No drafts, submit, or reviews.** A comment is available to agents as soon as
-  the reviewer saves it.
+- **No draft review, submit, or reviews.** A comment is available to agents as
+  soon as the reviewer saves it.
 
 ### Comment statuses
 
@@ -153,14 +153,15 @@ Sessions are archived or deleted rather than ended.
 
 ### Effect on earlier decisions
 
-- **[0005](0005-notify-then-pull-feedback.md).** Comments aren't held as drafts
-  and delivered as a submitted batch. Each comment is available as soon as it's
-  saved. Agents still pull, and still don't block.
+- **[0005](0005-notify-then-pull-feedback.md).** Comments aren't held in a draft
+  review and delivered as a submitted batch. Each comment is available as soon
+  as it's saved. Agents still pull, and still don't block.
 - **[0006](0006-sqlite-review-state.md).** The database holds comments with
-  their statuses, and archived sessions. There are no drafts, reviews, or claims
-  to store.
-- **[0008](0008-comment-reanchoring.md).** There are no drafts or submitted
-  comments, so the "Drafts and submitted comments" section no longer applies.
+  their statuses, and archived sessions. There are no draft reviews, reviews, or
+  claims to store.
+- **[0008](0008-comment-reanchoring.md).** There's no draft review and no
+  submitted comments, so the "Comments in the draft review and submitted
+  comments" section no longer applies.
 - **[0009](0009-review-sessions-and-claims.md).** Sessions stay. Reviews and
   claims are removed, and sessions are archived or deleted rather than ended.
   Comments in an archived session keep their status, which answers the follow-up
@@ -187,7 +188,7 @@ Sessions are archived or deleted rather than ended.
 
 Benefits:
 
-- Fewer concepts: no drafts, reviews, review IDs, claims, or leases.
+- Fewer concepts: no draft reviews, reviews, review IDs, claims, or leases.
 - Whether a comment was addressed is recorded on the comment, which is what the
   agent acts on, and the reviewer can see what's left.
 - Nothing is skipped when the reviewer writes more comments before prompting.
@@ -217,7 +218,7 @@ Costs:
   resolving.
 - Comment text that's typed but not saved isn't stored by the review server, so
   it's lost if the browser tab dies. [0006](0006-sqlite-review-state.md)
-  expected drafts to survive a restart.
+  expected unsubmitted comments to survive a restart.
 - Every prompt needs a session ID, so a prompt can't be typed from memory unless
   the agent already knows the ID. An agent that restarts in a new agent session
   has to be given the ID again.
@@ -228,9 +229,10 @@ Costs:
 ## Follow-up design choices
 
 - **Anchor states and status.** How the review UI shows a line comment that
-  becomes moved or outdated, now that 0008's different handling for drafts and
-  submitted comments no longer applies. An outdated addressed comment may be a
-  sign the fix landed, while an outdated open comment may no longer apply.
+  becomes moved or outdated, now that 0008's different handling for comments in
+  the draft review and submitted comments no longer applies. An outdated
+  addressed comment may be a sign the fix landed, while an outdated open comment
+  may no longer apply.
 - **Editing and deleting comments.** Whether the reviewer can edit or delete a
   comment, including after an agent has listed it.
 - **More statuses and messages.** Whether the reviewer can resolve an open

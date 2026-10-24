@@ -1,7 +1,16 @@
 # 0036: The reviewer submits reviews, and the review server sends the agent a review message
 
-- Status: Accepted
+- Status: Accepted, amended by
+  [0043](0043-each-session-has-one-draft-review-and-submitted-reviews-dont-change.md)
 - Date: 2026-10-22
+
+> **Amended by
+> [0043](0043-each-session-has-one-draft-review-and-submitted-reviews-dont-change.md):**
+> `review show` doesn't record that a review was fetched, and the review UI
+> doesn't show it. The review UI shows whether a review message is held or sent
+> to a listener, and only once there's a listener. 0043 answers the follow-ups
+> on the review message's wording, earlier comments, withdrawing a review, and
+> editing the draft review.
 
 ## Problem
 
@@ -27,15 +36,15 @@ reviewer needs a way to say that a batch is ready.
 
 ## Solution
 
-### Drafts and reviews
+### The draft review and reviews
 
-- **Comments and replies start as drafts.** A line comment, an overall comment,
-  or a reviewer's reply in a comment's thread
-  ([0038](0038-agents-reply-in-comment-threads.md)) is a draft until the
-  reviewer submits it. Agents can't see drafts.
-- **The reviewer submits a review.** Submitting turns every draft in the session
-  into a review, with an ID. A session gets many reviews over time. A review
-  with no drafts can't be submitted.
+- **Comments and replies start in the draft review.** A line comment, an overall
+  comment, or a reviewer's reply in a comment's thread
+  ([0038](0038-agents-reply-in-comment-threads.md)) is in the draft review until
+  the reviewer submits it. Agents can't see the draft review.
+- **The reviewer submits a review.** Submitting turns every unsubmitted comment
+  and reply in the session into a review, with an ID. A session gets many
+  reviews over time. A review with no comments or replies can't be submitted.
 - **Comments keep their own status.** Submitting a review sets each new comment
   to open. Statuses then change per comment, as in
   [0038](0038-agents-reply-in-comment-threads.md), not per review.
@@ -85,20 +94,21 @@ reviewer needs a way to say that a batch is ready.
 ### Effect on earlier decisions
 
 - **[0005](0005-notify-then-pull-feedback.md).** Back to its core: comments are
-  drafts until submitted, the review server sends a short message, and the agent
-  pulls the review. The message reaches the agent through a listener the agent
-  starts, not a harness typing into the terminal.
-- **[0006](0006-sqlite-review-state.md).** The database holds drafts, reviews,
-  replies, and each review message's delivery state.
-- **[0008](0008-comment-reanchoring.md).** There are drafts and submitted
-  comments again, so the "Drafts and submitted comments" section applies again.
+  in the draft review until submitted, the review server sends a short message,
+  and the agent pulls the review. The message reaches the agent through a
+  listener the agent starts, not a harness typing into the terminal.
+- **[0006](0006-sqlite-review-state.md).** The database holds the draft review,
+  reviews, replies, and each review message's delivery state.
+- **[0008](0008-comment-reanchoring.md).** There are comments in the draft
+  review and submitted comments again, so the "Comments in the draft review and
+  submitted comments" section applies again.
 - **[0010](0010-user-prompts-agent-to-fetch-review.md).** Superseded. The review
   server sends the review message, and copying it from the review UI is the
   fallback.
-- **[0018](0018-agents-list-open-comments.md).** Drafts, submit, and reviews
-  return. A comment is available to agents once its review is submitted, not
-  when it's saved. The copyable prompt becomes the review message, and is only
-  needed when no agent session is listening. Claims stay removed, IDs stay
+- **[0018](0018-agents-list-open-comments.md).** The draft review, submit, and
+  reviews return. A comment is available to agents once its review is submitted,
+  not when it's saved. The copyable prompt becomes the review message, and is
+  only needed when no agent session is listening. Claims stay removed, IDs stay
   explicit, and sessions are still archived or deleted.
 
 ## Tradeoffs
@@ -119,7 +129,8 @@ Costs:
 
 - Comments aren't available to agents until the reviewer submits, so an agent
   can't start on part of the feedback early.
-- Drafts add state to store, show, and re-anchor, which 0018 had removed.
+- The draft review adds state to store, show, and re-anchor, which 0018 had
+  removed.
 - When the agent is busy, the review message arrives mid-turn. The agent is
   asked to finish first, but whether it does is up to the model.
 - A held review message may never be sent if no agent session listens again. The
@@ -135,5 +146,6 @@ Costs:
   the agent fetches it.
 - **Held review messages.** Whether they expire, and whether submitting a new
   review while one is held sends both or merges them.
-- **Draft editing.** Whether drafts can be edited and deleted one at a time, and
-  whether the review UI warns about unsubmitted drafts.
+- **Editing the draft review.** Whether comments and replies in the draft review
+  can be edited and deleted one at a time, and whether the review UI warns about
+  an unsubmitted draft review.

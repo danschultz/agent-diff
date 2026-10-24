@@ -71,8 +71,8 @@ that happens and be able to answer from a phone or laptop.
 
 - **Labels hold the state.** A brief moves through the labels `agent:queued`,
   `agent:working`, `agent:needs-input`, `agent:review`, and `agent:failed`. Dan
-  queues a brief by adding `agent:queued`, so drafts are never picked up. Only
-  briefs written by Dan are accepted.
+  queues a brief by adding `agent:queued`, so briefs still being written are
+  never picked up. Only briefs written by Dan are accepted.
 - **`implement` runs on a headless server.** `implement` is a tool in this repo
   under `tools/implement/`, written in Node 24 TypeScript and using the `gh`
   CLI. A systemd user timer runs one tick every 2 minutes, with a concurrency
