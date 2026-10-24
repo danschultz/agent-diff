@@ -1,7 +1,7 @@
 // Implements the contract from @agent-diff/shared.
 import { implement, ORPCError } from '@orpc/server';
 import { contract } from '@agent-diff/shared/contract';
-import type { Store } from './store.ts';
+import { StoreError, type Store } from './store.ts';
 import {
   isDirectory,
   resolveWorkingDirectories,
@@ -30,6 +30,18 @@ async function resolving<T>(work: Promise<T>): Promise<T> {
   } catch (error) {
     if (error instanceof WorkingDirectoryError) {
       throw new ORPCError('BAD_REQUEST', { message: error.message });
+    }
+    throw error;
+  }
+}
+
+// Reports a StoreError with its code and message.
+function storing<T>(work: () => T): T {
+  try {
+    return work();
+  } catch (error) {
+    if (error instanceof StoreError) {
+      throw new ORPCError(error.code, { message: error.message });
     }
     throw error;
   }
@@ -74,8 +86,10 @@ export function createRouter(store: Store, { env }: RouterOptions) {
       show: os.session.show.handler(async ({ input }) => {
         const session = store.getSession(input.id);
         if (!session) throw notFound(input.id);
+        const commentCounts = store.commentCounts(input.id);
         return {
           ...session,
+          commentCounts,
           workingDirectories: await Promise.all(
             session.workingDirectories.map(async (workingDirectory) => ({
               ...workingDirectory,
@@ -94,6 +108,42 @@ export function createRouter(store: Store, { env }: RouterOptions) {
       }),
       delete: os.session.delete.handler(({ input }) => {
         if (!store.deleteSession(input.id)) throw notFound(input.id);
+      }),
+    },
+    comment: {
+      add: os.comment.add.handler(({ input }) =>
+        storing(() => store.addComment(input.sessionId, input.text)),
+      ),
+      edit: os.comment.edit.handler(({ input }) =>
+        storing(() => store.editComment(input.id, input.text)),
+      ),
+      delete: os.comment.delete.handler(({ input }) =>
+        storing(() => store.deleteComment(input.id)),
+      ),
+      reply: os.comment.reply.handler(({ input }) =>
+        storing(() => store.reply(input.id, input.status, input.text)),
+      ),
+      resolve: os.comment.resolve.handler(({ input }) =>
+        storing(() => store.resolveComment(input.id)),
+      ),
+    },
+    review: {
+      submit: os.review.submit.handler(({ input }) =>
+        storing(() => store.submitReview(input.sessionId)),
+      ),
+      show: os.review.show.handler(({ input }) => {
+        const review = store.getReview(input.id);
+        if (!review) {
+          throw new ORPCError('NOT_FOUND', {
+            message: `There's no review ${input.id}.`,
+          });
+        }
+        return review;
+      }),
+      list: os.review.list.handler(({ input }) => {
+        const reviews = store.listReviews(input.sessionId);
+        if (!reviews) throw notFound(input.sessionId);
+        return reviews;
       }),
     },
   });

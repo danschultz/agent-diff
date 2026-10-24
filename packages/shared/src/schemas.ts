@@ -75,6 +75,32 @@ export const Session = v.object({
   workingDirectories: v.array(WorkingDirectory),
 });
 
+// A comment's status, from decisions 0038 and 0043.
+export const CommentStatus = v.picklist([
+  'open',
+  'addressed',
+  'needs_input',
+  'resolved',
+]);
+
+// How a comment status is written for reviewers and agents, such as
+// `needs input`, in the order they're listed.
+export const commentStatusLabels = {
+  open: 'open',
+  addressed: 'addressed',
+  needs_input: 'needs input',
+  resolved: 'resolved',
+} as const satisfies Record<v.InferOutput<typeof CommentStatus>, string>;
+
+// How many submitted comments in a session have each status. The draft
+// review isn't counted.
+export const CommentCounts = v.object({
+  open: v.number(),
+  addressed: v.number(),
+  needs_input: v.number(),
+  resolved: v.number(),
+});
+
 export const SessionDetails = v.object({
   ...Session.entries,
   workingDirectories: v.array(
@@ -84,6 +110,7 @@ export const SessionDetails = v.object({
       missing: v.boolean(),
     }),
   ),
+  commentCounts: CommentCounts,
 });
 
 export const AddWorkingDirectoriesOutput = v.object({
@@ -102,6 +129,108 @@ export const ArchiveSessionOutput = v.object({
   alreadyArchived: v.boolean(),
 });
 
+// Like session IDs, any string is accepted, and one that's malformed names
+// nothing.
+const CommentId = v.string('The comment ID must be a string.');
+const ReviewId = v.string('The review ID must be a string.');
+
+// Comments and replies are plain text, trimmed, and 1 to 10,000 characters
+// (0043).
+function text(what: 'comment' | 'reply') {
+  return v.pipe(
+    v.string(`The ${what} must be a string.`),
+    v.trim(),
+    v.minLength(1, `The ${what} must not be empty.`),
+    v.maxLength(10_000, `The ${what} must be at most 10,000 characters.`),
+  );
+}
+
+// Names a session for the comment and review procedures.
+export const SessionIdInput = v.object({ sessionId: SessionId });
+
+export const AddCommentInput = v.object({
+  sessionId: SessionId,
+  text: text('comment'),
+});
+
+export const EditCommentInput = v.object({
+  id: CommentId,
+  text: text('comment'),
+});
+
+export const CommentRef = v.object({ id: CommentId });
+
+// The statuses an agent's reply can set, from `--addressed` and
+// `--needs-input`.
+export const ReplyStatus = v.picklist(
+  ['addressed', 'needs_input'],
+  "The reply's status must be addressed or needs_input.",
+);
+
+export const ReplyInput = v.object({
+  id: CommentId,
+  status: ReplyStatus,
+  text: text('reply'),
+});
+
+export const ReviewRef = v.object({ id: ReviewId });
+
+// A comment in the draft review, which only the reviewer sees.
+export const DraftComment = v.object({
+  id: v.string(),
+  kind: v.literal('overall'),
+  text: v.string(),
+  createdAt: v.string(),
+});
+
+// An agent's reply in a comment's thread. Replies have no public ID.
+export const Reply = v.object({
+  author: v.literal('agent'),
+  status: ReplyStatus,
+  text: v.string(),
+  createdAt: v.string(),
+});
+
+// A submitted comment, with the review it was submitted in, its status, and
+// its replies, oldest first.
+export const Comment = v.object({
+  ...DraftComment.entries,
+  reviewId: v.string(),
+  status: CommentStatus,
+  replies: v.array(Reply),
+});
+
+// A submitted review, with the review message the agent gets for it.
+export const Review = v.object({
+  id: v.string(),
+  sessionId: v.string(),
+  submittedAt: v.string(),
+  message: v.string(),
+});
+
+// What `review show` prints: the comments submitted in the review, oldest
+// first, each with its whole thread.
+export const ReviewDetails = v.object({
+  id: v.string(),
+  sessionId: v.string(),
+  submittedAt: v.string(),
+  comments: v.array(Comment),
+});
+
+// Everything the review UI's comment panel shows for a session: its
+// submitted comments, oldest first, its draft review, and its submitted
+// reviews, newest first.
+export const SessionReviews = v.object({
+  comments: v.array(Comment),
+  draftReview: v.object({ comments: v.array(DraftComment) }),
+  reviews: v.array(Review),
+});
+
+export const ReplyOutput = v.object({
+  id: v.string(),
+  status: CommentStatus,
+});
+
 export type NewSessionInput = v.InferOutput<typeof NewSessionInput>;
 export type AddWorkingDirectoriesInput = v.InferOutput<
   typeof AddWorkingDirectoriesInput
@@ -113,3 +242,12 @@ export type AddWorkingDirectoriesOutput = v.InferOutput<
   typeof AddWorkingDirectoriesOutput
 >;
 export type ArchiveSessionOutput = v.InferOutput<typeof ArchiveSessionOutput>;
+export type CommentStatus = v.InferOutput<typeof CommentStatus>;
+export type CommentCounts = v.InferOutput<typeof CommentCounts>;
+export type ReplyStatus = v.InferOutput<typeof ReplyStatus>;
+export type DraftComment = v.InferOutput<typeof DraftComment>;
+export type Reply = v.InferOutput<typeof Reply>;
+export type Comment = v.InferOutput<typeof Comment>;
+export type Review = v.InferOutput<typeof Review>;
+export type ReviewDetails = v.InferOutput<typeof ReviewDetails>;
+export type SessionReviews = v.InferOutput<typeof SessionReviews>;

@@ -33,9 +33,14 @@ const sessionRoute = createRoute({
   loader: async ({ context, params: { id } }) => {
     if (savedToken() === null) throw new NoTokenError();
     try {
-      await context.queryClient.ensureQueryData(
-        orpc.session.show.queryOptions({ input: { id } }),
-      );
+      await Promise.all([
+        context.queryClient.ensureQueryData(
+          orpc.session.show.queryOptions({ input: { id } }),
+        ),
+        context.queryClient.ensureQueryData(
+          orpc.review.list.queryOptions({ input: { sessionId: id } }),
+        ),
+      ]);
     } catch (error) {
       if (error instanceof ORPCError && error.code === 'NOT_FOUND') {
         throw notFound();

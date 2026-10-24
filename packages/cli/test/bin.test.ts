@@ -4,7 +4,11 @@ import { mkdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import { readConfig, statePaths } from '@agent-diff/shared/state';
-import { notRunningMessage, rejectedTokenMessage } from '../src/client.ts';
+import {
+  createClient,
+  notRunningMessage,
+  rejectedTokenMessage,
+} from '../src/client.ts';
 import {
   makeRepo,
   otherToken,
@@ -16,6 +20,10 @@ import {
 } from './helpers.ts';
 
 const sessionId = /^Created session (s_[0-9a-z]{6})\.$/m;
+
+function idFrom(output: string): string {
+  return sessionId.exec(output)![1]!;
+}
 
 test('session commands fail when the review server is not running', async (t) => {
   const env = tempStateHome(t);
@@ -201,4 +209,79 @@ test('session delete without a terminal fails without --yes, and deletes with it
     'There are no sessions.\n',
   );
   await server.stop('SIGINT');
+});
+
+test('review show and comment reply work against a real review server, with times in the local time zone', async (t) => {
+  const env = tempStateHome(t);
+  const server = await startForeground(t, env);
+  const created = await runCli(env, ['session', 'new', tempDir(t)]);
+  const sessionId = idFrom(created.stdout);
+  const api = createClient(server.port, server.token);
+  const comment = await api.comment.add({ sessionId, text: 'Fix it.' });
+  const review = await api.review.submit({ sessionId });
+
+  // India is 5 hours 30 minutes ahead of UTC, with no daylight saving time.
+  const local = new Date(Date.parse(review.submittedAt) + 330 * 60_000)
+    .toISOString()
+    .slice(0, 16)
+    .replace('T', ' ');
+  const header = `Review ${review.id} in session ${sessionId}, submitted ${local}.\n`;
+  const shown = await runCli({ ...env, TZ: 'Asia/Kolkata' }, [
+    'review',
+    'show',
+    review.id,
+  ]);
+  assert.equal(shown.exitCode, 0, shown.stderr);
+  assert.ok(shown.stdout.startsWith(header), shown.stdout);
+  assert.ok(
+    shown.stdout.endsWith(`\n### ${comment.id} (open)\n\nReviewer: Fix it.\n`),
+    shown.stdout,
+  );
+
+  assert.deepEqual(
+    await runCli(env, [
+      'comment',
+      'reply',
+      comment.id,
+      '--needs-input',
+      'How?',
+    ]),
+    {
+      stdout: `Replied to ${comment.id}. It now needs input.\n`,
+      stderr: '',
+      exitCode: 0,
+    },
+  );
+  assert.deepEqual(await runCli(env, ['comment', 'reply', comment.id]), {
+    stdout: '',
+    stderr: 'Error: Give exactly one of --addressed and --needs-input.\n',
+    exitCode: 1,
+  });
+  assert.deepEqual(await runCli(env, ['review', 'show', 'r_7kq9a1']), {
+    stdout: '',
+    stderr: "Error: There's no review r_7kq9a1.\n",
+    exitCode: 1,
+  });
+  const again = await runCli(env, ['review', 'show', review.id]);
+  assert.match(
+    again.stdout,
+    new RegExp(
+      `\n### ${comment.id} \\(needs input\\)\n\nReviewer: Fix it\\.\nAgent, needs input: How\\?\n$`,
+    ),
+  );
+  assert.equal(await server.stop('SIGINT'), 0);
+});
+
+test('review and comment commands fail when the review server is not running', async (t) => {
+  const env = tempStateHome(t);
+  for (const args of [
+    ['review', 'show', 'r_7kq9a1'],
+    ['comment', 'reply', 'c_7kq9a1', '--addressed', 'Done.'],
+  ]) {
+    assert.deepEqual(await runCli(env, args), {
+      stdout: '',
+      stderr: `Error: ${notRunningMessage}\n`,
+      exitCode: 1,
+    });
+  }
 });

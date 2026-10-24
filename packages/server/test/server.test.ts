@@ -227,7 +227,7 @@ test('the migrations are applied with dbmate before requests are served', async 
       .prepare('SELECT version FROM schema_migrations ORDER BY version')
       .all()
       .map((r) => r.version),
-    ['20261015000000', '20261022000000', '20261022000001'],
+    ['20261015000000', '20261022000000', '20261022000001', '20261024000000'],
   );
   const columns = (table: string) =>
     db
@@ -267,6 +267,46 @@ test('the migrations are applied with dbmate before requests are served', async 
       },
     ],
   );
+  assert.deepEqual(columns('reviews'), [
+    'id',
+    'public_id',
+    'session_id',
+    'created_at',
+    'submitted_at',
+  ]);
+  assert.deepEqual(columns('comments'), [
+    'id',
+    'review_id',
+    'kind',
+    'text',
+    'status',
+    'created_at',
+  ]);
+  assert.deepEqual(columns('replies'), [
+    'id',
+    'comment_id',
+    'author',
+    'review_id',
+    'status',
+    'text',
+    'created_at',
+  ]);
+  const foreignKeys = (table: string) =>
+    db
+      .prepare(`PRAGMA foreign_key_list(${table})`)
+      .all()
+      .map((r) => ({ table: r.table, from: r.from, onDelete: r.on_delete }))
+      .sort((a, b) => String(a.from).localeCompare(String(b.from)));
+  assert.deepEqual(foreignKeys('reviews'), [
+    { table: 'sessions', from: 'session_id', onDelete: 'CASCADE' },
+  ]);
+  assert.deepEqual(foreignKeys('comments'), [
+    { table: 'reviews', from: 'review_id', onDelete: 'CASCADE' },
+  ]);
+  assert.deepEqual(foreignKeys('replies'), [
+    { table: 'comments', from: 'comment_id', onDelete: 'CASCADE' },
+    { table: 'reviews', from: 'review_id', onDelete: 'CASCADE' },
+  ]);
 });
 
 test('every migration has dbmate up and down sections', () => {
@@ -305,9 +345,11 @@ function flatten(
 test('every procedure rejects a call without the right token with 401', async (t) => {
   const server = await start(t, { env: tempStateHome(t) });
   const dir = tempDir(t);
-  const { id } = await client(server).session.new({
-    workingDirectories: [dir],
-  });
+  const api = client(server);
+  const { id } = await api.session.new({ workingDirectories: [dir] });
+  const submitted = await api.comment.add({ sessionId: id, text: 'One' });
+  const review = await api.review.submit({ sessionId: id });
+  const draft = await api.comment.add({ sessionId: id, text: 'Two' });
   const calls: Calls<ReturnType<typeof client>> = {
     health: (api) => api.health(),
     session: {
@@ -317,6 +359,23 @@ test('every procedure rejects a call without the right token with 401', async (t
       list: (api) => api.session.list({}),
       archive: (api) => api.session.archive({ id }),
       delete: (api) => api.session.delete({ id }),
+    },
+    comment: {
+      add: (api) => api.comment.add({ sessionId: id, text: 'Three' }),
+      edit: (api) => api.comment.edit({ id: draft.id, text: 'Changed' }),
+      delete: (api) => api.comment.delete({ id: draft.id }),
+      reply: (api) =>
+        api.comment.reply({
+          id: submitted.id,
+          status: 'addressed',
+          text: 'Done.',
+        }),
+      resolve: (api) => api.comment.resolve({ id: submitted.id }),
+    },
+    review: {
+      submit: (api) => api.review.submit({ sessionId: id }),
+      show: (api) => api.review.show({ id: review.id }),
+      list: (api) => api.review.list({ sessionId: id }),
     },
   };
   const procedures = flatten(calls);
@@ -330,6 +389,14 @@ test('every procedure rejects a call without the right token with 401', async (t
       'session.list',
       'session.archive',
       'session.delete',
+      'comment.add',
+      'comment.edit',
+      'comment.delete',
+      'comment.reply',
+      'comment.resolve',
+      'review.submit',
+      'review.show',
+      'review.list',
     ],
   );
   for (const [procedure, call] of procedures) {
@@ -343,11 +410,18 @@ test('every procedure rejects a call without the right token with 401', async (t
     }
   }
   // Nothing was written by the rejected calls.
-  const sessions = await client(server).session.list({ all: true });
+  const sessions = await api.session.list({ all: true });
   assert.deepEqual(
     sessions.map((session) => [session.id, session.archivedAt]),
     [[id, null]],
   );
+  const reviews = await api.review.list({ sessionId: id });
+  assert.deepEqual(reviews.draftReview.comments, [draft]);
+  assert.deepEqual(
+    reviews.comments.map((c) => [c.id, c.status, c.replies]),
+    [[submitted.id, 'open', []]],
+  );
+  assert.deepEqual(reviews.reviews, [review]);
 });
 
 test('the token is only accepted as a bearer token in the Authorization header', async (t) => {
