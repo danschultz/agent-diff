@@ -165,7 +165,7 @@ test('the agent fetches the review and replies, and the reviewer resolves the co
   );
 });
 
-test("an archived session's panel shows threads and reviews, without the draft review or Resolve", async ({
+test("an archived session's panel shows threads, reviews, and the draft review read-only, without Resolve", async ({
   page,
   env,
   session,
@@ -184,8 +184,14 @@ test("an archived session's panel shows threads and reviews, without the draft r
     'Submitted comment',
   ]);
   await expect(reviews.getByRole('listitem')).toHaveCount(1);
-  await expect(draft).toHaveCount(0);
-  await expect(comments.getByText('Never submitted')).toHaveCount(0);
+  // Archiving keeps the draft review, unsubmitted and read-only.
+  await expect(draft.getByTestId('draft-comment-text')).toHaveText([
+    'Never submitted',
+  ]);
+  for (const name of ['Edit', 'Delete', 'Add comment', 'Submit review']) {
+    await expect(comments.getByRole('button', { name })).toHaveCount(0);
+  }
+  await expect(draft.getByText(/in your draft review/)).toHaveCount(0);
   await expect(comments.getByRole('button', { name: 'Resolve' })).toHaveCount(
     0,
   );

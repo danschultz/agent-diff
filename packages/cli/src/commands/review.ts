@@ -26,17 +26,17 @@ function formatReview(review: ReviewDetails): string {
     'Address each comment, then reply to it with one of:',
     '  agent-diff comment reply <comment-id> --addressed <what changed>',
     '  agent-diff comment reply <comment-id> --needs-input <your question>',
+    '',
+    // Every comment is an overall comment for now, and a review has at least
+    // one.
+    '## Overall comments',
   ];
-  const overall = review.comments.filter((c) => c.kind === 'overall');
-  if (overall.length > 0) lines.push('', '## Overall comments');
-  for (const comment of overall) {
+  for (const comment of review.comments) {
     lines.push(
       '',
       `### ${comment.id} (${statusLabels[comment.status]})`,
       '',
-      comment.reviewId === review.id
-        ? `Reviewer: ${comment.text}`
-        : `Reviewer, review ${comment.reviewId}: ${comment.text}`,
+      `Reviewer: ${comment.text}`,
       ...comment.replies.map(
         (reply) => `Agent, ${statusLabels[reply.status]}: ${reply.text}`,
       ),

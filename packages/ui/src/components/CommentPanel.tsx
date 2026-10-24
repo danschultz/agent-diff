@@ -1,7 +1,8 @@
 // The session page's comment panel, from decisions 0036, 0038, and 0043: the
 // submitted comments' threads, oldest first, the draft review, and the
 // submitted reviews, newest first, each with its review message to copy. On an
-// archived session it's read-only, so the draft review and Resolve are hidden.
+// archived session it's read-only: the draft review's comments are shown
+// without its controls, and Resolve is hidden.
 // It shows what the API returned when the page loaded, and what the reviewer
 // changes, with no live updates.
 import { useState, type FormEvent } from 'react';
@@ -242,6 +243,30 @@ function DraftReviewSection({
   );
 }
 
+// An archived session keeps its draft review, unsubmitted and read-only
+// (0043), so its comments are shown without Edit, Delete, or Submit.
+function ArchivedDraftReviewSection({
+  comments,
+}: {
+  comments: DraftComment[];
+}) {
+  return (
+    <section aria-labelledby="draft-review-heading">
+      <h2 id="draft-review-heading">Your draft review</h2>
+      <p>These comments were never submitted.</p>
+      <ul>
+        {comments.map((comment) => (
+          <li key={comment.id}>
+            <p className="text" data-testid="draft-comment-text">
+              {comment.text}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function ReviewItem({ review }: { review: Review }) {
   const [copied, setCopied] = useState(false);
   const copy = useMutation({
@@ -297,11 +322,15 @@ export function CommentPanel({
           </ol>
         )}
       </section>
-      {!archived && (
+      {!archived ? (
         <DraftReviewSection
           comments={data.draftReview.comments}
           sessionId={sessionId}
         />
+      ) : (
+        data.draftReview.comments.length > 0 && (
+          <ArchivedDraftReviewSection comments={data.draftReview.comments} />
+        )
       )}
       <section aria-labelledby="reviews-heading">
         <h2 id="reviews-heading">Reviews</h2>
