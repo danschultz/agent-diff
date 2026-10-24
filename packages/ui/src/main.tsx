@@ -1,15 +1,17 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { App } from './App.tsx';
+import { RouterProvider } from '@tanstack/react-router';
 import { queryClient } from './client.ts';
+import { createAppRouter } from './router.tsx';
 import { saveTokenFromUrl } from './token.ts';
 
 saveTokenFromUrl();
+const router = createAppRouter();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <RouterProvider router={router} />
     </QueryClientProvider>
   </StrictMode>,
 );
