@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { Aven, Blocker, Task, TaskChanges } from '../src/aven.ts';
+import type { Aven, Blocker, Note, Task, TaskChanges } from '../src/aven.ts';
 import type { AgentSessionInfo, Claude, StartOptions } from '../src/claude.ts';
 import type { Config } from '../src/config.ts';
 import type { GitHub, PullRequest } from '../src/github.ts';
@@ -43,8 +43,14 @@ function task(
     status: 'active',
     agent,
     blockers: [],
+    notes: [],
     ...extra,
   };
+}
+
+/** A note already on a task, before the tick. */
+function note(id: string, body: string): Note {
+  return { id, body, createdAt: '2026-10-24T00:00:00Z' };
 }
 
 /** `task(n)` as a blocker of another task, as `aven show` lists it. */
@@ -60,11 +66,13 @@ function harness(
     running?: AgentSessionInfo[];
     state?: State;
     now?: number;
+    concurrency?: number;
   } = {},
 ) {
   const tasks = new Map((options.tasks ?? []).map((t) => [t.id, t]));
   const prs = options.prs ?? {};
   const running = options.running ?? [];
+  /** The notes the tick added, each with the ID of its task. Their own IDs are `added-1`, `added-2`, and so on. */
   const notes: { id: string; body: string }[] = [];
   const edits: { id: string; changes: TaskChanges }[] = [];
   const started: StartOptions[] = [];
@@ -83,17 +91,15 @@ function harness(
         return current ? { ...b, status: current.status } : b;
       }),
     });
-  // Mirrors `aven list --project agent-diff --open --metadata agent=queued`.
+  // Mirrors `aven list --project agent-diff --open --metadata agent=<agent>`.
+  const listed = (agent: string) =>
+    [...tasks.values()].filter(
+      (t) =>
+        t.agent === agent && t.status !== 'done' && t.status !== 'canceled',
+    );
   const aven: Aven = {
-    queuedTasks: () =>
-      [...tasks.values()]
-        .filter(
-          (t) =>
-            t.agent === 'queued' &&
-            t.status !== 'done' &&
-            t.status !== 'canceled',
-        )
-        .map(read),
+    queuedTasks: () => listed('queued').map(read),
+    retryTasks: () => listed('retry').map((t) => ({ id: t.id, ref: t.ref })),
     task: (id) => read(tasks.get(id)!),
     edit(id, changes) {
       edits.push({ id, changes });
@@ -102,7 +108,12 @@ function harness(
       if (changes.agent === null) t.agent = undefined;
       else if (changes.agent) t.agent = changes.agent;
     },
-    note: (id, body) => notes.push({ id, body }),
+    note(id, body) {
+      notes.push({ id, body });
+      const noteId = `added-${notes.length}`;
+      tasks.get(id)?.notes.push(note(noteId, body));
+      return noteId;
+    },
   };
   const github: GitHub = {
     pullRequestForBranch: (branch) => prs[branch],
@@ -127,7 +138,10 @@ function harness(
   const now = options.now ?? 10 * LAUNCH_GRACE_MS;
   let suffixes = 0;
   const deps: Deps = {
-    config,
+    config: {
+      ...config,
+      concurrency: options.concurrency ?? config.concurrency,
+    },
     aven,
     github,
     git: {
@@ -300,13 +314,29 @@ test('marks a brief failed when its agent session exits without a pull request',
   tick(h.deps);
   assert.equal(h.tasks.get('5ATASKID0000')!.agent, 'failed');
   assert.equal(h.tasks.get('5ATASKID0000')!.status, 'active');
-  assert.equal(h.notes.length, 1);
-  assert.equal(h.notes[0].id, '5ATASKID0000');
-  assert.match(h.notes[0].body, /without opening a pull request/);
-  assert.match(h.notes[0].body, /last words/);
+  assert.deepEqual(h.notes, [{ id: '5ATASKID0000', body: failureNote('5A') }]);
   assert.ok(h.state.briefs['5ATASKID0000'], 'the worktree is kept');
+  assert.equal(
+    h.state.briefs['5ATASKID0000'].failureNoteId,
+    'added-1',
+    "the failure note's ID is recorded",
+  );
   assert.deepEqual(h.removed, []);
 });
+
+/** The note `reap` adds when brief `n`'s agent session exits without a pull request. */
+function failureNote(n: string): string {
+  return `The agent session exited without opening a pull request. Its worktree \`${tracked(n).worktree}\` and conversation are kept.
+
+- To resume the agent session where it stopped, add a note with anything it should know, then set \`agent=retry\`.
+- To start over from a fresh worktree, set \`agent=queued\`.
+
+End of the agent session's output:
+
+\`\`\`\`
+last words
+\`\`\`\``;
+}
 
 test('moves a brief to review with a note when its agent session exits after opening a pull request', () => {
   const brief = tracked('5A', {
@@ -754,6 +784,17 @@ test("notes an error and marks the brief failed when its agent session can't sta
   assert.match(h.notes[0].body, /fetch failed/);
 });
 
+test("records the failure note's ID when the agent session can't start after its worktree is created", () => {
+  const h = harness({ tasks: [task('4A', 'queued')] });
+  h.deps.claude.start = () => {
+    throw new Error('claude failed');
+  };
+  tick(h.deps);
+  assert.equal(h.tasks.get('4ATASKID0000')!.agent, 'failed');
+  assert.match(h.notes[0].body, /claude failed/);
+  assert.equal(h.state.briefs['4ATASKID0000'].failureNoteId, 'added-1');
+});
+
 test('the Notification hook moves the brief to needs-input and notes the question', () => {
   const h = harness({
     tasks: [task('5A', 'working')],
@@ -817,4 +858,312 @@ test("the Notification hook ignores agent sessions it didn't start, briefs in re
   );
   assert.deepEqual(h.notes, []);
   assert.deepEqual(h.edits, []);
+});
+
+/** Brief `n`, tracked after failing, with its failure note between an earlier note and Dan's notes. */
+function failed(n: string, danNotes: string[], extra: Partial<Task> = {}) {
+  const brief = tracked(n, { failureNoteId: `failure-${n}` });
+  const t = task(n, 'retry', {
+    notes: [
+      note(`before-${n}`, 'An earlier note.'),
+      note(`failure-${n}`, failureNote(n)),
+      ...danNotes.map((body, i) => note(`dan-${n}-${i}`, body)),
+    ],
+    ...extra,
+  });
+  return { brief, task: t };
+}
+
+test('retries a failed brief by resuming its agent session with the notes added since it failed', () => {
+  const { brief, task: t } = failed('5A', ['Use the parser.', 'Skip step 3.']);
+  const h = harness({ tasks: [t], state: stateOf(brief) });
+  tick(h.deps);
+  assert.equal(h.resumed.length, 1);
+  assert.equal(h.resumed[0].sessionId, 'session-5A');
+  assert.equal(h.resumed[0].cwd, brief.worktree);
+  const prompt = h.resumed[0].prompt;
+  assert.match(prompt, /Use the parser\./);
+  assert.match(prompt, /Skip step 3\./);
+  assert.doesNotMatch(prompt, /An earlier note/);
+  assert.doesNotMatch(prompt, /End of the agent session's output/);
+  assert.equal(h.tasks.get('5ATASKID0000')!.agent, 'working');
+  assert.equal(h.state.briefs['5ATASKID0000'].launchedAt, 10 * LAUNCH_GRACE_MS);
+  assert.deepEqual(h.notes, [
+    {
+      id: '5ATASKID0000',
+      body: 'Retried: resumed the agent session `brief-brief-5A-x1` where it stopped, with 2 notes added since it failed.',
+    },
+  ]);
+  assert.deepEqual(h.started, []);
+  assert.ok(
+    h.logs.includes('AD-5A: retried brief-brief-5A-x1 with 2 note(s)'),
+    h.logs.join('\n'),
+  );
+});
+
+test('the retried note counts one note, or says none were added', () => {
+  const one = failed('5A', ['Use the parser.']);
+  const none = failed('6A', []);
+  const h = harness({
+    tasks: [one.task, none.task],
+    state: stateOf(one.brief, none.brief),
+  });
+  tick(h.deps);
+  assert.deepEqual(
+    h.notes.map((n) => n.body),
+    [
+      'Retried: resumed the agent session `brief-brief-5A-x1` where it stopped, with 1 note added since it failed.',
+      'Retried: resumed the agent session `brief-brief-6A-x1` where it stopped, with no notes added since it failed.',
+    ],
+  );
+  assert.match(
+    h.resumed[1].prompt,
+    /No notes were added to the brief since it failed\./,
+  );
+});
+
+test('a retry uses a concurrency slot, before queued briefs start', () => {
+  const { brief, task: t } = failed('5A', []);
+  const h = harness({
+    tasks: [task('1A', 'working'), t, task('2A', 'queued')],
+    state: stateOf(tracked('1A'), brief),
+    running: [session('1A', 'working')],
+  });
+  tick(h.deps);
+  assert.equal(h.resumed.length, 1);
+  assert.deepEqual(h.started, []);
+  assert.equal(h.tasks.get('2ATASKID0000')!.agent, 'queued');
+});
+
+test('a retry waits in agent=retry, without failing, while no concurrency slot is free, and runs after review resumes', () => {
+  const reviewed = tracked('6A');
+  const { brief, task: t } = failed('5A', ['Use the parser.']);
+  const h = harness({
+    concurrency: 1,
+    tasks: [task('6A', 'review'), t],
+    state: stateOf(reviewed, brief),
+    prs: {
+      [reviewed.branch]: pr(60, 'OPEN', {
+        reviews: [
+          {
+            id: 'R1',
+            author: 'dan',
+            state: 'COMMENTED',
+            body: 'Rename this.',
+            submittedAt: '2026-10-12T00:00:00Z',
+          },
+        ],
+      }),
+    },
+  });
+  tick(h.deps);
+  assert.deepEqual(
+    h.resumed.map((r) => r.sessionId),
+    ['session-6A'],
+  );
+  assert.equal(h.tasks.get('5ATASKID0000')!.agent, 'retry');
+  assert.deepEqual(
+    h.notes.filter((n) => n.id === '5ATASKID0000'),
+    [],
+  );
+  assert.ok(
+    h.logs.includes('AD-5A: retry waiting for a free concurrency slot'),
+    h.logs.join('\n'),
+  );
+
+  // Once the slot is free, it's retried.
+  h.running.push(session('6A', 'done'));
+  h.tasks.get('6ATASKID0000')!.agent = 'review';
+  tick(h.deps);
+  assert.equal(h.resumed.length, 2);
+  assert.equal(h.resumed[1].sessionId, 'session-5A');
+});
+
+test('a retry waits while its agent session is still running', () => {
+  const { brief, task: t } = failed('5A', []);
+  const h = harness({
+    tasks: [t],
+    state: stateOf(brief),
+    running: [session('5A', 'working')],
+  });
+  tick(h.deps);
+  assert.deepEqual(h.resumed, []);
+  assert.deepEqual(h.notes, []);
+  assert.deepEqual(h.edits, []);
+  assert.ok(
+    h.logs.includes(
+      'AD-5A: retry set while its agent session is running; waiting for it to exit',
+    ),
+    h.logs.join('\n'),
+  );
+});
+
+test('a retry waits while its agent session was just launched and may not be listed yet', () => {
+  const { brief, task: t } = failed('5A', []);
+  brief.launchedAt = 10 * LAUNCH_GRACE_MS - 1000;
+  const h = harness({ tasks: [t], state: stateOf(brief) });
+  tick(h.deps);
+  assert.deepEqual(h.resumed, []);
+  assert.equal(h.tasks.get('5ATASKID0000')!.agent, 'retry');
+});
+
+test("a brief without a session ID can't be retried, and goes back to failed with a note", () => {
+  const { brief, task: t } = failed('5A', []);
+  delete brief.sessionId;
+  const h = harness({ tasks: [t], state: stateOf(brief) });
+  tick(h.deps);
+  assert.deepEqual(h.resumed, []);
+  assert.equal(h.tasks.get('5ATASKID0000')!.agent, 'failed');
+  assert.deepEqual(h.notes, [
+    {
+      id: '5ATASKID0000',
+      body: `Couldn't retry this brief: \`implement\` has no session ID for its agent session, so it can't resume it. The worktree \`${brief.worktree}\` is kept. Set \`agent=queued\` to start over.`,
+    },
+  ]);
+  assert.equal(h.state.briefs['5ATASKID0000'].failureNoteId, 'added-1');
+});
+
+test('a brief whose resume command fails goes back to failed with the error, and its slot goes to a queued brief', () => {
+  const { brief, task: t } = failed('5A', []);
+  const h = harness({
+    concurrency: 1,
+    tasks: [t, task('2A', 'queued')],
+    state: stateOf(brief),
+  });
+  h.deps.claude.resume = () => {
+    throw new Error('No conversation found');
+  };
+  tick(h.deps);
+  assert.equal(h.tasks.get('5ATASKID0000')!.agent, 'failed');
+  assert.deepEqual(h.notes, [
+    {
+      id: '5ATASKID0000',
+      body: `Couldn't retry this brief: resuming its agent session failed:\n\n\`\`\`\nNo conversation found\n\`\`\`\n\nThe worktree \`${brief.worktree}\` is kept. Set \`agent=retry\` to try again, or \`agent=queued\` to start over.`,
+    },
+  ]);
+  assert.equal(h.state.briefs['5ATASKID0000'].failureNoteId, 'added-1');
+  assert.ok(h.state.briefs['5ATASKID0000'], 'the worktree is kept');
+  assert.deepEqual(h.removed, []);
+  assert.deepEqual(
+    h.started.map((s) => s.name),
+    ['brief-brief-2a-r1'],
+  );
+});
+
+test("removes agent=retry from a task implement isn't tracking, with a note saying there's nothing to retry", () => {
+  const h = harness({
+    tasks: [task('3A', 'retry', { status: 'todo' })],
+  });
+  tick(h.deps);
+  assert.equal(h.tasks.get('3ATASKID0000')!.agent, undefined);
+  assert.equal(h.tasks.get('3ATASKID0000')!.status, 'todo');
+  assert.deepEqual(h.notes, [
+    {
+      id: '3ATASKID0000',
+      body: "There's nothing to retry: `implement` has no worktree or agent session for this brief. Set `agent=queued` to start it.",
+    },
+  ]);
+  assert.deepEqual(h.resumed, []);
+  assert.deepEqual(h.started, []);
+  assert.ok(
+    h.logs.includes('AD-3A: retry set but not tracked, removed it'),
+    h.logs.join('\n'),
+  );
+});
+
+test("a tracked brief in agent=retry that couldn't be read this tick isn't treated as untracked", () => {
+  const { brief, task: t } = failed('5A', []);
+  const h = harness({ tasks: [t], state: stateOf(brief) });
+  const read = h.deps.aven.task;
+  h.deps.aven.task = (id) => {
+    if (id === t.id) throw new Error('aven failed');
+    return read(id);
+  };
+  tick(h.deps);
+  assert.deepEqual(h.notes, []);
+  assert.deepEqual(h.edits, []);
+  assert.deepEqual(h.resumed, []);
+});
+
+test('a retried brief that exits again without a pull request is marked failed again, and can be retried again', () => {
+  const { brief, task: t } = failed('5A', ['Use the parser.']);
+  const h = harness({ tasks: [t], state: stateOf(brief) });
+  tick(h.deps);
+  assert.equal(h.tasks.get('5ATASKID0000')!.agent, 'working');
+
+  // It exits again, after the grace period.
+  h.state.briefs['5ATASKID0000'].launchedAt = 0;
+  tick(h.deps);
+  assert.equal(h.tasks.get('5ATASKID0000')!.agent, 'failed');
+  assert.equal(h.notes.at(-1)!.body, failureNote('5A'));
+  const failureId = h.state.briefs['5ATASKID0000'].failureNoteId;
+  assert.equal(failureId, 'added-2');
+
+  // Dan adds a note and retries it again: only the notes after the new failure note are passed.
+  const current = h.tasks.get('5ATASKID0000')!;
+  current.notes.push(note('dan-again', 'Now try the other way.'));
+  current.agent = 'retry';
+  tick(h.deps);
+  assert.equal(h.resumed.length, 2);
+  assert.match(h.resumed[1].prompt, /Now try the other way\./);
+  assert.doesNotMatch(h.resumed[1].prompt, /Use the parser\./);
+  assert.doesNotMatch(h.resumed[1].prompt, /Retried:/);
+  assert.equal(
+    h.notes.at(-1)!.body,
+    'Retried: resumed the agent session `brief-brief-5A-x1` where it stopped, with 1 note added since it failed.',
+  );
+});
+
+test('reap leaves a brief in agent=retry alone when its agent session is gone, as it does a failed one', () => {
+  const { brief, task: t } = failed('5A', []);
+  const h = harness({
+    concurrency: 1,
+    tasks: [task('1A', 'working'), t],
+    state: stateOf(tracked('1A'), brief),
+    running: [session('1A', 'working')],
+  });
+  tick(h.deps);
+  assert.equal(h.tasks.get('5ATASKID0000')!.agent, 'retry');
+  assert.deepEqual(h.notes, []);
+});
+
+test("a retry whose failure note isn't on the task says so in the prompt and the log", () => {
+  const { brief, task: t } = failed('5A', ['Here is my answer.']);
+  delete brief.failureNoteId;
+  const h = harness({ tasks: [t], state: stateOf(brief) });
+  tick(h.deps);
+  assert.equal(h.resumed.length, 1);
+  assert.match(
+    h.resumed[0].prompt,
+    /couldn't find the note it added when it marked the brief failed/,
+  );
+  assert.match(h.resumed[0].prompt, /aven context AD-5A/);
+  assert.ok(
+    h.logs.includes(
+      "AD-5A: couldn't find the failure note, so no notes were passed on",
+    ),
+    h.logs.join('\n'),
+  );
+});
+
+test("a retry whose retried note can't be added still uses its concurrency slot", () => {
+  const { brief, task: t } = failed('5A', []);
+  const h = harness({
+    concurrency: 1,
+    tasks: [t, task('2A', 'queued')],
+    state: stateOf(brief),
+  });
+  const addNote = h.deps.aven.note;
+  h.deps.aven.note = (id, body) => {
+    if (body.startsWith('Retried:')) throw new Error('aven failed');
+    return addNote(id, body);
+  };
+  tick(h.deps);
+  assert.equal(h.resumed.length, 1);
+  assert.equal(h.tasks.get('5ATASKID0000')!.agent, 'working');
+  assert.deepEqual(h.started, []);
+  assert.ok(
+    h.logs.includes("AD-5A: couldn't add the retried note: aven failed"),
+    h.logs.join('\n'),
+  );
 });

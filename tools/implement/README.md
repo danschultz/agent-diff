@@ -14,12 +14,14 @@ brief, put in the start prompt as written. It uses the headings in
 template's fields, and Goal, Acceptance criteria, and Verification are required.
 
 A brief's state is the task's `agent` metadata: `queued`, `working`,
-`needs-input`, `review`, or `failed`. Dan queues a brief by setting
+`needs-input`, `review`, `failed`, or `retry`. Dan queues a brief by setting
 `agent=queued` on an open task, such as with
-`aven edit <ref> --metadata agent=queued`. Notes on the task hold everything
-`implement` reports: the pull request's URL, the end of the log when an agent
-session fails, an error on start, and the question when an agent session needs
-input.
+`aven edit <ref> --metadata agent=queued`, and retries a failed one by setting
+`agent=retry`
+([decision 0042](../../docs/decisions/0042-dan-retries-a-failed-brief-by-resuming-its-agent-session.md)).
+Notes on the task hold everything `implement` reports: the pull request's URL,
+the end of the log when an agent session fails, an error on start or retry, a
+retry, and the question when an agent session needs input.
 
 Nothing on GitHub identifies the task. Branches are named
 `brief/<slug>-<suffix>`, from the task's title and a short random hex suffix,
@@ -41,9 +43,25 @@ A systemd user timer runs `implement tick` every 2 minutes. Each tick:
      merged pull request also sets the task to `done`, and that's the only thing
      that does. A closed pull request leaves the task `active`. If Dan has
      already queued the brief again, `agent=queued` is kept, and it starts over.
-   - Agent session exited without a pull request: sets `agent=failed` and adds a
-     note with the end of its output. The worktree is kept until the brief is
-     let go or queued again.
+   - Agent session exited without a pull request: sets `agent=failed` and adds
+     the failure note, and records the note's ID in `state.json` as
+     `failureNoteId`. The worktree and the conversation are kept until the brief
+     is let go or queued again. The note says:
+
+     ```text
+     The agent session exited without opening a pull request. Its worktree `<worktree>` and conversation are kept.
+
+     - To resume the agent session where it stopped, add a note with anything it should know, then set `agent=retry`.
+     - To start over from a fresh worktree, set `agent=queued`.
+
+     End of the agent session's output:
+
+     <the end of its output, in a fenced block>
+     ```
+
+     A brief in `agent=failed` or `agent=retry` whose agent session is gone is
+     left alone.
+
    - Agent session exited while working, after opening a pull request: sets
      `agent=review` and adds a note saying so.
    - Brief in `agent=review` and its agent session no longer working: stops the
@@ -51,7 +69,38 @@ A systemd user timer runs `implement tick` every 2 minutes. Each tick:
 2. **Resumes** a stopped agent session when Dan submits a new review on its pull
    request, with `claude --bg --resume <session-id> "<prompt>"`, and sets
    `agent=working`.
-3. **Starts** queued briefs, up to the concurrency limit, oldest first. They're
+3. **Retries** briefs Dan set to `agent=retry`, each using a concurrency slot,
+   after review resumes and before queued briefs start. For each brief it's
+   tracking in `agent=retry`:
+   - Its agent session is running, or was launched too recently to be listed:
+     it's left alone until it exits, and the tick logs
+     `<ref>: retry set while its agent session is running; waiting for it to exit`.
+   - No free slot: it stays in `agent=retry` for a later tick, and the tick logs
+     `<ref>: retry waiting for a free concurrency slot`.
+   - No session ID: sets `agent=failed` with the note
+     ``Couldn't retry this brief: `implement` has no session ID for its agent session, so it can't resume it. The worktree `<worktree>` is kept. Set `agent=queued` to start over.``
+   - Otherwise: sets `agent=working`, runs
+     `claude --bg --resume <session-id> "<retry prompt>"`, resets `launchedAt`,
+     so the agent session gets the same grace period as a new one, and adds the
+     note
+     ``Retried: resumed the agent session `<session name>` where it stopped, with <N> note(s) added since it failed.``,
+     or "with no notes added since it failed." If the command fails, it sets
+     `agent=failed` with the note
+     `Couldn't retry this brief: resuming its agent session failed:`, the error
+     in a fenced block, and
+     ``The worktree `<worktree>` is kept. Set `agent=retry` to try again, or `agent=queued` to start over.``
+
+   Each note that sets `agent=failed`, including the one when an agent session
+   can't start, has its ID recorded as `failureNoteId`. A retried brief that
+   exits again without a pull request is marked failed again, with a new failure
+   note, and can be retried again. `implement` never retries a brief by itself.
+
+   Open tasks in the project with `agent=retry` that `implement` isn't tracking,
+   from `aven list --project agent-diff --open --metadata agent=retry`, have the
+   `agent` metadata removed and get the note
+   ``There's nothing to retry: `implement` has no worktree or agent session for this brief. Set `agent=queued` to start it.``
+
+4. **Starts** queued briefs, up to the concurrency limit, oldest first. They're
    the open tasks in the project with `agent=queued`, from
    `aven list --project agent-diff --open --metadata agent=queued`, so tasks in
    other projects and `done` or `canceled` tasks are ignored. A brief missing a
@@ -91,7 +140,7 @@ A systemd user timer runs `implement tick` every 2 minutes. Each tick:
    The task stays `active` until the brief is let go. A brief queued again after
    failing starts over from a fresh worktree.
 
-4. **Prunes** worktrees deleted by hand, with `git worktree prune`.
+5. **Prunes** worktrees deleted by hand, with `git worktree prune`.
 
 `implement` doesn't pass `--model` or `--effort`. The model and effort come from
 the project's [`.claude/settings.json`](../../.claude/settings.json), which
@@ -130,6 +179,24 @@ than one step, and keeps the diff to the brief. When it's done
 A resumed agent session addresses the pull request review, pushes, and waits for
 CI the same way before moving the brief back to `agent=review`. It doesn't
 self-review.
+
+A retried agent session is told that it exited before finishing, without opening
+a pull request, and that `implement` doesn't know why; that background commands
+and sub-agents from before are gone, though background commands' processes may
+still be running; and to check `git status`, `git log`, whether the branch is
+pushed, and whether a pull request exists before going on. It then finishes
+what's left of the start prompt's "When you're done" steps without redoing
+finished work, self-review included, since no pull request is open yet. The
+prompt passes on every note added to the task after the failure note, oldest
+first, as instructions from Dan, or says there are none. When the failure note
+isn't on the task, such as when Dan set `agent=retry` while the agent session
+was still running, so it was never marked failed, the prompt says so and tells
+the agent session to read the latest notes with `aven context <ref>`. Notes have
+no author, so any note added after the failure note is passed on, whoever added
+it. `aven` times notes to the second and orders notes from the same second by
+ID, so a note added in the same second as the failure note may fall on either
+side of it. The retry prompt ends with the same Aven, escalation and GitHub
+sections as the other prompts.
 
 `claude` runs from `~/.local/bin/claude` with a clean environment, so wrappers
 and variables from whatever ran `implement` don't change its options.
@@ -238,8 +305,9 @@ captured from `aven` and the arguments with a fake.
 
 State lives in `<state dir>/state.json`. For each brief it started, keyed by the
 task's ID, it holds the task's ref when last seen, the branch, worktree, agent
-session name and id, which reviews have been handed over, and the pull request's
-URL once it's been noted on the task. The task holds everything else:
+session name and id, which reviews have been handed over, the pull request's URL
+once it's been noted on the task, and the ID of the note added when the brief
+was last marked failed. The task holds everything else:
 
 ```json
 {
@@ -255,7 +323,8 @@ URL once it's been noted on the task. The task holds everything else:
       "sessionId": "0b7c2f1e-6a4d-4c8e-9f3a-2d5e8b1c7a90",
       "launchedAt": 1792468800000,
       "handledReviewIds": ["PRR_kwDOexample"],
-      "pullRequestUrl": "https://github.com/danschultz/agent-diff/pull/44"
+      "pullRequestUrl": "https://github.com/danschultz/agent-diff/pull/44",
+      "failureNoteId": "VEQT3DM4D94Z4RS6"
     }
   }
 }

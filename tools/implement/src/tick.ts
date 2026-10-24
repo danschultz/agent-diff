@@ -1,4 +1,4 @@
-// One tick: reap, resume, start, prune. Run every 2 minutes by the systemd timer.
+// One tick: reap, resume, retry, start, prune. Run every 2 minutes by the systemd timer.
 
 import path from 'node:path';
 import {
@@ -8,6 +8,7 @@ import {
   moveTo,
   type Aven,
   type Blocker,
+  type Note,
   type Task,
   type TaskChanges,
 } from './aven.ts';
@@ -16,7 +17,7 @@ import { isWorking, type AgentSessionInfo, type Claude } from './claude.ts';
 import type { Config } from './config.ts';
 import type { Git } from './git.ts';
 import type { GitHub, PullRequest, Review } from './github.ts';
-import { resumePrompt, startPrompt } from './prompts.ts';
+import { resumePrompt, retryPrompt, startPrompt } from './prompts.ts';
 import type { BriefState, State } from './state.ts';
 
 /** How long a just-launched agent session may be missing from `claude agents` before it counts as exited. */
@@ -51,6 +52,7 @@ interface Tracked {
 
 export function tick(deps: Deps): void {
   const running = deps.claude.running();
+  const trackedIds = new Set(Object.keys(deps.state.briefs));
   const tracked: Tracked[] = [];
   for (const brief of Object.values(deps.state.briefs)) {
     const result = guard(deps, brief.ref, () => reap(deps, brief, running));
@@ -62,6 +64,7 @@ export function tick(deps: Deps): void {
     if (slots <= 0) break;
     if (guard(deps, t.brief.ref, () => resume(deps, t))) slots--;
   }
+  slots -= retryFailed(deps, tracked, trackedIds, slots);
   startQueued(deps, slots, running);
   deps.git.prune();
 }
@@ -142,10 +145,20 @@ function reap(
         deps.log(`${task.ref}: agent session exited, moved to review`);
       } else {
         const tail = claude.logTail(brief.sessionName, brief.sessionId);
-        moveTo(aven, task, AGENT.failed);
-        aven.note(
-          task.id,
-          `The agent session exited without opening a pull request. The worktree \`${brief.worktree}\` is kept until the brief is let go or queued again.\n\nEnd of the agent session's output:\n\n\`\`\`\`\n${tail}\n\`\`\`\``,
+        markFailed(
+          deps,
+          brief,
+          task,
+          `The agent session exited without opening a pull request. Its worktree \`${brief.worktree}\` and conversation are kept.
+
+- To resume the agent session where it stopped, add a note with anything it should know, then set \`${AGENT_KEY}=${AGENT.retry}\`.
+- To start over from a fresh worktree, set \`${AGENT_KEY}=${AGENT.queued}\`.
+
+End of the agent session's output:
+
+\`\`\`\`
+${tail}
+\`\`\`\``,
         );
         deps.log(
           `${task.ref}: agent session exited without a pull request, marked failed`,
@@ -248,6 +261,133 @@ function resume(deps: Deps, t: Tracked): boolean {
   deps.log(
     `${task.ref}: resumed ${brief.sessionName} for ${reviews.length} review(s) on #${pr.number}`,
   );
+  return true;
+}
+
+/**
+ * Moves a brief to `agent=failed` with a note saying why, and records the
+ * note's ID, so a retry passes on only the notes added after it.
+ */
+function markFailed(
+  deps: Deps,
+  brief: BriefState,
+  task: Task,
+  body: string,
+): void {
+  moveTo(deps.aven, task, AGENT.failed);
+  brief.failureNoteId = deps.aven.note(task.id, body);
+}
+
+/**
+ * The notes added after the failure note, oldest first, or undefined when it
+ * isn't on the task, such as when Dan set `agent=retry` while the agent session
+ * was running. Notes added in the same second as the failure note are ordered
+ * by ID, so one might fall on the wrong side of it.
+ */
+function notesSinceFailure(
+  task: Task,
+  failureNoteId: string | undefined,
+): Note[] | undefined {
+  const index = task.notes.findIndex((n) => n.id === failureNoteId);
+  return index === -1 ? undefined : task.notes.slice(index + 1);
+}
+
+/**
+ * Retries briefs Dan set to `agent=retry` by resuming their agent sessions, up
+ * to `slots`, and removes `agent=retry` from tasks `implement` isn't tracking.
+ * Returns how many it resumed.
+ */
+function retryFailed(
+  deps: Deps,
+  tracked: Tracked[],
+  trackedIds: Set<string>,
+  slots: number,
+): number {
+  let retried = 0;
+  for (const t of tracked) {
+    if (t.task.agent !== AGENT.retry) continue;
+    if (t.occupiesSlot) {
+      deps.log(
+        `${t.task.ref}: retry set while its agent session is running; waiting for it to exit`,
+      );
+      continue;
+    }
+    if (retried >= slots) {
+      deps.log(`${t.task.ref}: retry waiting for a free concurrency slot`);
+      continue;
+    }
+    if (guard(deps, t.task.ref, () => retry(deps, t))) retried++;
+  }
+  // Briefs tracked at the start of the tick are left out, so one let go or
+  // not read this tick isn't mistaken for one that was never started.
+  for (const listed of deps.aven.retryTasks()) {
+    if (trackedIds.has(listed.id)) continue;
+    guard(deps, listed.ref, () => {
+      deps.aven.edit(listed.id, { agent: null });
+      deps.aven.note(
+        listed.id,
+        `There's nothing to retry: \`implement\` has no worktree or agent session for this brief. Set \`${AGENT_KEY}=${AGENT.queued}\` to start it.`,
+      );
+      deps.log(`${listed.ref}: retry set but not tracked, removed it`);
+    });
+  }
+  return retried;
+}
+
+/** Resumes a failed brief's agent session where it stopped. Returns whether it resumed. */
+function retry(deps: Deps, t: Tracked): boolean {
+  const { brief, task } = t;
+  if (!brief.sessionId) {
+    markFailed(
+      deps,
+      brief,
+      task,
+      `Couldn't retry this brief: \`implement\` has no session ID for its agent session, so it can't resume it. The worktree \`${brief.worktree}\` is kept. Set \`${AGENT_KEY}=${AGENT.queued}\` to start over.`,
+    );
+    deps.log(`${task.ref}: no session ID to retry, marked failed`);
+    return false;
+  }
+  const notes = notesSinceFailure(task, brief.failureNoteId);
+  if (!notes)
+    deps.log(
+      `${task.ref}: couldn't find the failure note, so no notes were passed on`,
+    );
+  moveTo(deps.aven, task, AGENT.working);
+  try {
+    deps.claude.resume(
+      brief.worktree,
+      brief.sessionId,
+      retryPrompt(brief, notes),
+    );
+  } catch (error) {
+    markFailed(
+      deps,
+      brief,
+      task,
+      `Couldn't retry this brief: resuming its agent session failed:\n\n\`\`\`\n${(error as Error).message}\n\`\`\`\n\nThe worktree \`${brief.worktree}\` is kept. Set \`${AGENT_KEY}=${AGENT.retry}\` to try again, or \`${AGENT_KEY}=${AGENT.queued}\` to start over.`,
+    );
+    deps.log(
+      `${task.ref}: resuming ${brief.sessionName} failed, marked failed: ${(error as Error).message}`,
+    );
+    return false;
+  }
+  brief.launchedAt = deps.now();
+  const passed = notes?.length ?? 0;
+  const count =
+    passed === 0 ? 'no notes' : `${passed} ${passed === 1 ? 'note' : 'notes'}`;
+  // The agent session is running now, so it counts against the concurrency
+  // limit even if the note can't be added.
+  try {
+    deps.aven.note(
+      task.id,
+      `Retried: resumed the agent session \`${brief.sessionName}\` where it stopped, with ${count} added since it failed.`,
+    );
+  } catch (error) {
+    deps.log(
+      `${task.ref}: couldn't add the retried note: ${(error as Error).message}`,
+    );
+  }
+  deps.log(`${task.ref}: retried ${brief.sessionName} with ${passed} note(s)`);
   return true;
 }
 
@@ -403,9 +543,10 @@ function start(deps: Deps, task: Task): void {
     });
     brief.launchedAt = deps.now();
   } catch (error) {
-    moveTo(aven, task, AGENT.failed);
-    aven.note(
-      task.id,
+    markFailed(
+      deps,
+      brief,
+      task,
       `Couldn't start an agent session for this brief:\n\n\`\`\`\n${(error as Error).message}\n\`\`\``,
     );
     throw error;

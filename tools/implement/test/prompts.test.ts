@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { Task } from '../src/aven.ts';
+import type { Note, Task } from '../src/aven.ts';
 import type { PullRequest, Review } from '../src/github.ts';
-import { resumePrompt, startPrompt } from '../src/prompts.ts';
+import { resumePrompt, retryPrompt, startPrompt } from '../src/prompts.ts';
 import type { BriefState } from '../src/state.ts';
 
 const brief: BriefState = {
@@ -25,6 +25,7 @@ const task: Task = {
   status: 'active',
   agent: 'working',
   blockers: [],
+  notes: [],
 };
 
 const review: Review = {
@@ -47,8 +48,23 @@ function unwrapped(prompt: string): string {
   return prompt.replace(/\s+/g, ' ');
 }
 
+const notes: Note[] = [
+  {
+    id: 'Y3M9D33VE010V2NQ',
+    body: 'Use the existing parser.',
+    createdAt: '2026-10-24T05:07:03Z',
+  },
+  {
+    id: 'PTVRYR4ZV31Y32N6',
+    body: 'Skip step 3.\n\nIt is done.',
+    createdAt: '2026-10-24T05:07:04Z',
+  },
+];
+
 const start = unwrapped(startPrompt(brief, task, 'main'));
 const resume = unwrapped(resumePrompt(brief, pr, [review]));
+const retryRaw = retryPrompt(brief, notes);
+const retry = unwrapped(retryRaw);
 
 /** Where `needle` first appears in `text`, failing if it doesn't. */
 function at(text: string, needle: string | RegExp): number {
@@ -154,7 +170,7 @@ test('the resume prompt leaves the pull request\'s "Closes" line alone, so migra
 });
 
 test('the prompts keep the ref and task ID out of GitHub and git', () => {
-  for (const prompt of [start, resume]) {
+  for (const prompt of [start, resume, retry]) {
     assert.match(
       prompt,
       /Keep AD-7KQ9, and anything else that identifies the brief, such as the task's ID, out of branch names, commits, and pull requests/,
@@ -168,6 +184,68 @@ test('the prompts keep the ref and task ID out of GitHub and git', () => {
 test('the prompts say Dan sees questions as a note on the brief', () => {
   assert.match(start, /adds your question to the brief as a note/);
   assert.match(resume, /adds your question to the brief as a note/);
+  assert.match(retry, /adds your question to the brief as a note/);
+});
+
+test('the retry prompt ends with the same Aven, escalation and GitHub sections as the other prompts', () => {
+  const tail = (prompt: string) =>
+    prompt.slice(prompt.indexOf('## The brief in Aven'));
+  const retryTail = tail(retryPrompt(brief, notes));
+  assert.equal(retryTail, tail(resumePrompt(brief, pr, [review])));
+  for (const heading of [
+    '## The brief in Aven',
+    '## When to stop and ask Dan',
+    '## GitHub',
+  ])
+    assert.ok(retryTail.includes(heading), heading);
+});
+
+test("the retry prompt says it exited before finishing, without a pull request, and implement doesn't know why", () => {
+  assert.match(retry, /exited before it finished/);
+  assert.match(retry, /without opening a pull request/);
+  assert.match(retry, /`implement` doesn't know why/);
+});
+
+test('the retry prompt says background commands and sub-agents are gone, though their processes may still run', () => {
+  assert.match(
+    retry,
+    /background commands and sub-agents from before are gone/i,
+  );
+  assert.match(retry, /processes may still be running/);
+});
+
+test('the retry prompt says to check git, the pushed branch, and the pull request before going on', () => {
+  const check = at(retry, /Before going on/);
+  assert.ok(check < at(retry, '`git status`'));
+  assert.ok(check < at(retry, '`git log`'));
+  assert.match(retry, /whether the branch `brief\/do-it-3f9a2c` is pushed/);
+  assert.match(retry, /whether a pull request exists/);
+  assert.match(retry, /gh pr list --head brief\/do-it-3f9a2c/);
+});
+
+test('the retry prompt says to finish the start prompt\'s "When you\'re done" steps without redoing finished work, including self-review', () => {
+  assert.match(retry, /what's left of the "When you're done" steps/);
+  assert.match(retry, /without redoing work that's already finished/);
+  assert.match(retry, /Self-review still runs/);
+  assert.match(retry, /no pull request is open yet/);
+});
+
+test('the retry prompt passes every note added since the failure, in order, as instructions from Dan', () => {
+  assert.match(retry, /instructions from Dan/);
+  const first = at(retryRaw, '    Use the existing parser.');
+  const second = at(retryRaw, '    Skip step 3.\n    \n    It is done.');
+  assert.ok(first < second, 'oldest first');
+  assert.ok(
+    second < at(retryRaw, '## The brief in Aven'),
+    'the notes come before the shared sections',
+  );
+  assert.match(retry, /Added 2026-10-24T05:07:03Z/);
+});
+
+test('the retry prompt says when no notes were added since the failure', () => {
+  const none = unwrapped(retryPrompt(brief, []));
+  assert.match(none, /No notes were added to the brief since it failed\./);
+  assert.doesNotMatch(none, /instructions from Dan/);
 });
 
 test('the start prompt lists the blockers, says they are done, and says to read but not change them', () => {
@@ -210,4 +288,14 @@ test('the start prompt lists the blockers, says they are done, and says to read 
 test('a brief without blockers gets the same start prompt as before, with nothing about blockers', () => {
   assert.doesNotMatch(start, /depends on/);
   assert.doesNotMatch(start, /aven context <ref>/);
+});
+
+test("the retry prompt says to read the latest notes when implement couldn't find its failure note", () => {
+  const missing = unwrapped(retryPrompt(brief, undefined));
+  assert.match(
+    missing,
+    /couldn't find the note it added when it marked the brief failed/,
+  );
+  assert.match(missing, /Read the latest notes with `aven context AD-7KQ9`/);
+  assert.doesNotMatch(missing, /No notes were added/);
 });

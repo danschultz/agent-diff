@@ -24,7 +24,7 @@ import { tick, waitingBriefs } from './tick.ts';
 
 const USAGE = `implement
 
-  implement tick [--dry-run]   Reap, resume, and start agent sessions once.
+  implement tick [--dry-run]   Reap, resume, retry, and start agent sessions once.
                                --dry-run reads Aven, GitHub, and git but only logs changes.
   implement status             List tracked briefs, their state in Aven, and their agent sessions,
                                and queued briefs waiting on blockers.
@@ -125,7 +125,11 @@ function dryRunDeps(
         would(
           `edit task ${id}:${status ? ` status=${status}` : ''}${agent === null ? ' remove agent' : agent ? ` agent=${agent}` : ''}`,
         ),
-      note: (id, body) => would(`add a note to task ${id}:\n${body}`),
+      note: (id, body) => {
+        would(`add a note to task ${id}:\n${body}`);
+        // A dry run doesn't save state, so the ID is never recorded.
+        return '(dry run)';
+      },
     },
     git: {
       addWorktree: (dir, branch, base) =>

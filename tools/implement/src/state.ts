@@ -29,6 +29,11 @@ export interface BriefState {
   handledReviewIds: string[];
   /** The pull request's URL, once it's been added to the task as a note. */
   pullRequestUrl?: string;
+  /**
+   * The ID of the note `implement` added when it last marked the brief failed.
+   * A retry passes on the notes added after it.
+   */
+  failureNoteId?: string;
 }
 
 export interface State {

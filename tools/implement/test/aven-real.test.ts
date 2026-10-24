@@ -57,13 +57,20 @@ function scratchAven(t: TestContext) {
 }
 
 /**
- * Runs one tick against the scratch `aven`, with fakes for everything else.
- * Returns the agent sessions it started and the state it left.
+ * Runs one tick against the scratch `aven`, with fakes for everything else and
+ * no agent sessions running. Returns the agent sessions it started and
+ * resumed, and the state it left, which is `state` when given.
  */
 function runTick(
   s: ReturnType<typeof scratchAven>,
   concurrency = 2,
-): { started: string[]; state: State; logs: string[] } {
+  { state = { briefs: {} }, now = 0 }: { state?: State; now?: number } = {},
+): {
+  started: string[];
+  resumed: { sessionId: string; prompt: string }[];
+  state: State;
+  logs: string[];
+} {
   const config: Config = {
     repoDir: '/repo',
     repo: 'dan/agent-diff',
@@ -76,8 +83,8 @@ function runTick(
     avenBin: avenBin!,
     avenProject: 'agent-diff',
   };
-  const state: State = { briefs: {} };
   const started: string[] = [];
+  const resumed: { sessionId: string; prompt: string }[] = [];
   const logs: string[] = [];
   let suffixes = 0;
   tick({
@@ -87,7 +94,7 @@ function runTick(
     git: { addWorktree() {}, removeWorktree() {}, prune() {} },
     claude: {
       start: (o) => started.push(o.name),
-      resume() {},
+      resume: (_cwd, sessionId, prompt) => resumed.push({ sessionId, prompt }),
       running: () => [],
       stop() {},
       logTail: () => '',
@@ -95,11 +102,18 @@ function runTick(
     state,
     settingsFile: '/state/settings.json',
     randomSuffix: () => `r${++suffixes}`,
-    now: () => 0,
+    now: () => now,
     sleep() {},
     log: (m) => logs.push(m),
   });
-  return { started, state, logs };
+  return { started, resumed, state, logs };
+}
+
+/** Waits until the clock is in the next second, since `aven` times notes to the second. */
+function sleepPastSecond() {
+  const second = Math.floor(Date.now() / 1000);
+  while (Math.floor(Date.now() / 1000) === second)
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
 }
 
 const BODY =
@@ -183,6 +197,60 @@ test('reads, edits, and notes a task by its ID', { skip }, (t) => {
     s.context(id).notes.map((n) => n.body),
     ['Line one\n\n`code` and "quotes"'],
   );
+});
+
+test(
+  "returns each note's ID, and reads a task's notes oldest first",
+  { skip },
+  (t) => {
+    const s = scratchAven(t);
+    const id = s.add('Brief', '--project', 'agent-diff');
+    const aven = cliAven(avenBin!, 'agent-diff', s.env);
+    // Notes added in the same second are ordered by ID, so each is added in a
+    // later second than the one before.
+    const ids = ['First', 'Second\n\nwith lines', 'Third'].map((body, i) => {
+      if (i > 0) sleepPastSecond();
+      return aven.note(id, body);
+    });
+    assert.equal(new Set(ids).size, 3);
+    assert.deepEqual(
+      aven.task(id).notes.map((n) => [n.id, n.body]),
+      [
+        [ids[0], 'First'],
+        [ids[1], 'Second\n\nwith lines'],
+        [ids[2], 'Third'],
+      ],
+    );
+  },
+);
+
+test('lists only open tasks with agent=retry in the project', { skip }, (t) => {
+  const s = scratchAven(t);
+  const retry = s.add(
+    'Retry',
+    '--project',
+    'agent-diff',
+    '--metadata',
+    'agent=retry',
+  );
+  s.add('Other project', '--project', 'other', '--metadata', 'agent=retry');
+  s.add(
+    'Canceled',
+    '--project',
+    'agent-diff',
+    '--metadata',
+    'agent=retry',
+    '--status',
+    'canceled',
+  );
+  s.add('Queued', '--project', 'agent-diff', '--metadata', 'agent=queued');
+
+  const tasks = cliAven(avenBin!, 'agent-diff', s.env).retryTasks();
+  assert.deepEqual(
+    tasks.map((task) => task.id),
+    [retry],
+  );
+  assert.match(tasks[0].ref, /^AD-/);
 });
 
 test(
@@ -317,6 +385,86 @@ test(
     assert.match(
       sentBack.notes[0].body,
       new RegExp(`aven dep remove ${refOf(b)} ${refOf(a)}`),
+    );
+  },
+);
+
+test(
+  "a tick marks a brief failed, recording its note's ID, and a later tick retries it with Dan's notes",
+  { skip },
+  (t) => {
+    const s = scratchAven(t);
+    const id = s.add(
+      'Brief',
+      '--project',
+      'agent-diff',
+      '--status',
+      'active',
+      '--metadata',
+      'agent=working',
+    );
+    const untracked = s.add(
+      'Never started',
+      '--project',
+      'agent-diff',
+      '--metadata',
+      'agent=retry',
+    );
+    s.aven('note', id, 'Before it failed.');
+    const state: State = {
+      briefs: {
+        [id]: {
+          taskId: id,
+          ref: 'AD-OLD',
+          repo: 'dan/agent-diff',
+          title: 'Brief',
+          branch: 'brief/brief-x1',
+          worktree: '/repo/.claude/worktrees/brief-brief-x1',
+          sessionName: 'brief-brief-x1',
+          sessionId: 'session-x1',
+          launchedAt: 0,
+          handledReviewIds: [],
+        },
+      },
+    };
+    const later = 10 * 60 * 1000;
+
+    // The agent session is gone, so the brief is marked failed.
+    sleepPastSecond();
+    runTick(s, 2, { state, now: later });
+    const failed = s.context(id);
+    assert.equal(failed.metadata.agent, 'failed');
+    const failureNote = cliAven(avenBin!, 'agent-diff', s.env)
+      .task(id)
+      .notes.at(-1)!;
+    assert.match(failureNote.body, /set `agent=retry`/);
+    assert.equal(state.briefs[id].failureNoteId, failureNote.id);
+
+    // The untracked task had agent=retry removed, with a note.
+    assert.deepEqual(s.context(untracked).metadata, {});
+    assert.match(s.context(untracked).notes[0].body, /nothing to retry/);
+
+    // Dan adds a note and retries it.
+    sleepPastSecond();
+    s.aven('note', id, 'Use the other parser.');
+    s.aven('edit', id, '--metadata', 'agent=retry');
+    const { resumed } = runTick(s, 2, { state, now: later });
+    assert.equal(resumed.length, 1);
+    assert.equal(resumed[0].sessionId, 'session-x1');
+    assert.match(resumed[0].prompt, /Use the other parser\./);
+    assert.doesNotMatch(
+      resumed[0].prompt,
+      /Before it failed|End of the agent session/,
+    );
+    const retried = s.context(id);
+    assert.equal(retried.metadata.agent, 'working');
+    // Added in the same second as Dan's note, so it may come before it.
+    assert.ok(
+      retried.notes.some(
+        (n) =>
+          n.body ===
+          'Retried: resumed the agent session `brief-brief-x1` where it stopped, with 1 note added since it failed.',
+      ),
     );
   },
 );
