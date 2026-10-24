@@ -85,7 +85,12 @@ export const CommentStatus = v.picklist([
 
 // How many submitted comments in a session have each status. The draft
 // review isn't counted.
-export const CommentCounts = v.record(CommentStatus, v.number());
+export const CommentCounts = v.object({
+  open: v.number(),
+  addressed: v.number(),
+  needs_input: v.number(),
+  resolved: v.number(),
+});
 
 export const SessionDetails = v.object({
   ...Session.entries,
