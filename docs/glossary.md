@@ -101,14 +101,17 @@ open when the reply's review is submitted. This is separate from its
 
 What the diff compares for a git [working directory](#working-directory):
 
-- **All changes:** the [base ref](#base-ref) to the working tree.
-- **Committed:** the base ref to `HEAD`.
+- **All changes:** the merge-base of the [base ref](#base-ref) and `HEAD` to the
+  working tree.
+- **Committed:** the merge-base of the base ref and `HEAD` to `HEAD`.
 - **Staged:** `HEAD` to the index.
 - **Unstaged:** the index to the working tree.
 - **Last turn:** the previous [turn snapshot](#turn-snapshot) to the current
   state.
 
-A working directory that doesn't use git has no diff modes.
+A working directory that doesn't use git has no diff modes. See
+[0044](decisions/0044-the-review-server-reads-diffs-from-git-and-never-writes-to-the-repo.md)
+for how the review server works out the git diff modes.
 
 ### Draft review
 

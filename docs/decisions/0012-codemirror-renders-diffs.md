@@ -1,7 +1,15 @@
 # 0012: The review UI renders diffs with CodeMirror
 
-- Status: Accepted
+- Status: Accepted, amended by
+  [0045](0045-the-review-ui-computes-line-diffs-and-shows-one-continuous-diff.md)
 - Date: 2026-10-11
+
+> **Amended by
+> [0045](0045-the-review-ui-computes-line-diffs-and-shows-one-continuous-diff.md):**
+> the review server sends full contents, and the review UI diffs whole lines
+> with jsdiff, which answers "Where diffs are computed". A file's editor mounts
+> within about 1,200 px of the visible area and unmounts beyond about 4,000 px,
+> which partly answers "Many-file reviews".
 
 ## Problem
 
