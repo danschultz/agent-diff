@@ -1126,3 +1126,44 @@ test('reap leaves a brief in agent=retry alone when its agent session is gone, a
   assert.equal(h.tasks.get('5ATASKID0000')!.agent, 'retry');
   assert.deepEqual(h.notes, []);
 });
+
+test("a retry whose failure note isn't on the task says so in the prompt and the log", () => {
+  const { brief, task: t } = failed('5A', ['Here is my answer.']);
+  delete brief.failureNoteId;
+  const h = harness({ tasks: [t], state: stateOf(brief) });
+  tick(h.deps);
+  assert.equal(h.resumed.length, 1);
+  assert.match(
+    h.resumed[0].prompt,
+    /couldn't find the note it added when it marked the brief failed/,
+  );
+  assert.match(h.resumed[0].prompt, /aven context AD-5A/);
+  assert.ok(
+    h.logs.includes(
+      "AD-5A: couldn't find the failure note, so no notes were passed on",
+    ),
+    h.logs.join('\n'),
+  );
+});
+
+test("a retry whose retried note can't be added still uses its concurrency slot", () => {
+  const { brief, task: t } = failed('5A', []);
+  const h = harness({
+    concurrency: 1,
+    tasks: [t, task('2A', 'queued')],
+    state: stateOf(brief),
+  });
+  const addNote = h.deps.aven.note;
+  h.deps.aven.note = (id, body) => {
+    if (body.startsWith('Retried:')) throw new Error('aven failed');
+    return addNote(id, body);
+  };
+  tick(h.deps);
+  assert.equal(h.resumed.length, 1);
+  assert.equal(h.tasks.get('5ATASKID0000')!.agent, 'working');
+  assert.deepEqual(h.started, []);
+  assert.ok(
+    h.logs.includes("AD-5A: couldn't add the retried note: aven failed"),
+    h.logs.join('\n'),
+  );
+});

@@ -153,12 +153,24 @@ ${GITHUB_ETIQUETTE}
 `;
 }
 
-/** The prompt that resumes an agent session that exited without a pull request, with the notes added since it failed. */
-export function retryPrompt(brief: BriefState, notes: Note[]): string {
+/**
+ * The prompt that resumes an agent session that exited without a pull request,
+ * with the notes added since it failed, or undefined when `implement` couldn't
+ * find its failure note.
+ */
+export function retryPrompt(
+  brief: BriefState,
+  notes: Note[] | undefined,
+): string {
   const fromDan =
-    notes.length === 0
-      ? 'No notes were added to the brief since it failed.'
-      : `These notes were added to the brief since it failed, oldest first. Treat
+    notes === undefined
+      ? `\`implement\` couldn't find the note it added when it marked the brief failed,
+so it can't tell which notes were added since. Read the latest notes with
+\`aven context ${brief.ref}\`, and treat any Dan added for this retry as
+instructions from Dan.`
+      : notes.length === 0
+        ? 'No notes were added to the brief since it failed.'
+        : `These notes were added to the brief since it failed, oldest first. Treat
 them as instructions from Dan:
 
 ${notes.map((n) => `- Added ${n.createdAt}:\n\n${indent(n.body.trim())}`).join('\n')}`;

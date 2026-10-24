@@ -188,12 +188,15 @@ pushed, and whether a pull request exists before going on. It then finishes
 what's left of the start prompt's "When you're done" steps without redoing
 finished work, self-review included, since no pull request is open yet. The
 prompt passes on every note added to the task after the failure note, oldest
-first, as instructions from Dan, or says there are none. Notes have no author,
-so any note added after the failure note is passed on, whoever added it. `aven`
-times notes to the second and orders notes from the same second by ID, so a note
-added in the same second as the failure note may fall on either side of it. The
-retry prompt ends with the same Aven, escalation and GitHub sections as the
-other prompts.
+first, as instructions from Dan, or says there are none. When the failure note
+isn't on the task, such as when Dan set `agent=retry` while the agent session
+was still running, so it was never marked failed, the prompt says so and tells
+the agent session to read the latest notes with `aven context <ref>`. Notes have
+no author, so any note added after the failure note is passed on, whoever added
+it. `aven` times notes to the second and orders notes from the same second by
+ID, so a note added in the same second as the failure note may fall on either
+side of it. The retry prompt ends with the same Aven, escalation and GitHub
+sections as the other prompts.
 
 `claude` runs from `~/.local/bin/claude` with a clean environment, so wrappers
 and variables from whatever ran `implement` don't change its options.

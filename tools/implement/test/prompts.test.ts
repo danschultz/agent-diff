@@ -289,3 +289,13 @@ test('a brief without blockers gets the same start prompt as before, with nothin
   assert.doesNotMatch(start, /depends on/);
   assert.doesNotMatch(start, /aven context <ref>/);
 });
+
+test("the retry prompt says to read the latest notes when implement couldn't find its failure note", () => {
+  const missing = unwrapped(retryPrompt(brief, undefined));
+  assert.match(
+    missing,
+    /couldn't find the note it added when it marked the brief failed/,
+  );
+  assert.match(missing, /Read the latest notes with `aven context AD-7KQ9`/);
+  assert.doesNotMatch(missing, /No notes were added/);
+});

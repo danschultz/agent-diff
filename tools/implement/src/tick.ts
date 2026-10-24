@@ -279,16 +279,17 @@ function markFailed(
 }
 
 /**
- * The notes added after the failure note, oldest first, or none when it isn't
- * on the task. Notes added in the same second as the failure note are ordered
+ * The notes added after the failure note, oldest first, or undefined when it
+ * isn't on the task, such as when Dan set `agent=retry` while the agent session
+ * was running. Notes added in the same second as the failure note are ordered
  * by ID, so one might fall on the wrong side of it.
  */
 function notesSinceFailure(
   task: Task,
   failureNoteId: string | undefined,
-): Note[] {
+): Note[] | undefined {
   const index = task.notes.findIndex((n) => n.id === failureNoteId);
-  return index === -1 ? [] : task.notes.slice(index + 1);
+  return index === -1 ? undefined : task.notes.slice(index + 1);
 }
 
 /**
@@ -347,6 +348,10 @@ function retry(deps: Deps, t: Tracked): boolean {
     return false;
   }
   const notes = notesSinceFailure(task, brief.failureNoteId);
+  if (!notes)
+    deps.log(
+      `${task.ref}: couldn't find the failure note, so no notes were passed on`,
+    );
   moveTo(deps.aven, task, AGENT.working);
   try {
     deps.claude.resume(
@@ -367,17 +372,22 @@ function retry(deps: Deps, t: Tracked): boolean {
     return false;
   }
   brief.launchedAt = deps.now();
+  const passed = notes?.length ?? 0;
   const count =
-    notes.length === 0
-      ? 'no notes'
-      : `${notes.length} ${notes.length === 1 ? 'note' : 'notes'}`;
-  deps.aven.note(
-    task.id,
-    `Retried: resumed the agent session \`${brief.sessionName}\` where it stopped, with ${count} added since it failed.`,
-  );
-  deps.log(
-    `${task.ref}: retried ${brief.sessionName} with ${notes.length} note(s)`,
-  );
+    passed === 0 ? 'no notes' : `${passed} ${passed === 1 ? 'note' : 'notes'}`;
+  // The agent session is running now, so it counts against the concurrency
+  // limit even if the note can't be added.
+  try {
+    deps.aven.note(
+      task.id,
+      `Retried: resumed the agent session \`${brief.sessionName}\` where it stopped, with ${count} added since it failed.`,
+    );
+  } catch (error) {
+    deps.log(
+      `${task.ref}: couldn't add the retried note: ${(error as Error).message}`,
+    );
+  }
+  deps.log(`${task.ref}: retried ${brief.sessionName} with ${passed} note(s)`);
   return true;
 }
 
