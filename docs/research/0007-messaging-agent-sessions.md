@@ -118,7 +118,7 @@ so.
 | Remote Control (both agents)                                        | Claude Code: documented. Cursor CLI: none in the CLI.                                                                                     | None that a review server can use.                                                                                                                                                       | No way to send from a local program.                                                                                                                  | No way to send.                                                                                                                      | None.                                                                                                                                 | None.                                                                                                    |
 | Codex CLI app-server and `codex queue` (docs only)                  | `codex queue` is stable. `app-server` and the queue methods are experimental.                                                             | None for a TUI started after 0.157, which runs on a shared background server.                                                                                                            | `codex queue` or `thread/queue/add` wakes an idle thread, and `turn/start` starts a turn.                                                             | Three choices: `turn/steer` adds to the running turn, `turn/interrupt` ends it, and the queue holds the message until the turn ends. | The agent's messages on the turn, or a tool on an MCP server the review server provides.                                              | `clientUserMessageId` on the message, and the turn ID.                                                   |
 | OpenCode server (docs only)                                         | Documented, unversioned API.                                                                                                              | Start the TUI with `--port`. The docs say it always listens on a random port, but the v1.19.3 source only listens with `--port`.                                                         | `POST /session/:id/prompt_async`.                                                                                                                     | Not documented. In the source, the message joins the running turn at its next step.                                                  | Events on `GET /event`, or a plugin or MCP tool.                                                                                      | `messageID` in the request, and the reply's `parentID`.                                                  |
-| ACP in general (docs only)                                          | v1 is stable, v2 is a draft.                                                                                                              | The client starts the agent over stdio.                                                                                                                                                  | Only the client starts a turn, with `session/prompt`.                                                                                                 | Not specified in v1 or v2.                                                                                                           | `session/update` notifications until the `session/prompt` response.                                                                   | The `session/prompt` request, and in v2 a `messageId`.                                                   |
+| ACP in general (docs only)                                          | v1 is stable, v2 is still being drafted.                                                                                                  | The client starts the agent over stdio.                                                                                                                                                  | Only the client starts a turn, with `session/prompt`.                                                                                                 | Not specified in v1 or v2.                                                                                                           | `session/update` notifications until the `session/prompt` response.                                                                   | The `session/prompt` request, and in v2 a `messageId`.                                                   |
 
 ### Claude Code channels
 
@@ -406,8 +406,8 @@ Prototype:
   `❯ Another Claude session sent a message: …`. A message wrapped in a
   `<cross-session-message>` tag shows as a one-line preview,
   `› Message from @<name>: …`. Then the `SendMessage` call and the agent's text.
-  A draft in the input box stays. In a `bypassPermissions` agent session, a held
-  message opens a dialog that blocks the input until it's answered.
+  Text typed in the input box stays. In a `bypassPermissions` agent session, a
+  held message opens a dialog that blocks the input until it's answered.
 - **Security.** Any process running as the same user can prompt any of the
   user's agent sessions, and claim the bypass mode. The model is told the
   message came from another agent session, not the user, and can't approve
@@ -924,7 +924,8 @@ Read in docs only: the
 [v1 protocol](https://agentclientprotocol.com/protocol/v1/overview),
 [prompt turn](https://agentclientprotocol.com/protocol/v1/prompt-turn),
 [session setup](https://agentclientprotocol.com/protocol/v1/session-setup), the
-[v2 draft](https://agentclientprotocol.com/announcements/acp-v2-draft) and its
+[v2 announcement](https://agentclientprotocol.com/announcements/acp-v2-draft)
+and its
 [prompt lifecycle](https://agentclientprotocol.com/protocol/v2/prompt-lifecycle),
 and the RFDs for the
 [HTTP transport](https://agentclientprotocol.com/rfds/streamable-http-websocket-transport)
@@ -932,7 +933,7 @@ and [proxy chains](https://agentclientprotocol.com/rfds/proxy-chains).
 
 - In ACP an editor, the client, starts the agent over stdio and owns it. Only
   the client starts a turn, with `session/prompt`, and the reply is the
-  `session/update` notifications until the response. v2, a draft since
+  `session/update` notifications until the response. v2, being drafted since
   2026-07-20, lets the agent start work itself, such as after a background task
   ends, and returns a `messageId` for the prompt.
 - Neither version says what happens to a prompt sent while a turn is running.

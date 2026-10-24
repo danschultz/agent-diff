@@ -11,27 +11,27 @@
 > store.
 
 > **Amended by [0018](0018-agents-list-open-comments.md):** the database holds
-> comments with their statuses, and archived sessions. There are no drafts,
-> reviews, or claims to store, and sessions are archived or deleted with
-> `agent-diff session archive` and `agent-diff session delete`.
+> comments with their statuses, and archived sessions. There are no draft
+> reviews, reviews, or claims to store, and sessions are archived or deleted
+> with `agent-diff session archive` and `agent-diff session delete`.
 
 > **Amended by
 > [0036](0036-the-reviewer-submits-reviews-and-the-agent-gets-a-review-message.md):**
-> the database holds drafts, reviews, replies, and each review message's
-> delivery state again.
+> the database holds the draft review, reviews, replies, and each review
+> message's delivery state again.
 
 ## Problem
 
 Several things can die during a review: the agent session, the review server, or
-the browser tab. None of them should lose the reviewer's work. Draft comments,
-submitted reviews, and the agent tree all need to survive a restart so the
-review can pick up where it left off.
+the browser tab. None of them should lose the reviewer's work. Comments in the
+draft review, submitted reviews, and the agent tree all need to survive a
+restart so the review can pick up where it left off.
 
 ## Solution
 
 The review server stores review state in a SQLite database file. When the server
-restarts, it reloads that state, so the reviewer can reopen the UI with drafts
-intact and an agent can fetch feedback again.
+restarts, it reloads that state, so the reviewer can reopen the UI with the
+draft review intact and an agent can fetch feedback again.
 
 The database holds the state the app creates:
 
@@ -39,8 +39,8 @@ The database holds the state the app creates:
   how to notify it ([0004](0004-agent-tree-is-an-input.md)).
 - Sessions, their working directories, the reviews submitted to them, and claims
   ([0009](0009-review-sessions-and-claims.md)).
-- Comments, both drafts and submitted, with their anchors (file, line range,
-  diff side, and the commit or snapshot they were written against).
+- Comments, both in the draft review and submitted, with their anchors (file,
+  line range, diff side, and the commit or snapshot they were written against).
 - Delivery status for feedback notifications
   ([0005](0005-notify-then-pull-feedback.md)).
 
@@ -79,7 +79,8 @@ Costs:
   several processes share it (WAL mode and locking).
 - **Reconnecting agents.** How an agent that restarts in a new agent session
   reclaims its previous record, so feedback and history carry over.
-- **Saving drafts.** Whether drafts save on every edit or periodically.
+- **Saving the draft review.** Whether comments in the draft review save on
+  every edit or periodically.
 - **Retention.** When old reviews are archived or deleted.
 - **Turn snapshots.** Whether "last turn" snapshots live in git (for example as
   hidden refs) with only references in the database, or in the database itself.

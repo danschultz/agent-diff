@@ -41,8 +41,8 @@ reply to each comment.
    be a git repo. If it doesn't use git, the file view lists all its files and
    there's no diff.
 7. The reviewer leaves line comments on a single line or a range of lines, and
-   overall comments that aren't attached to code. They're drafts until the
-   reviewer submits them as a review.
+   overall comments that aren't attached to code. They're in the draft review
+   until the reviewer submits it.
 8. When the review is submitted, the review server sends the listening agent
    session a short review message, which tells it to finish what it's doing,
    then run `agent-diff review show <review-id>`. The agent addresses each

@@ -54,7 +54,7 @@ is switching to the agent's terminal.
   the main agent, which hands working directories to its sub-agents.
 - **The review server never contacts agents.** Agents always pull.
 
-Unchanged from 0005: comments are drafts until their review is submitted, the
+Unchanged from 0005: comments are in the draft review until it's submitted, the
 agent receives the submitted review as a whole, and agents never block waiting
 for review.
 

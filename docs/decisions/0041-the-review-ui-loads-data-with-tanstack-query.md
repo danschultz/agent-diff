@@ -41,7 +41,8 @@ an `AbortController`. Every page that loads data would repeat that.
   once. A call that failed before reaching it, such as a refused connection, is
   retried up to 3 times.
 - **TanStack Store keeps the reviewer's own state,** such as the
-  [diff mode](../glossary.md#diff-mode), selection, and drafts, as 0016 says.
+  [diff mode](../glossary.md#diff-mode), selection, and the draft review, as
+  0016 says.
 - **Versions are pinned:** `@tanstack/react-query` 5.104.5 and
   `@orpc/tanstack-query` 1.15.7, the same version as the other oRPC packages.
 
@@ -49,7 +50,7 @@ an `AbortController`. Every page that loads data would repeat that.
 
 - **[0016](0016-tanstack-store-with-immer.md).** Answers the follow-up on data
   loaded from the review server: it's held in TanStack Query's cache, and stores
-  hold the reviewer's UI state and drafts.
+  hold the reviewer's UI state and the draft review.
 
 ## Tradeoffs
 
