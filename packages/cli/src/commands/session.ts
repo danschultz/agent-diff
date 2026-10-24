@@ -2,17 +2,17 @@
 // plain text written for agents.
 import path from 'node:path';
 import { defineCommand } from '@crustjs/core';
-import type {
-  CommentCounts,
-  CommentStatus,
-  Session,
-  SessionDetails,
-  WorkingDirectory,
+import {
+  commentStatusLabels,
+  type CommentCounts,
+  type CommentStatus,
+  type Session,
+  type SessionDetails,
+  type WorkingDirectory,
 } from '@agent-diff/shared/schemas';
 import { reviewUiUrl, serverUrl, type Config } from '@agent-diff/shared/state';
 import { callReviewServer } from '../client.ts';
 import type { Confirm } from '../confirm.ts';
-import { statusLabels } from './review.ts';
 
 export interface SessionCommandOptions {
   env: NodeJS.ProcessEnv;
@@ -41,12 +41,12 @@ function workingDirectoryLine(
 // `3 comments: 1 open, 1 addressed, 1 resolved.`, leaving out statuses with
 // none.
 function commentsLine(counts: CommentCounts): string {
-  const statuses = Object.keys(statusLabels) as CommentStatus[];
+  const statuses = Object.keys(commentStatusLabels) as CommentStatus[];
   const total = statuses.reduce((sum, status) => sum + counts[status], 0);
   if (total === 0) return 'No comments.';
   const byStatus = statuses
     .filter((status) => counts[status] > 0)
-    .map((status) => `${counts[status]} ${statusLabels[status]}`);
+    .map((status) => `${counts[status]} ${commentStatusLabels[status]}`);
   return `${total} ${total === 1 ? 'comment' : 'comments'}: ${byStatus.join(', ')}.`;
 }
 

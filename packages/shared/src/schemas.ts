@@ -83,6 +83,15 @@ export const CommentStatus = v.picklist([
   'resolved',
 ]);
 
+// How a comment status is written for reviewers and agents, such as
+// `needs input`, in the order they're listed.
+export const commentStatusLabels = {
+  open: 'open',
+  addressed: 'addressed',
+  needs_input: 'needs input',
+  resolved: 'resolved',
+} as const satisfies Record<v.InferOutput<typeof CommentStatus>, string>;
+
 // How many submitted comments in a session have each status. The draft
 // review isn't counted.
 export const CommentCounts = v.object({

@@ -1,20 +1,15 @@
 // `agent-diff review` and `agent-diff comment` commands, from decisions 0036,
 // 0038, and 0043. Their output is plain text written for agents.
 import { defineCommand } from '@crustjs/core';
-import type { CommentStatus, ReviewDetails } from '@agent-diff/shared/schemas';
+import {
+  commentStatusLabels as statusLabels,
+  type ReviewDetails,
+} from '@agent-diff/shared/schemas';
 import { callReviewServer } from '../client.ts';
 
 export interface ReviewCommandOptions {
   env: NodeJS.ProcessEnv;
 }
-
-// How a comment status is written for people and agents.
-export const statusLabels: Record<CommentStatus, string> = {
-  open: 'open',
-  addressed: 'addressed',
-  needs_input: 'needs input',
-  resolved: 'resolved',
-};
 
 // A time in the local time zone, such as `2026-10-22 14:03`.
 function localTime(iso: string): string {
