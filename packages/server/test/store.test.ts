@@ -14,12 +14,8 @@ async function migrated(t: TestContext): Promise<string> {
   return database;
 }
 
-function store(
-  t: TestContext,
-  database: string,
-  options?: ConstructorParameters<typeof Store>[1],
-): Store {
-  const store = new Store(database, options);
+function store(t: TestContext, database: string): Store {
+  const store = new Store(database);
   t.after(() => store.close());
   return store;
 }
@@ -54,25 +50,6 @@ test('session IDs are s_ and 6 lowercase Crockford base32 characters', () => {
     [...characters].sort().join(''),
     '0123456789abcdefghjkmnpqrstvwxyz',
   );
-});
-
-test('a session ID that is already taken is generated again', async (t) => {
-  const ids = ['s_aaaaaa', 's_aaaaaa', 's_aaaaaa', 's_bbbbbb'];
-  const generated: string[] = [];
-  const sessions = store(t, await migrated(t), {
-    newSessionId: () => {
-      generated.push(ids[generated.length]!);
-      return generated.at(-1)!;
-    },
-  });
-  const first = sessions.createSession({ title: null, workingDirectories: [] });
-  const second = sessions.createSession({
-    title: null,
-    workingDirectories: [],
-  });
-  assert.equal(first.id, 's_aaaaaa');
-  assert.equal(second.id, 's_bbbbbb');
-  assert.equal(generated.length, 4);
 });
 
 test("deleting a session's row deletes its memberships through the foreign key", async (t) => {
@@ -143,38 +120,6 @@ test('comment and review IDs are c_ and r_ and 6 lowercase Crockford base32 char
       '0123456789abcdefghjkmnpqrstvwxyz',
     );
   }
-});
-
-// Returns the IDs in turn, recording how many were asked for.
-function fixedIds(ids: string[]) {
-  const generated: string[] = [];
-  return {
-    generated,
-    next: () => {
-      generated.push(ids[generated.length]!);
-      return generated.at(-1)!;
-    },
-  };
-}
-
-test('a comment ID that is already taken is generated again', async (t) => {
-  const ids = fixedIds(['c_aaaaaa', 'c_aaaaaa', 'c_aaaaaa', 'c_bbbbbb']);
-  const reviews = store(t, await migrated(t), { newCommentId: ids.next });
-  const { id } = reviews.createSession({ title: null, workingDirectories: [] });
-  assert.equal(reviews.addComment(id, 'One').id, 'c_aaaaaa');
-  assert.equal(reviews.addComment(id, 'Two').id, 'c_bbbbbb');
-  assert.equal(ids.generated.length, 4);
-});
-
-test('a review ID that is already taken is generated again', async (t) => {
-  const ids = fixedIds(['r_aaaaaa', 'r_aaaaaa', 'r_bbbbbb']);
-  const reviews = store(t, await migrated(t), { newReviewId: ids.next });
-  const { id } = reviews.createSession({ title: null, workingDirectories: [] });
-  reviews.addComment(id, 'One');
-  assert.equal(reviews.submitReview(id).id, 'r_aaaaaa');
-  reviews.addComment(id, 'Two');
-  assert.equal(reviews.submitReview(id).id, 'r_bbbbbb');
-  assert.equal(ids.generated.length, 3);
 });
 
 test('a session has at most one draft review, and writing after a submit starts a new one', async (t) => {

@@ -29,13 +29,6 @@ export function openDatabase(databasePath: string): DatabaseSync {
   return db;
 }
 
-export interface StoreOptions {
-  // Generate session, comment, and review IDs. Tests pass ones that collide.
-  newSessionId?: () => string;
-  newCommentId?: () => string;
-  newReviewId?: () => string;
-}
-
 // The kinds of things an ID can name.
 export type Entity = 'session' | 'comment' | 'review';
 
@@ -115,15 +108,9 @@ const commentJoins = `comments AS c
 
 export class Store {
   #db: DatabaseSync;
-  #newSessionId: () => string;
-  #newCommentId: () => string;
-  #newReviewId: () => string;
 
-  constructor(databasePath: string, options: StoreOptions = {}) {
+  constructor(databasePath: string) {
     this.#db = openDatabase(databasePath);
-    this.#newSessionId = options.newSessionId ?? newSessionId;
-    this.#newCommentId = options.newCommentId ?? newCommentId;
-    this.#newReviewId = options.newReviewId ?? newReviewId;
   }
 
   // Runs fn in a transaction, which commits when it returns and rolls back
@@ -212,12 +199,11 @@ export class Store {
     return { path, baseRef: row.base_ref, alreadyInSession: true };
   }
 
-  // Creates a session with a new ID, generated again while it's taken.
+  // Creates a session with a new ID. An ID that's already taken fails the
+  // insert (0046).
   createSession({ title, workingDirectories }: NewSession): Session {
     return this.#transaction(() => {
-      let id: string;
-      do id = this.#newSessionId();
-      while (this.#sessionRow(id));
+      const id = newSessionId();
       this.#db
         .prepare('INSERT INTO sessions (id, title) VALUES (?, ?)')
         .run(id, title);
@@ -430,9 +416,7 @@ export class Store {
       draft ??= this.#db
         .prepare('INSERT INTO reviews (session_id) VALUES (?) RETURNING id')
         .get(sessionId) as unknown as { id: number };
-      let id: string;
-      do id = this.#newCommentId();
-      while (this.#commentRow(id));
+      const id = newCommentId();
       this.#db
         .prepare(
           `INSERT INTO comments (id, review_id, kind, text)
@@ -460,9 +444,9 @@ export class Store {
     });
   }
 
-  // Turns the session's draft review into a review with a new ID, generated
-  // again while it's taken, and sets its comments to open. Fails when the
-  // draft review is empty.
+  // Turns the session's draft review into a review with a new ID, and sets its
+  // comments to open. Fails when the draft review is empty, and when the ID
+  // is already taken (0046).
   submitReview(sessionId: string): Review {
     return this.#transaction(() => {
       this.#activeSession(sessionId, "its draft review can't be submitted");
@@ -478,13 +462,7 @@ export class Store {
           `The draft review in session ${sessionId} is empty, so it can't be submitted.`,
         );
       }
-      let publicId: string;
-      do publicId = this.#newReviewId();
-      while (
-        this.#db
-          .prepare('SELECT 1 FROM reviews WHERE public_id = ?')
-          .get(publicId)
-      );
+      const publicId = newReviewId();
       const review = this.#db
         .prepare(
           `UPDATE reviews
