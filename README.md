@@ -83,13 +83,13 @@ reply to each comment.
 For a working directory that uses git, the reviewer can switch what the diff
 shows:
 
-| Mode        | Compares                                                   |
-| ----------- | ---------------------------------------------------------- |
-| All changes | Base ref to the working tree (committed, staged, unstaged) |
-| Committed   | Base ref to `HEAD`                                         |
-| Staged      | `HEAD` to the index                                        |
-| Unstaged    | The index to the working tree                              |
-| Last turn   | The previous turn snapshot to the current state            |
+| Mode        | Compares                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------- |
+| All changes | The merge-base of the base ref and `HEAD` to the working tree (committed, staged, unstaged) |
+| Committed   | The merge-base of the base ref and `HEAD` to `HEAD`                                         |
+| Staged      | `HEAD` to the index                                                                         |
+| Unstaged    | The index to the working tree                                                               |
+| Last turn   | The previous turn snapshot to the current state                                             |
 
 "Last turn" means the most recent batch of changes an agent made. Git can't work
 this out by itself, so the tool must record a turn snapshot (for example, a

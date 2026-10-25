@@ -1,12 +1,18 @@
 # 0016: The review UI's state is held in TanStack Store, updated through Immer
 
 - Status: Accepted, amended by
-  [0041](0041-the-review-ui-loads-data-with-tanstack-query.md)
+  [0041](0041-the-review-ui-loads-data-with-tanstack-query.md) and
+  [0045](0045-the-review-ui-computes-line-diffs-and-shows-one-continuous-diff.md)
 - Date: 2026-10-14
 
 > **Amended by [0041](0041-the-review-ui-loads-data-with-tanstack-query.md):**
 > data loaded from the review server is held in TanStack Query's cache, and
 > stores hold the reviewer's UI state and the draft review.
+
+> **Amended by
+> [0045](0045-the-review-ui-computes-line-diffs-and-shows-one-continuous-diff.md):**
+> `createImmerStore` is kept in `packages/ui/src/`, which answers "Where the
+> helper lives".
 
 ## Problem
 
