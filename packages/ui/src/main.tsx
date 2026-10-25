@@ -5,6 +5,7 @@ import { RouterProvider } from '@tanstack/react-router';
 import { queryClient } from './client.ts';
 import { createAppRouter } from './router.tsx';
 import { saveTokenFromUrl } from './token.ts';
+import './styles.css';
 
 saveTokenFromUrl();
 const router = createAppRouter();

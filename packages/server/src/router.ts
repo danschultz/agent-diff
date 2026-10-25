@@ -1,7 +1,12 @@
 // Implements the contract from @agent-diff/shared.
 import { implement, ORPCError } from '@orpc/server';
 import { contract } from '@agent-diff/shared/contract';
-import type { Store } from './store.ts';
+import {
+  ConflictError,
+  NotFoundError,
+  type Entity,
+  type Store,
+} from './store.ts';
 import {
   isDirectory,
   resolveWorkingDirectories,
@@ -13,8 +18,10 @@ export interface RouterOptions {
   env: NodeJS.ProcessEnv;
 }
 
-function notFound(id: string): ORPCError<'NOT_FOUND', unknown> {
-  return new ORPCError('NOT_FOUND', { message: `There's no session ${id}.` });
+// An ID that's malformed or names nothing (0040 and 0043), such as "There's
+// no review r_4m2x9p."
+function notFound(entity: Entity, id: string): ORPCError<'NOT_FOUND', unknown> {
+  return new ORPCError('NOT_FOUND', { message: `There's no ${entity} ${id}.` });
 }
 
 function archived(id: string): ORPCError<'CONFLICT', unknown> {
@@ -30,6 +37,19 @@ async function resolving<T>(work: Promise<T>): Promise<T> {
   } catch (error) {
     if (error instanceof WorkingDirectoryError) {
       throw new ORPCError('BAD_REQUEST', { message: error.message });
+    }
+    throw error;
+  }
+}
+
+// Reports the store's NotFoundError and ConflictError.
+function storing<T>(work: () => T): T {
+  try {
+    return work();
+  } catch (error) {
+    if (error instanceof NotFoundError) throw notFound(error.entity, error.id);
+    if (error instanceof ConflictError) {
+      throw new ORPCError('CONFLICT', { message: error.message });
     }
     throw error;
   }
@@ -56,7 +76,7 @@ export function createRouter(store: Store, { env }: RouterOptions) {
       }),
       add: os.session.add.handler(async ({ input }) => {
         const session = store.getSession(input.id);
-        if (!session) throw notFound(input.id);
+        if (!session) throw notFound('session', input.id);
         if (session.archivedAt !== null) throw archived(input.id);
         const workingDirectories = await resolving(
           resolveWorkingDirectories(input.workingDirectories, {
@@ -67,15 +87,17 @@ export function createRouter(store: Store, { env }: RouterOptions) {
         );
         // The session may have been archived or deleted while git ran.
         const added = store.addWorkingDirectories(input.id, workingDirectories);
-        if (added === undefined) throw notFound(input.id);
+        if (added === undefined) throw notFound('session', input.id);
         if (added === 'archived') throw archived(input.id);
         return added;
       }),
       show: os.session.show.handler(async ({ input }) => {
         const session = store.getSession(input.id);
-        if (!session) throw notFound(input.id);
+        if (!session) throw notFound('session', input.id);
+        const commentCounts = store.commentCounts(input.id);
         return {
           ...session,
+          commentCounts,
           workingDirectories: await Promise.all(
             session.workingDirectories.map(async (workingDirectory) => ({
               ...workingDirectory,
@@ -89,11 +111,43 @@ export function createRouter(store: Store, { env }: RouterOptions) {
       ),
       archive: os.session.archive.handler(({ input }) => {
         const result = store.archiveSession(input.id);
-        if (!result) throw notFound(input.id);
+        if (!result) throw notFound('session', input.id);
         return result;
       }),
       delete: os.session.delete.handler(({ input }) => {
-        if (!store.deleteSession(input.id)) throw notFound(input.id);
+        if (!store.deleteSession(input.id)) throw notFound('session', input.id);
+      }),
+    },
+    comment: {
+      add: os.comment.add.handler(({ input }) =>
+        storing(() => store.addComment(input.sessionId, input.text)),
+      ),
+      edit: os.comment.edit.handler(({ input }) =>
+        storing(() => store.editComment(input.id, input.text)),
+      ),
+      delete: os.comment.delete.handler(({ input }) =>
+        storing(() => store.deleteComment(input.id)),
+      ),
+      reply: os.comment.reply.handler(({ input }) =>
+        storing(() => store.reply(input.id, input.status, input.text)),
+      ),
+      resolve: os.comment.resolve.handler(({ input }) =>
+        storing(() => store.resolveComment(input.id)),
+      ),
+    },
+    review: {
+      submit: os.review.submit.handler(({ input }) =>
+        storing(() => store.submitReview(input.sessionId)),
+      ),
+      show: os.review.show.handler(({ input }) => {
+        const review = store.getReview(input.id);
+        if (!review) throw notFound('review', input.id);
+        return review;
+      }),
+      list: os.review.list.handler(({ input }) => {
+        const reviews = store.listReviews(input.sessionId);
+        if (!reviews) throw notFound('session', input.sessionId);
+        return reviews;
       }),
     },
   });

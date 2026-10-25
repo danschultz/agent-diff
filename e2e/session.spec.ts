@@ -19,7 +19,11 @@ async function expectSession(
   await expect(page.getByText(session.id, { exact: true })).toBeVisible();
   await expect(page.getByTestId('status')).toHaveText('Active');
   await expect(page.getByTestId('created')).toHaveText(/\d/);
-  await expect(page.getByRole('listitem')).toHaveText([
+  await expect(
+    page
+      .getByRole('list', { name: 'Working directories' })
+      .getByRole('listitem'),
+  ).toHaveText([
     `${session.repo} base ref main`,
     `${session.plain} doesn't use git`,
   ]);

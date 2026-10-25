@@ -3,6 +3,7 @@
 import { Crust } from '@crustjs/core';
 import { didYouMean, help } from '@crustjs/extensions';
 import { confirmInTerminal, type Confirm } from './confirm.ts';
+import { commentCommand, reviewCommand } from './commands/review.ts';
 import { serverCommand } from './commands/server.ts';
 import { sessionCommand } from './commands/session.ts';
 
@@ -28,5 +29,7 @@ export function createApp({
   })
     .extend(help(), didYouMean())
     .add(serverCommand({ env }))
-    .add(sessionCommand({ env, cwd, confirm }));
+    .add(sessionCommand({ env, cwd, confirm }))
+    .add(reviewCommand({ env }))
+    .add(commentCommand({ env }));
 }

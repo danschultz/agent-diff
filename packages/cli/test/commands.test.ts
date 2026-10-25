@@ -6,10 +6,15 @@ import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { test, type TestContext } from 'node:test';
 import { startReviewServer, type ReviewServer } from '@agent-diff/server';
+import { localDateTime } from '@agent-diff/shared/datetime';
 import { readConfig, statePaths } from '@agent-diff/shared/state';
 import { captureExecute } from '@crustjs/testing';
 import { createApp, type AppOptions } from '../src/app.ts';
-import { notRunningMessage, rejectedTokenMessage } from '../src/client.ts';
+import {
+  createClient,
+  notRunningMessage,
+  rejectedTokenMessage,
+} from '../src/client.ts';
 import {
   git,
   makeRepo,
@@ -247,6 +252,7 @@ test('session show prints the session, its status, its URL, and its working dire
         'Status: active',
         `Created: ${isoTimestamp}`,
         `Review UI: ${url(server, id).replace(/[.?+]/g, '\\$&')}`,
+        'No comments\\.',
         'Working directories:',
         `  ${repo} \\(base ref main\\)`,
         `  ${gone} \\(doesn't use git, missing on disk\\)`,
@@ -512,4 +518,226 @@ test('a directory inside a repo uses git, with the default base ref', async (t) 
   mkdirSync(inside);
   const result = await run(env, ['session', 'new', inside]);
   assert.match(result.stdout, new RegExp(`\n  ${inside} \\(base ref HEAD\\)$`));
+});
+
+// Writes comments in the session's draft review through the API, as the
+// review UI does, submits it, and returns the review's and comments' IDs.
+async function submitReview(
+  server: ReviewServer,
+  sessionId: string,
+  ...texts: string[]
+) {
+  const api = createClient(server.port, server.token);
+  const ids: string[] = [];
+  for (const text of texts) {
+    ids.push((await api.comment.add({ sessionId, text })).id);
+  }
+  const review = await api.review.submit({ sessionId });
+  return { api, review, ids };
+}
+
+test('review show prints the review in the shape decision 0043 gives', async (t) => {
+  const env = tempStateHome(t);
+  const server = await startServer(t, env);
+  const sessionId = await newSession(env, [tempDir(t)]);
+  const { api, review, ids } = await submitReview(
+    server,
+    sessionId,
+    'Split the migration into its own commit.',
+    'Use the config file for the port.',
+    'Rename it.',
+  );
+  await api.comment.reply({
+    id: ids[1]!,
+    status: 'addressed',
+    text: 'Read the port from the config file in server.ts.',
+  });
+  await api.comment.reply({
+    id: ids[2]!,
+    status: 'needs_input',
+    text: 'To what?',
+  });
+  await api.comment.add({ sessionId, text: 'Still in the draft review' });
+
+  assert.deepEqual(await run(env, ['review', 'show', review.id]), {
+    stdout: [
+      `Review ${review.id} in session ${sessionId}, submitted ${localDateTime(review.submittedAt)}.`,
+      'Address each comment, then reply to it with one of:',
+      '  agent-diff comment reply <comment-id> --addressed <what changed>',
+      '  agent-diff comment reply <comment-id> --needs-input <your question>',
+      '',
+      '## Overall comments',
+      '',
+      `### ${ids[0]} (open)`,
+      '',
+      'Reviewer: Split the migration into its own commit.',
+      '',
+      `### ${ids[1]} (addressed)`,
+      '',
+      'Reviewer: Use the config file for the port.',
+      'Agent, addressed: Read the port from the config file in server.ts.',
+      '',
+      `### ${ids[2]} (needs input)`,
+      '',
+      'Reviewer: Rename it.',
+      'Agent, needs input: To what?',
+    ].join('\n'),
+    stderr: '',
+    exitCode: 0,
+  });
+});
+
+test('review show works on an archived session, and shows resolved comments', async (t) => {
+  const env = tempStateHome(t);
+  const server = await startServer(t, env);
+  const sessionId = await newSession(env, [tempDir(t)]);
+  const { api, review, ids } = await submitReview(server, sessionId, 'One');
+  await api.comment.resolve({ id: ids[0]! });
+  await run(env, ['session', 'archive', sessionId]);
+  const shown = await run(env, ['review', 'show', review.id]);
+  assert.equal(shown.exitCode, 0, shown.stderr);
+  assert.match(shown.stdout, new RegExp(`\n### ${ids[0]} \\(resolved\\)\n`));
+});
+
+test('review show fails with a readable error for an unknown or malformed ID', async (t) => {
+  const env = tempStateHome(t);
+  await startServer(t, env);
+  for (const id of ['r_7kq9a1', 'nope']) {
+    assert.deepEqual(await run(env, ['review', 'show', id]), {
+      stdout: '',
+      stderr: `Error: There's no review ${id}.`,
+      exitCode: 1,
+    });
+  }
+});
+
+test('comment reply adds the reply, sets the status from its flag, and works twice in a row', async (t) => {
+  const env = tempStateHome(t);
+  const server = await startServer(t, env);
+  const sessionId = await newSession(env, [tempDir(t)]);
+  const { api, review, ids } = await submitReview(server, sessionId, 'One');
+  const id = ids[0]!;
+  assert.deepEqual(
+    await run(env, ['comment', 'reply', id, '--addressed', 'Done.']),
+    {
+      stdout: `Replied to ${id}. It's now addressed.`,
+      stderr: '',
+      exitCode: 0,
+    },
+  );
+  assert.deepEqual(
+    await run(env, ['comment', 'reply', id, '--needs-input', 'Which one?']),
+    {
+      stdout: `Replied to ${id}. It now needs input.`,
+      stderr: '',
+      exitCode: 0,
+    },
+  );
+  const [comment] = (await api.review.show({ id: review.id })).comments;
+  assert.equal(comment!.status, 'needs_input');
+  assert.deepEqual(
+    comment!.replies.map((reply) => [reply.status, reply.text]),
+    [
+      ['addressed', 'Done.'],
+      ['needs_input', 'Which one?'],
+    ],
+  );
+});
+
+test('comment reply works on a resolved comment', async (t) => {
+  const env = tempStateHome(t);
+  const server = await startServer(t, env);
+  const sessionId = await newSession(env, [tempDir(t)]);
+  const { api, ids } = await submitReview(server, sessionId, 'One');
+  await api.comment.resolve({ id: ids[0]! });
+  assert.deepEqual(
+    await run(env, ['comment', 'reply', ids[0]!, '--addressed', 'Done.']),
+    {
+      stdout: `Replied to ${ids[0]}. It's now addressed.`,
+      stderr: '',
+      exitCode: 0,
+    },
+  );
+});
+
+test('comment reply needs exactly one of --addressed and --needs-input', async (t) => {
+  const env = tempStateHome(t);
+  const server = await startServer(t, env);
+  const sessionId = await newSession(env, [tempDir(t)]);
+  const { api, review, ids } = await submitReview(server, sessionId, 'One');
+  for (const flags of [
+    [],
+    ['--addressed', 'Done.', '--needs-input', 'Which?'],
+  ]) {
+    assert.deepEqual(
+      await run(env, ['comment', 'reply', ids[0]!, ...flags]),
+      {
+        stdout: '',
+        stderr: 'Error: Give exactly one of --addressed and --needs-input.',
+        exitCode: 1,
+      },
+      flags.join(' '),
+    );
+  }
+  assert.deepEqual(
+    await run(env, ['comment', 'reply', ids[0]!, '--addressed', ' ']),
+    { stdout: '', stderr: 'Error: The reply must not be empty.', exitCode: 1 },
+  );
+  const [comment] = (await api.review.show({ id: review.id })).comments;
+  assert.deepEqual([comment!.status, comment!.replies], ['open', []]);
+});
+
+test('comment reply fails on a comment in the draft review, on an archived session, and for an unknown or malformed ID', async (t) => {
+  const env = tempStateHome(t);
+  const server = await startServer(t, env);
+  const sessionId = await newSession(env, [tempDir(t)]);
+  const { api, ids } = await submitReview(server, sessionId, 'One');
+  const draft = await api.comment.add({ sessionId, text: 'Draft' });
+  for (const id of [draft.id, 'c_7kq9a1', 'nope']) {
+    assert.deepEqual(
+      await run(env, ['comment', 'reply', id, '--addressed', 'Done.']),
+      { stdout: '', stderr: `Error: There's no comment ${id}.`, exitCode: 1 },
+    );
+  }
+  await run(env, ['session', 'archive', sessionId]);
+  assert.deepEqual(
+    await run(env, ['comment', 'reply', ids[0]!, '--needs-input', 'Why?']),
+    {
+      stdout: '',
+      stderr: `Error: Session ${sessionId} is archived, so its comments can't be replied to.`,
+      exitCode: 1,
+    },
+  );
+});
+
+test('session show counts submitted comments by status, leaving out the draft review', async (t) => {
+  const env = tempStateHome(t);
+  const server = await startServer(t, env);
+  const sessionId = await newSession(env, [tempDir(t)]);
+  const commentsLine = async () =>
+    /^.*comments?.*$/m.exec(
+      (await run(env, ['session', 'show', sessionId])).stdout,
+    )?.[0];
+  const first = await submitReview(server, sessionId, 'A');
+  assert.equal(await commentsLine(), '1 comment: 1 open.');
+  const { api, ids } = await submitReview(
+    server,
+    sessionId,
+    'B',
+    'C',
+    'D',
+    'E',
+  );
+  const [b, c, d, e] = ids;
+  await api.comment.reply({ id: b!, status: 'addressed', text: 'Done.' });
+  await api.comment.reply({ id: c!, status: 'needs_input', text: '?' });
+  await api.comment.resolve({ id: d! });
+  await api.comment.resolve({ id: e! });
+  await api.comment.add({ sessionId, text: 'In the draft review' });
+  assert.equal(
+    await commentsLine(),
+    '5 comments: 1 open, 1 addressed, 1 needs input, 2 resolved.',
+  );
+  for (const id of [first.ids[0]!, b!, c!]) await api.comment.resolve({ id });
+  assert.equal(await commentsLine(), '5 comments: 5 resolved.');
 });

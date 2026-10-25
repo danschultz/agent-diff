@@ -1,0 +1,98 @@
+/* The review UI's layout. The session page puts the comment panel on the
+   right, and leaves the rest of the width for the file view and the diff. */
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  line-height: 1.4;
+}
+
+.session-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+  min-height: 100vh;
+}
+
+.session-page > main {
+  padding: 0 1.5rem;
+}
+
+.comment-panel {
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 0 1rem 1rem;
+  border-left: 1px solid #d0d7de;
+  background: #f6f8fa;
+}
+
+.comment-panel h2 {
+  font-size: 1.1rem;
+}
+
+.comment-panel ol,
+.comment-panel ul {
+  list-style: none;
+  padding: 0;
+}
+
+.comment-panel textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 4rem;
+  margin: 0.25rem 0 0.5rem;
+  font: inherit;
+}
+
+/* Comments and replies are plain text, so their line breaks are kept. */
+.comment-panel .text,
+.review-message {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.thread,
+.reviews > li,
+.comment-panel ul > li {
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.thread-entries > li {
+  margin: 0.25rem 0;
+}
+
+.status {
+  font-size: 0.85em;
+  color: #57606a;
+}
+
+.one-line {
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+details[open] > .one-line {
+  white-space: normal;
+}
+
+.submit-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid #d0d7de;
+}
+
+.review-message {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85em;
+}

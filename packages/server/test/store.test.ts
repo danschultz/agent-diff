@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { test, type TestContext } from 'node:test';
-import { newSessionId } from '../src/ids.ts';
+import { newCommentId, newReviewId, newSessionId } from '../src/ids.ts';
 import { migrate } from '../src/migrate.ts';
 import { openDatabase, Store } from '../src/store.ts';
 import { tempDir } from './helpers.ts';
@@ -14,12 +14,8 @@ async function migrated(t: TestContext): Promise<string> {
   return database;
 }
 
-function store(
-  t: TestContext,
-  database: string,
-  options?: ConstructorParameters<typeof Store>[1],
-): Store {
-  const store = new Store(database, options);
+function store(t: TestContext, database: string): Store {
+  const store = new Store(database);
   t.after(() => store.close());
   return store;
 }
@@ -54,25 +50,6 @@ test('session IDs are s_ and 6 lowercase Crockford base32 characters', () => {
     [...characters].sort().join(''),
     '0123456789abcdefghjkmnpqrstvwxyz',
   );
-});
-
-test('a session ID that is already taken is generated again', async (t) => {
-  const ids = ['s_aaaaaa', 's_aaaaaa', 's_aaaaaa', 's_bbbbbb'];
-  const generated: string[] = [];
-  const sessions = store(t, await migrated(t), {
-    newSessionId: () => {
-      generated.push(ids[generated.length]!);
-      return generated.at(-1)!;
-    },
-  });
-  const first = sessions.createSession({ title: null, workingDirectories: [] });
-  const second = sessions.createSession({
-    title: null,
-    workingDirectories: [],
-  });
-  assert.equal(first.id, 's_aaaaaa');
-  assert.equal(second.id, 's_bbbbbb');
-  assert.equal(generated.length, 4);
 });
 
 test("deleting a session's row deletes its memberships through the foreign key", async (t) => {
@@ -121,4 +98,85 @@ test('deleting a session deletes the working directories left in no session', as
       .map((row) => row.path),
     ['/shared'],
   );
+});
+
+const commentIdPattern = /^c_[0-9abcdefghjkmnpqrstvwxyz]{6}$/;
+const reviewIdPattern = /^r_[0-9abcdefghjkmnpqrstvwxyz]{6}$/;
+
+test('comment and review IDs are c_ and r_ and 6 lowercase Crockford base32 characters', () => {
+  for (const [newId, pattern] of [
+    [newCommentId, commentIdPattern],
+    [newReviewId, reviewIdPattern],
+  ] as const) {
+    const ids = new Set<string>();
+    for (let i = 0; i < 1000; i += 1) {
+      const id = newId();
+      assert.match(id, pattern);
+      ids.add(id);
+    }
+    const characters = new Set([...ids].flatMap((id) => [...id.slice(2)]));
+    assert.equal(
+      [...characters].sort().join(''),
+      '0123456789abcdefghjkmnpqrstvwxyz',
+    );
+  }
+});
+
+test('a session has at most one draft review, and writing after a submit starts a new one', async (t) => {
+  const database = await migrated(t);
+  const reviews = store(t, database);
+  const { id } = reviews.createSession({ title: null, workingDirectories: [] });
+  reviews.addComment(id, 'One');
+  reviews.addComment(id, 'Two');
+  const db = openDatabase(database);
+  t.after(() => db.close());
+  const drafts = () =>
+    db
+      .prepare(
+        'SELECT id FROM reviews WHERE session_id = ? AND submitted_at IS NULL',
+      )
+      .all(id);
+  assert.equal(drafts().length, 1);
+  assert.throws(
+    () => db.prepare('INSERT INTO reviews (session_id) VALUES (?)').run(id),
+    /UNIQUE constraint failed/,
+  );
+
+  const first = reviews.submitReview(id);
+  assert.equal(drafts().length, 0);
+  const third = reviews.addComment(id, 'Three');
+  assert.equal(drafts().length, 1);
+  const second = reviews.submitReview(id);
+  assert.notEqual(second.id, first.id);
+  assert.deepEqual(
+    reviews.getReview(second.id)!.comments.map((comment) => comment.id),
+    [third.id],
+  );
+  assert.deepEqual(
+    reviews.listReviews(id)!.reviews.map((review) => review.id),
+    [second.id, first.id],
+  );
+});
+
+test("deleting a session's row deletes its reviews, comments, and replies through foreign keys", async (t) => {
+  const database = await migrated(t);
+  const reviews = store(t, database);
+  const { id } = reviews.createSession({ title: null, workingDirectories: [] });
+  const other = reviews.createSession({ title: null, workingDirectories: [] });
+  const comment = reviews.addComment(id, 'Submitted');
+  reviews.submitReview(id);
+  reviews.reply(comment.id, 'addressed', 'Done.');
+  reviews.addComment(id, 'In the draft review');
+  reviews.addComment(other.id, 'Kept');
+  const db = openDatabase(database);
+  t.after(() => db.close());
+  db.prepare('DELETE FROM sessions WHERE id = ?').run(id);
+  for (const table of ['reviews', 'comments']) {
+    assert.equal(
+      db.prepare(`SELECT count(*) AS n FROM ${table}`).get()!.n,
+      1,
+      table,
+    );
+  }
+  assert.equal(db.prepare('SELECT count(*) AS n FROM replies').get()!.n, 0);
 });

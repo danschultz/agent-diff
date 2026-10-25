@@ -1,7 +1,12 @@
 # 0040: Sessions have short IDs, and cover working directories by real path, each with its own base ref
 
-- Status: Accepted
+- Status: Accepted, amended by
+  [0046](0046-generated-ids-arent-checked-for-collisions.md)
 - Date: 2026-10-22
+
+> **Amended by [0046](0046-generated-ids-arent-checked-for-collisions.md):** an
+> ID that's already taken isn't generated again. A collision fails the insert,
+> and the risk is accepted for now.
 
 ## Problem
 
