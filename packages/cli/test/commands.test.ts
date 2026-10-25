@@ -6,6 +6,7 @@ import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { test, type TestContext } from 'node:test';
 import { startReviewServer, type ReviewServer } from '@agent-diff/server';
+import { localDateTime } from '@agent-diff/shared/datetime';
 import { readConfig, statePaths } from '@agent-diff/shared/state';
 import { captureExecute } from '@crustjs/testing';
 import { createApp, type AppOptions } from '../src/app.ts';
@@ -535,13 +536,6 @@ async function submitReview(
   return { api, review, ids };
 }
 
-// The decision's time format, in the local time zone.
-function localTime(iso: string): string {
-  const date = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
 test('review show prints the review in the shape decision 0043 gives', async (t) => {
   const env = tempStateHome(t);
   const server = await startServer(t, env);
@@ -567,7 +561,7 @@ test('review show prints the review in the shape decision 0043 gives', async (t)
 
   assert.deepEqual(await run(env, ['review', 'show', review.id]), {
     stdout: [
-      `Review ${review.id} in session ${sessionId}, submitted ${localTime(review.submittedAt)}.`,
+      `Review ${review.id} in session ${sessionId}, submitted ${localDateTime(review.submittedAt)}.`,
       'Address each comment, then reply to it with one of:',
       '  agent-diff comment reply <comment-id> --addressed <what changed>',
       '  agent-diff comment reply <comment-id> --needs-input <your question>',

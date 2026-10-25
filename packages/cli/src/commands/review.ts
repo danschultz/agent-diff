@@ -1,6 +1,7 @@
 // `agent-diff review` and `agent-diff comment` commands, from decisions 0036,
 // 0038, and 0043. Their output is plain text written for agents.
 import { defineCommand } from '@crustjs/core';
+import { localDateTime } from '@agent-diff/shared/datetime';
 import {
   commentStatusLabels as statusLabels,
   type ReviewDetails,
@@ -11,18 +12,11 @@ export interface ReviewCommandOptions {
   env: NodeJS.ProcessEnv;
 }
 
-// A time in the local time zone, such as `2026-10-22 14:03`.
-function localTime(iso: string): string {
-  const date = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
 // The review in the shape 0043 gives: a header saying how to reply, then
 // each overall comment with its status and its whole thread.
 function formatReview(review: ReviewDetails): string {
   const lines = [
-    `Review ${review.id} in session ${review.sessionId}, submitted ${localTime(review.submittedAt)}.`,
+    `Review ${review.id} in session ${review.sessionId}, submitted ${localDateTime(review.submittedAt)}.`,
     'Address each comment, then reply to it with one of:',
     '  agent-diff comment reply <comment-id> --addressed <what changed>',
     '  agent-diff comment reply <comment-id> --needs-input <your question>',

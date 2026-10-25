@@ -220,17 +220,21 @@ test('review show and comment reply work against a real review server, with time
   const comment = await api.comment.add({ sessionId, text: 'Fix it.' });
   const review = await api.review.submit({ sessionId });
 
-  // India is 5 hours 30 minutes ahead of UTC, with no daylight saving time.
-  const local = new Date(Date.parse(review.submittedAt) + 330 * 60_000)
-    .toISOString()
-    .slice(0, 16)
-    .replace('T', ' ');
+  // The CLI prints times in its own time zone and locale, here India in
+  // en-US, which is 5 hours 30 minutes ahead of UTC.
+  const local = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(review.submittedAt));
   const header = `Review ${review.id} in session ${sessionId}, submitted ${local}.\n`;
-  const shown = await runCli({ ...env, TZ: 'Asia/Kolkata' }, [
-    'review',
-    'show',
-    review.id,
-  ]);
+  const shown = await runCli(
+    { ...env, LANG: 'en_US.UTF-8', TZ: 'Asia/Kolkata' },
+    ['review', 'show', review.id],
+  );
   assert.equal(shown.exitCode, 0, shown.stderr);
   assert.ok(shown.stdout.startsWith(header), shown.stdout);
   assert.ok(
