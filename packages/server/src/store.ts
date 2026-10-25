@@ -36,33 +36,28 @@ export interface StoreOptions {
   newReviewId?: () => string;
 }
 
-// Why a change to a session's comments or reviews was refused, with a message
-// naming what was asked for. The router reports it with the same code.
-export class StoreError extends Error {
-  readonly code: 'NOT_FOUND' | 'CONFLICT';
+// The kinds of things an ID can name.
+export type Entity = 'session' | 'comment' | 'review';
 
-  constructor(code: 'NOT_FOUND' | 'CONFLICT', message: string) {
-    super(message);
-    this.code = code;
+// Thrown when an ID names nothing. The router reports it with its message.
+export class NotFoundError extends Error {
+  readonly entity: Entity;
+  readonly id: string;
+
+  constructor(entity: Entity, id: string) {
+    super(`${entity} ${id} not found`);
+    this.entity = entity;
+    this.id = id;
   }
 }
 
-function noSession(id: string): StoreError {
-  return new StoreError('NOT_FOUND', `There's no session ${id}.`);
-}
-
-// Agents can't see comments in the draft review, so asking for one as a
-// submitted comment fails as if it didn't exist.
-function noComment(id: string): StoreError {
-  return new StoreError('NOT_FOUND', `There's no comment ${id}.`);
-}
+// Why a change to a session's comments or reviews was refused, with a message
+// naming what was asked for. The router reports it as a conflict.
+export class ConflictError extends Error {}
 
 // An archived session is read-only (0043).
-function archived(sessionId: string, refused: string): StoreError {
-  return new StoreError(
-    'CONFLICT',
-    `Session ${sessionId} is archived, so ${refused}.`,
-  );
+function archived(sessionId: string, refused: string): ConflictError {
+  return new ConflictError(`Session ${sessionId} is archived, so ${refused}.`);
 }
 
 export interface NewSession {
@@ -320,7 +315,7 @@ export class Store {
   // when it's archived, saying what was refused.
   #activeSession(id: string, refused: string): SessionRow {
     const row = this.#sessionRow(id);
-    if (!row) throw noSession(id);
+    if (!row) throw new NotFoundError('session', id);
     if (row.archived_at !== null) throw archived(id, refused);
     return row;
   }
@@ -336,13 +331,12 @@ export class Store {
   // submitted, saying what was refused.
   #draftCommentRow(id: string, verb: 'edited' | 'deleted'): CommentRow {
     const row = this.#commentRow(id);
-    if (!row) throw noComment(id);
+    if (!row) throw new NotFoundError('comment', id);
     if (row.archived_at !== null) {
       throw archived(row.session_id, "its draft review can't be changed");
     }
     if (row.review_id !== null) {
-      throw new StoreError(
-        'CONFLICT',
+      throw new ConflictError(
         `Comment ${id} has been submitted, so it can't be ${verb}.`,
       );
     }
@@ -350,10 +344,11 @@ export class Store {
   }
 
   // A submitted comment in an active session. Fails when there's no such
-  // comment, or it's in the draft review, and when its session is archived.
+  // comment, and when its session is archived. Agents can't see comments in
+  // the draft review, so one fails as if it didn't exist.
   #submittedCommentRow(id: string, refused: string): CommentRow {
     const row = this.#commentRow(id);
-    if (!row || row.review_id === null) throw noComment(id);
+    if (!row || row.review_id === null) throw new NotFoundError('comment', id);
     if (row.archived_at !== null) throw archived(row.session_id, refused);
     return row;
   }
@@ -479,8 +474,7 @@ export class Store {
         )
         .get(sessionId) as unknown as { id: number } | undefined;
       if (!draft) {
-        throw new StoreError(
-          'CONFLICT',
+        throw new ConflictError(
           `The draft review in session ${sessionId} is empty, so it can't be submitted.`,
         );
       }
