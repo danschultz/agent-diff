@@ -377,6 +377,16 @@ test('every procedure rejects a call without the right token with 401', async (t
       show: (api) => api.review.show({ id: review.id }),
       list: (api) => api.review.list({ sessionId: id }),
     },
+    diff: {
+      files: (api) => api.diff.files({ sessionId: id, mode: 'all' }),
+      contents: (api) =>
+        api.diff.contents({
+          sessionId: id,
+          mode: 'all',
+          workingDirectory: dir,
+          path: 'a.txt',
+        }),
+    },
   };
   const procedures = flatten(calls);
   assert.deepEqual(
@@ -397,6 +407,8 @@ test('every procedure rejects a call without the right token with 401', async (t
       'review.submit',
       'review.show',
       'review.list',
+      'diff.files',
+      'diff.contents',
     ],
   );
   for (const [procedure, call] of procedures) {

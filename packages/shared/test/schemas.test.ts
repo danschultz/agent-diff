@@ -4,7 +4,9 @@ import * as v from 'valibot';
 import {
   AddCommentInput,
   AddWorkingDirectoriesInput,
+  DiffFilesInput,
   EditCommentInput,
+  FileContentsInput,
   ListSessionsInput,
   NewSessionInput,
   ReplyInput,
@@ -158,5 +160,35 @@ test("a reply's status is addressed or needs input", () => {
       ["The reply's status must be addressed or needs_input."],
       String(status),
     );
+  }
+});
+
+test('the diff procedures accept only the All changes diff mode', () => {
+  assert.ok(v.is(DiffFilesInput, { sessionId: 's_1', mode: 'all' }));
+  for (const mode of ['staged', 'committed', 'unstaged', 'last-turn', '']) {
+    assert.deepEqual(messages(DiffFilesInput, { sessionId: 's_1', mode }), [
+      `The diff mode "${mode}" isn't supported. Only all, for All changes, is.`,
+    ]);
+  }
+});
+
+test('file contents accept only relative paths without ..', () => {
+  const input = { sessionId: 's_1', mode: 'all', workingDirectory: '/repo' };
+  for (const path of ['a.ts', 'src/a.ts', '.env', 'a..b/c', '...']) {
+    assert.ok(v.is(FileContentsInput, { ...input, path }), path);
+  }
+  for (const [path, message] of [
+    ['', 'The file path must not be empty.'],
+    [
+      '/etc/passwd',
+      'The file path /etc/passwd must be relative to its working directory.',
+    ],
+    ['..', 'The file path .. must not contain "..".'],
+    ['../a', 'The file path ../a must not contain "..".'],
+    ['src/../../a', 'The file path src/../../a must not contain "..".'],
+  ] as const) {
+    assert.deepEqual(messages(FileContentsInput, { ...input, path }), [
+      message,
+    ]);
   }
 });
