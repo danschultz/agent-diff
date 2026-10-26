@@ -19,8 +19,11 @@ test('a final newline on only one side is kept, since it changed', () => {
   assert.deepEqual(editorTexts(text('a\n'), text('a')), ['a\n', 'a']);
 });
 
-test("a side that isn't there is empty, and doesn't keep the other's newline", () => {
-  assert.deepEqual(editorTexts(null, text('a\n')), ['', 'a']);
-  assert.deepEqual(editorTexts(text('a\n'), null), ['a', '']);
-  assert.deepEqual(editorTexts(null, text('a')), ['', 'a']);
+test("a side that isn't there is empty, and the other side ends with a newline", () => {
+  // CodeMirror's empty document has one empty line, which then lines up with
+  // the other side's empty last line, rather than showing as changed.
+  assert.deepEqual(editorTexts(null, text('a\n')), ['', 'a\n']);
+  assert.deepEqual(editorTexts(text('a\n'), null), ['a\n', '']);
+  assert.deepEqual(editorTexts(null, text('a')), ['', 'a\n']);
+  assert.deepEqual(editorTexts(text('a'), null), ['a\n', '']);
 });

@@ -125,6 +125,15 @@ test('every changed file shows in one diff, with its status and line counts', as
     'untrackeduntracked.md+3 −0',
   ]);
   await expect(editors(page)).toHaveCount(4);
+  // An added file's lines are all added, and none removed.
+  const untracked = file(changes, 'untracked.md');
+  await expect(untracked.locator('.cm-line')).toHaveText([
+    '# New',
+    '',
+    'Text',
+    '',
+  ]);
+  await expect(untracked.locator('.cm-deletedLine')).toHaveCount(0);
 });
 
 test('a diff has 3 lines of context, and old line numbers on removed lines', async ({
@@ -269,9 +278,12 @@ test('TypeScript is highlighted, and a file with an unknown extension is plain t
   const tokens = (name: string) =>
     file(page, name).locator('.cm-content span[class^="ͼ"]');
   await expect(tokens('a.ts').first()).toBeVisible();
-  await expect(file(page, 'a.unknown-ext').locator('.cm-line')).toHaveText(
+  // An added file ends with an empty line, which lines up with the empty
+  // old side's one line.
+  await expect(file(page, 'a.unknown-ext').locator('.cm-line')).toHaveText([
     code.trim(),
-  );
+    '',
+  ]);
   await expect(tokens('a.unknown-ext')).toHaveCount(0);
 });
 
