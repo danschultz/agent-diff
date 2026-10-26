@@ -28,6 +28,7 @@ const binaryCheckBytes = 8000;
 const untrackedReads = 16;
 
 const submoduleMode = '160000';
+const symlinkMode = '120000';
 
 // Why a file's contents can't be returned, such as a path that isn't in its
 // working directory's file list.
@@ -63,15 +64,9 @@ interface TrackedChange {
   removed: number | null;
 }
 
-type Changes =
-  | {
-      kind: 'git';
-      mergeBase: string | null;
-      tracked: TrackedChange[];
-      // Paths from `git ls-files --others`. A repo inside the working
-      // directory ends with `/`.
-      untracked: string[];
-    }
+// What a working directory's diff compares from, or why it has none.
+type Base =
+  | { kind: 'git'; mergeBase: string | null; from: string }
   | { kind: 'error'; message: string }
   | { kind: 'no_git' }
   | { kind: 'missing' };
@@ -195,69 +190,92 @@ function parseDiff(output: string): TrackedChange[] {
   return [...changes.values()];
 }
 
-async function changes(
+async function diffBase(
   workingDirectory: WorkingDirectory,
   env: NodeJS.ProcessEnv,
-): Promise<Changes> {
+): Promise<Base> {
   const { path: dir, baseRef } = workingDirectory;
   if (!(await isDirectory(dir))) return { kind: 'missing' };
   if (baseRef === null) return { kind: 'no_git' };
   const sides = await base(dir, baseRef, env);
   if ('error' in sides) return { kind: 'error', message: sides.error };
-  // Git runs in the working directory, and `--relative` limits a working
-  // directory inside a repo to its own files, with paths relative to it.
-  const [diff, others] = await Promise.all([
-    runGit(
-      dir,
-      [
-        'diff-index',
-        '--raw',
-        '--numstat',
-        '-z',
-        '-M',
-        '--no-abbrev',
-        '--relative',
-        sides.from,
-        '--',
-      ],
-      env,
-    ),
-    runGit(dir, ['ls-files', '-z', '--others', '--exclude-standard'], env),
-  ]);
-  if (diff.code !== 0) {
-    return { kind: 'error', message: gitError(dir, diff.stderr) };
-  }
-  if (others.code !== 0) {
-    return { kind: 'error', message: gitError(dir, others.stderr) };
-  }
-  const tracked = await withoutUnchanged(dir, parseDiff(diff.stdout), env);
-  if ('error' in tracked) return { kind: 'error', message: tracked.error };
-  return {
-    kind: 'git',
-    mergeBase: sides.mergeBase,
-    tracked,
-    untracked: others.stdout.split('\0').filter(Boolean),
-  };
+  return { kind: 'git', ...sides };
+}
+
+// The tracked files that differ between from and the working tree, with
+// their line counts when numstat is set. Git runs in the working directory,
+// and `--relative` limits a working directory inside a repo to its own
+// files, with paths relative to it. Without `--numstat`, git compares files
+// by their modification times, and reads no contents except to find renames.
+async function trackedChanges(
+  dir: string,
+  from: string,
+  numstat: boolean,
+  env: NodeJS.ProcessEnv,
+): Promise<TrackedChange[] | { error: string }> {
+  const diff = await runGit(
+    dir,
+    [
+      'diff-index',
+      '--raw',
+      ...(numstat ? ['--numstat'] : []),
+      '-z',
+      '-M',
+      '--no-abbrev',
+      '--relative',
+      from,
+      '--',
+    ],
+    env,
+  );
+  if (diff.code !== 0) return { error: gitError(dir, diff.stderr) };
+  return parseDiff(diff.stdout);
 }
 
 const noObject = /^0+$/;
 
 // diff-index lists every file whose modification time no longer matches the
-// index as modified, as `git diff` would before refreshing the index. This
-// leaves out the ones whose contents are the same as the old side's, as
-// `git diff` does: text files `--numstat` didn't list, and binary files
-// whose contents hash to the old side's object. `git hash-object` without
-// `-w` writes nothing.
+// index as modified, as `git diff` would before refreshing the index, with
+// no new object. These are the ones that may have the same contents as the
+// old side.
+function maybeUnchanged(change: TrackedChange): boolean {
+  return (
+    change.status === 'modified' &&
+    change.oldMode === change.newMode &&
+    change.oldMode !== submoduleMode &&
+    noObject.test(change.newObject)
+  );
+}
+
+// Whether a file in the working tree has the same contents as its old side,
+// hashed as git would store it, through its filters. A symlink is hashed as
+// its target. `git hash-object` without `-w` writes nothing.
+async function sameAsOldSide(
+  dir: string,
+  change: TrackedChange,
+  env: NodeJS.ProcessEnv,
+): Promise<boolean | { error: string }> {
+  const hashed =
+    change.oldMode === symlinkMode
+      ? await runGit(
+          dir,
+          ['hash-object', '--stdin'],
+          env,
+          await readlink(path.join(dir, change.path)),
+        )
+      : await runGit(dir, ['hash-object', '--', change.path], env);
+  if (hashed.code !== 0) return { error: gitError(dir, hashed.stderr) };
+  return hashed.stdout.trim() === change.oldObject;
+}
+
+// Leaves out the files whose modification time changed but not their
+// contents, as `git diff` does: text files `--numstat` didn't list, and
+// binary files whose contents hash to the old side's object.
 async function withoutUnchanged(
   dir: string,
   changes: TrackedChange[],
   env: NodeJS.ProcessEnv,
 ): Promise<TrackedChange[] | { error: string }> {
-  const maybeUnchanged = (change: TrackedChange) =>
-    change.status === 'modified' &&
-    change.oldMode === change.newMode &&
-    change.oldMode !== submoduleMode &&
-    noObject.test(change.newObject);
   const binary = changes.filter(
     (change) =>
       maybeUnchanged(change) && change.counted && change.added === null,
@@ -344,19 +362,30 @@ export async function workingDirectoryDiff(
   env: NodeJS.ProcessEnv,
 ): Promise<WorkingDirectoryDiff> {
   const { path: dir, baseRef } = workingDirectory;
-  const result = await changes(workingDirectory, env);
-  if (result.kind === 'missing') return { kind: 'missing', path: dir, baseRef };
-  if (result.kind === 'no_git' || baseRef === null) {
+  const sides = await diffBase(workingDirectory, env);
+  if (sides.kind === 'missing') return { kind: 'missing', path: dir, baseRef };
+  if (sides.kind === 'no_git' || baseRef === null) {
     return { kind: 'no_git', path: dir };
   }
-  if (result.kind === 'error') {
-    return { kind: 'error', path: dir, baseRef, message: result.message };
-  }
-  const untracked = await mapLimit(result.untracked, untrackedReads, (file) =>
-    untrackedFile(dir, file),
+  const error = (message: string) =>
+    ({ kind: 'error', path: dir, baseRef, message }) as const;
+  if (sides.kind === 'error') return error(sides.message);
+  const [changes, others] = await Promise.all([
+    trackedChanges(dir, sides.from, true, env),
+    runGit(dir, ['ls-files', '-z', '--others', '--exclude-standard'], env),
+  ]);
+  if ('error' in changes) return error(changes.error);
+  if (others.code !== 0) return error(gitError(dir, others.stderr));
+  const tracked = await withoutUnchanged(dir, changes, env);
+  if ('error' in tracked) return error(tracked.error);
+  // A repo inside the working directory ends with `/`.
+  const untracked = await mapLimit(
+    others.stdout.split('\0').filter(Boolean),
+    untrackedReads,
+    (file) => untrackedFile(dir, file),
   );
   const files: ChangedFile[] = [
-    ...result.tracked.map(({ path, oldPath, status, added, removed }) => ({
+    ...tracked.map(({ path, oldPath, status, added, removed }) => ({
       path,
       oldPath,
       status,
@@ -369,7 +398,7 @@ export async function workingDirectoryDiff(
     kind: 'git',
     path: dir,
     baseRef,
-    mergeBase: result.mergeBase,
+    mergeBase: sides.mergeBase,
     files: files.sort(byPath),
   };
 }
@@ -408,27 +437,66 @@ async function objectSide(
   return sideFromData(blob.data);
 }
 
+// Whether git lists file as untracked, without listing every untracked file.
+async function isUntracked(
+  dir: string,
+  file: string,
+  env: NodeJS.ProcessEnv,
+): Promise<boolean | { error: string }> {
+  const others = await runGit(
+    dir,
+    [
+      '--literal-pathspecs',
+      'ls-files',
+      '-z',
+      '--others',
+      '--exclude-standard',
+      '--',
+      file,
+    ],
+    env,
+  );
+  if (others.code !== 0) return { error: gitError(dir, others.stderr) };
+  // A repo inside the working directory ends with `/`.
+  return others.stdout
+    .split('\0')
+    .some((listed) => listed === file || listed === `${file}/`);
+}
+
 // The old and new sides of a file in a working directory's All changes file
-// list. Throws a FileContentsError when the path isn't in the list.
+// list. Throws a FileContentsError when the path isn't in the list. It finds
+// the file as the file list does, but without counting lines, which reads
+// every changed file, so a request for one file doesn't grow with the
+// number of changed files.
 export async function fileContents(
   workingDirectory: WorkingDirectory,
   file: string,
   env: NodeJS.ProcessEnv,
 ): Promise<FileContents> {
   const { path: dir } = workingDirectory;
-  const result = await changes(workingDirectory, env);
-  if (result.kind === 'missing') {
+  const sides = await diffBase(workingDirectory, env);
+  if (sides.kind === 'missing') {
     throw new FileContentsError(`The working directory ${dir} doesn't exist.`);
   }
-  if (result.kind === 'no_git') {
+  if (sides.kind === 'no_git') {
     throw new FileContentsError(
       `${dir} doesn't use git, so it has no file list.`,
     );
   }
-  if (result.kind === 'error') throw new FileContentsError(result.message);
+  if (sides.kind === 'error') throw new FileContentsError(sides.message);
+  const changes = await trackedChanges(dir, sides.from, false, env);
+  if ('error' in changes) throw new FileContentsError(changes.error);
+  const notListed = new FileContentsError(
+    `${file} isn't in the file list for ${dir}.`,
+  );
 
   const full = path.join(dir, file);
-  const tracked = result.tracked.find((change) => change.path === file);
+  const tracked = changes.find((change) => change.path === file);
+  if (tracked && maybeUnchanged(tracked)) {
+    const same = await sameAsOldSide(dir, tracked, env);
+    if (typeof same !== 'boolean') throw new FileContentsError(same.error);
+    if (same) throw notListed;
+  }
   if (tracked) {
     const oldSide = async (): Promise<FileSide | null> => {
       if (tracked.status === 'added' || /^0+$/.test(tracked.oldMode)) {
@@ -437,8 +505,8 @@ export async function fileContents(
       if (tracked.oldMode === submoduleMode) return { type: 'submodule' };
       // An unmerged path has no object in the raw output, so it's looked up
       // by its path, relative to the working directory.
-      const object = /^0+$/.test(tracked.oldObject)
-        ? `${result.mergeBase}:./${tracked.oldPath ?? tracked.path}`
+      const object = noObject.test(tracked.oldObject)
+        ? `${sides.mergeBase}:./${tracked.oldPath ?? tracked.path}`
         : tracked.oldObject;
       return objectSide(dir, object, env);
     };
@@ -453,11 +521,10 @@ export async function fileContents(
     ]);
     return { old: oldContents, new: newContents };
   }
-  if (
-    result.untracked.includes(file) ||
-    result.untracked.includes(`${file}/`)
-  ) {
-    return { old: null, new: await diskSide(full) };
+  const untracked = await isUntracked(dir, file, env);
+  if (typeof untracked !== 'boolean') {
+    throw new FileContentsError(untracked.error);
   }
-  throw new FileContentsError(`${file} isn't in the file list for ${dir}.`);
+  if (!untracked) throw notListed;
+  return { old: null, new: await diskSide(full) };
 }

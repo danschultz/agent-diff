@@ -271,6 +271,49 @@ test('files whose modification time changed but not their contents are not liste
       },
     ],
   );
+  const contents = (file: string) =>
+    api.diff.contents({
+      sessionId: id,
+      mode: 'all',
+      workingDirectory: repo,
+      path: file,
+    });
+  for (const file of ['text.txt', 'binary.bin', 'link']) {
+    await rejects(
+      contents(file),
+      'NOT_FOUND',
+      `${file} isn't in the file list for ${repo}.`,
+    );
+  }
+  assert.deepEqual(await contents('changed.bin'), {
+    old: { type: 'binary' },
+    new: { type: 'binary' },
+  });
+});
+
+// Counting lines reads every changed file, which would make scrolling
+// through a diff of n files read n² files.
+test("a file's contents are found without counting every changed file's lines", async (t) => {
+  const logging = loggingGit(t, tempStateHome(t));
+  const { api } = await setUp(t, logging.env);
+  const repo = makeFeatureRepo(t, logging.env);
+  const { id } = await api.session.new({ workingDirectories: [repo] });
+  const before = logging.commands().length;
+  for (const file of ['committed.txt', 'new.txt']) {
+    await api.diff.contents({
+      sessionId: id,
+      mode: 'all',
+      workingDirectory: repo,
+      path: file,
+    });
+  }
+  const commands = logging.commands().slice(before);
+  assert.ok(commands.some((line) => line.includes(' diff-index ')));
+  for (const line of commands) {
+    assert.doesNotMatch(line, /--numstat/);
+    // Untracked files are only listed for the path asked for.
+    if (line.includes(' ls-files ')) assert.match(line, / -- new\.txt$/);
+  }
 });
 
 test('changes that landed on the base ref after the branch started are not shown', async (t) => {
