@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { lineDiff, type LineChange } from '../src/line-diff.ts';
 
-// Each change as the text it replaces and the text it inserts.
 function lines(count: number, prefix: string): string {
   return Array.from({ length: count }, (_, i) => `${prefix} ${i}\n`).join('');
 }
 
+// Each change as the text it replaces and the text it inserts.
 function texts(a: string, b: string, changes: readonly LineChange[]) {
   return changes.map((c) => [a.slice(c.fromA, c.toA), b.slice(c.fromB, c.toB)]);
 }
@@ -96,10 +96,9 @@ test(
   },
 );
 
-// Myers' diff grows with the product of the length and the number of
-// changes, so a file with most of its lines changed, such as one whose line
-// endings changed, would take minutes. Past 1,000 changed lines, the lines
-// between the first and last change are one change.
+// A line with no match anywhere on the other side is changed whatever else
+// matches, so it's left out before diffing, as git does, and lines changed
+// in place don't make the diff grow.
 test(
   'a file with every line changed is one change, without taking minutes',
   { timeout: 10_000 },
@@ -126,3 +125,38 @@ test('lines unchanged before and after many changes are left out of the one chan
     },
   ]);
 });
+
+test(
+  'a 50,000-line file with 2,000 lines changed in place keeps each change',
+  { timeout: 10_000 },
+  () => {
+    const before = Array.from({ length: 50_000 }, (_, i) => `line ${i}\n`);
+    const after = before.map((line, i) =>
+      i % 25 === 0 ? `changed ${i}\n` : line,
+    );
+    const a = before.join('');
+    const b = after.join('');
+    const changes = lineDiff(a, b);
+    assert.equal(changes.length, 2_000);
+    assert.deepEqual(texts(a, b, changes.slice(0, 2)), [
+      ['line 0\n', 'changed 0\n'],
+      ['line 25\n', 'changed 25\n'],
+    ]);
+  },
+);
+
+// Past 1,000 lines added or removed among lines that are on both sides, such
+// as lines in a different order, the diff stops, and the lines between the
+// first and last change are one change.
+test(
+  'a large file with its lines in another order is one change',
+  { timeout: 10_000 },
+  () => {
+    const before = Array.from({ length: 5_000 }, (_, i) => `line ${i}\n`);
+    const a = before.join('');
+    const b = before.toReversed().join('');
+    assert.deepEqual(lineDiff(a, b), [
+      { fromA: 0, toA: a.length, fromB: 0, toB: b.length },
+    ]);
+  },
+);

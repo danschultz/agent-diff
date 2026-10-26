@@ -15,12 +15,16 @@ export interface LineChange {
   toB: number;
 }
 
-// Myers' diff takes time that grows with the lines times the changed lines,
-// so with most of a large file changed, such as its line endings, it would
-// take minutes. Past this many changed lines, it stops, which takes about
+// Myers' diff takes time that grows with the lines times the lines it adds
+// or removes, so it would take minutes on a large file with many changes.
+// Lines with no match on the other side are changed whatever else matches,
+// so they're left out before diffing, as git does, and lines changed in
+// place, such as in a lockfile or a file whose line endings changed, don't
+// count. Past this many lines added or removed among the lines left, such
+// as when many lines changed order, the diff stops, which takes about
 // 300 ms on 50,000 lines, and the lines between the first and last change
-// are one change.
-const maxChangedLines = 1000;
+// are one change. A changed line counts twice, once removed and once added.
+const maxEdits = 1000;
 
 // Lines with their newline, so a missing final newline makes the last line
 // differ.
@@ -66,34 +70,65 @@ export function lineDiff(a: string, b: string): LineChange[] {
     toB: offset + length(middleB),
   };
   if (middleA.length === 0 || middleB.length === 0) return [whole];
-  const parts = diffArrays(middleA, middleB, {
-    maxEditLength: maxChangedLines,
-  });
+
+  // The indexes of the lines that are somewhere on the other side.
+  const inA = new Set(middleA);
+  const inB = new Set(middleB);
+  const keptA = middleA.flatMap((line, i) => (inB.has(line) ? [i] : []));
+  const keptB = middleB.flatMap((line, i) => (inA.has(line) ? [i] : []));
+  const parts = diffArrays(
+    keptA.map((i) => middleA[i]!),
+    keptB.map((i) => middleB[i]!),
+    { maxEditLength: maxEdits },
+  );
   if (parts === undefined) return [whole];
 
-  const changes: LineChange[] = [];
-  let posA = offset;
-  let posB = offset;
-  // Where the current block of added and removed lines started.
-  let startA = posA;
-  let startB = posB;
-  const flush = () => {
-    if (startA !== posA || startB !== posB) {
-      changes.push({ fromA: startA, toA: posA, fromB: startB, toB: posB });
-    }
+  // Each line's offset in the text, with the end of the middle last.
+  const offsets = (middle: readonly string[]) => {
+    const result = [offset];
+    for (const line of middle) result.push(result.at(-1)! + line.length);
+    return result;
   };
+  const offsetsA = offsets(middleA);
+  const offsetsB = offsets(middleB);
+  // The changes are the lines between each pair of matched lines, and
+  // before the first and after the last.
+  const changes: LineChange[] = [];
+  let nextA = 0;
+  let nextB = 0;
+  const matched = (lineA: number, lineB: number) => {
+    if (lineA !== nextA || lineB !== nextB) {
+      changes.push({
+        fromA: offsetsA[nextA]!,
+        toA: offsetsA[lineA]!,
+        fromB: offsetsB[nextB]!,
+        toB: offsetsB[lineB]!,
+      });
+    }
+    nextA = lineA + 1;
+    nextB = lineB + 1;
+  };
+  // Positions in keptA and keptB.
+  let atA = 0;
+  let atB = 0;
   for (const part of parts) {
-    const partLength = length(part.value);
-    if (part.added) posB += partLength;
-    else if (part.removed) posA += partLength;
+    if (part.added) atB += part.value.length;
+    else if (part.removed) atA += part.value.length;
     else {
-      flush();
-      posA += partLength;
-      posB += partLength;
-      startA = posA;
-      startB = posB;
+      for (let i = 0; i < part.value.length; i++) {
+        matched(keptA[atA + i]!, keptB[atB + i]!);
+      }
+      atA += part.value.length;
+      atB += part.value.length;
     }
   }
-  flush();
+  if (nextA !== middleA.length || nextB !== middleB.length) {
+    changes.push({
+      fromA: offsetsA[nextA]!,
+      toA: offsetsA[middleA.length]!,
+      fromB: offsetsB[nextB]!,
+      toB: offsetsB[middleB.length]!,
+    });
+  }
   return changes;
 }
