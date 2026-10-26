@@ -7,6 +7,7 @@
 // `git diff <merge-base>` runs. `git diff` itself refreshes the index and
 // writes it whenever a file's modification time no longer matches it, even
 // with GIT_OPTIONAL_LOCKS=0, and diff-index never does.
+import { createReadStream } from 'node:fs';
 import { lstat, readFile, readlink } from 'node:fs/promises';
 import path from 'node:path';
 import type {
@@ -305,16 +306,37 @@ function isBinary(data: Buffer): boolean {
   return data.subarray(0, binaryCheckBytes).includes(0);
 }
 
-function countLines(data: Buffer): number {
+// The lines in a file, or null when it's binary. It's read in chunks, so a
+// large file isn't held in memory, and a binary file stops being read after
+// its first 8,000 bytes.
+async function countLines(file: string): Promise<number | null> {
   let lines = 0;
-  for (let i = data.indexOf(0x0a); i !== -1; i = data.indexOf(0x0a, i + 1)) {
-    lines++;
+  let read = 0;
+  let last = 0x0a;
+  for await (const chunk of createReadStream(file) as AsyncIterable<Buffer>) {
+    if (
+      read < binaryCheckBytes &&
+      isBinary(chunk.subarray(0, binaryCheckBytes - read))
+    ) {
+      return null;
+    }
+    read += chunk.length;
+    for (
+      let i = chunk.indexOf(0x0a);
+      i !== -1;
+      i = chunk.indexOf(0x0a, i + 1)
+    ) {
+      lines++;
+    }
+    last = chunk[chunk.length - 1]!;
   }
-  return data.length > 0 && data[data.length - 1] !== 0x0a ? lines + 1 : lines;
+  return last === 0x0a ? lines : lines + 1;
 }
 
 // An untracked file in the file list, with its lines counted from disk, or
-// null when it's gone since git listed it.
+// null when it's gone since git listed it. A file that can't be read, such
+// as one the review server's user has no permission for, has no line
+// counts.
 async function untrackedFile(
   dir: string,
   listed: string,
@@ -330,12 +352,11 @@ async function untrackedFile(
     if ((await lstat(full)).isSymbolicLink()) {
       return { ...file, path: listed, added: 1, removed: 0 };
     }
-    const data = await readFile(full);
-    const added = isBinary(data) ? null : countLines(data);
+    const added = await countLines(full);
     return { ...file, path: listed, added, removed: added === null ? null : 0 };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
-    throw error;
+    return { ...file, path: listed, added: null, removed: null };
   }
 }
 
@@ -410,17 +431,24 @@ function sideFromData(data: Buffer): FileSide {
 }
 
 // The working tree side of a file, from disk, never following a symlink.
-async function diskSide(file: string): Promise<FileSide | null> {
+// Throws a FileContentsError when it can't be read, such as when the review
+// server's user has no permission for it.
+async function diskSide(dir: string, file: string): Promise<FileSide | null> {
+  const full = path.join(dir, file);
   try {
-    const stat = await lstat(file);
-    if (stat.isSymbolicLink())
-      return { type: 'text', text: await readlink(file) };
+    const stat = await lstat(full);
+    if (stat.isSymbolicLink()) {
+      return { type: 'text', text: await readlink(full) };
+    }
     if (stat.isDirectory()) return { type: 'submodule' };
     if (stat.size > maxSideBytes) return { type: 'too_large', size: stat.size };
-    return sideFromData(await readFile(file));
+    return sideFromData(await readFile(full));
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
-    throw error;
+    const { code } = error as NodeJS.ErrnoException;
+    if (code === 'ENOENT') return null;
+    throw new FileContentsError(
+      `${file} in ${dir} can't be read (${code ?? String(error)}).`,
+    );
   }
 }
 
@@ -490,7 +518,6 @@ export async function fileContents(
     `${file} isn't in the file list for ${dir}.`,
   );
 
-  const full = path.join(dir, file);
   const tracked = changes.find((change) => change.path === file);
   if (tracked && maybeUnchanged(tracked)) {
     const same = await sameAsOldSide(dir, tracked, env);
@@ -513,7 +540,7 @@ export async function fileContents(
     const newSide = async (): Promise<FileSide | null> => {
       if (tracked.status === 'deleted') return null;
       if (tracked.newMode === submoduleMode) return { type: 'submodule' };
-      return diskSide(full);
+      return diskSide(dir, file);
     };
     const [oldContents, newContents] = await Promise.all([
       oldSide(),
@@ -526,5 +553,5 @@ export async function fileContents(
     throw new FileContentsError(untracked.error);
   }
   if (!untracked) throw notListed;
-  return { old: null, new: await diskSide(full) };
+  return { old: null, new: await diskSide(dir, file) };
 }

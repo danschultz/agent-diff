@@ -862,3 +862,42 @@ test('every git command the review server runs sets GIT_OPTIONAL_LOCKS=0', async
   assert.ok(served.some((line) => line.includes(' cat-file ')));
   for (const line of served) assert.match(line, /^0 /);
 });
+
+test(
+  "an untracked file that can't be read is listed without line counts",
+  { skip: process.getuid?.() === 0 && 'root can read any file' },
+  async (t) => {
+    const { env, api } = await setUp(t);
+    const repo = makeFeatureRepo(t, env);
+    write(repo, 'unreadable.txt', 'secret\n');
+    chmodSync(path.join(repo, 'unreadable.txt'), 0);
+    const { id } = await api.session.new({ workingDirectories: [repo] });
+    const { workingDirectories } = await api.diff.files({
+      sessionId: id,
+      mode: 'all',
+    });
+    assert.deepEqual(
+      workingDirectories[0]?.kind === 'git' && workingDirectories[0].files,
+      [
+        ...featureFiles,
+        {
+          path: 'unreadable.txt',
+          oldPath: null,
+          status: 'untracked',
+          added: null,
+          removed: null,
+        },
+      ].sort((a, b) => (a.path < b.path ? -1 : 1)),
+    );
+    await rejects(
+      api.diff.contents({
+        sessionId: id,
+        mode: 'all',
+        workingDirectory: repo,
+        path: 'unreadable.txt',
+      }),
+      'NOT_FOUND',
+      `unreadable.txt in ${repo} can't be read (EACCES).`,
+    );
+  },
+);

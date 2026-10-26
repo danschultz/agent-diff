@@ -3,6 +3,10 @@ import { test } from 'node:test';
 import { lineDiff, type LineChange } from '../src/line-diff.ts';
 
 // Each change as the text it replaces and the text it inserts.
+function lines(count: number, prefix: string): string {
+  return Array.from({ length: count }, (_, i) => `${prefix} ${i}\n`).join('');
+}
+
 function texts(a: string, b: string, changes: readonly LineChange[]) {
   return changes.map((c) => [a.slice(c.fromA, c.toA), b.slice(c.fromB, c.toB)]);
 }
@@ -91,3 +95,34 @@ test(
     }
   },
 );
+
+// Myers' diff grows with the product of the length and the number of
+// changes, so a file with most of its lines changed, such as one whose line
+// endings changed, would take minutes. Past 1,000 changed lines, the lines
+// between the first and last change are one change.
+test(
+  'a file with every line changed is one change, without taking minutes',
+  { timeout: 10_000 },
+  () => {
+    const a = lines(50_000, 'line');
+    const b = a.replaceAll('\n', '\r\n');
+    assert.deepEqual(lineDiff(a, b), [
+      { fromA: 0, toA: a.length, fromB: 0, toB: b.length },
+    ]);
+  },
+);
+
+test('lines unchanged before and after many changes are left out of the one change', () => {
+  const same = lines(1_000, 'same');
+  const end = lines(1_000, 'end');
+  const a = same + lines(3_000, 'old') + end;
+  const b = same + lines(3_000, 'new') + end;
+  assert.deepEqual(lineDiff(a, b), [
+    {
+      fromA: same.length,
+      toA: a.length - end.length,
+      fromB: same.length,
+      toB: b.length - end.length,
+    },
+  ]);
+});

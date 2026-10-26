@@ -15,34 +15,81 @@ export interface LineChange {
   toB: number;
 }
 
+// Myers' diff takes time that grows with the lines times the changed lines,
+// so with most of a large file changed, such as its line endings, it would
+// take minutes. Past this many changed lines, it stops, which takes about
+// 300 ms on 50,000 lines, and the lines between the first and last change
+// are one change.
+const maxChangedLines = 1000;
+
 // Lines with their newline, so a missing final newline makes the last line
 // differ.
 function lines(text: string): string[] {
   return text.match(/[^\n]*\n|[^\n]+$/g) ?? [];
 }
 
+function length(lines: readonly string[]): number {
+  return lines.reduce((sum, line) => sum + line.length, 0);
+}
+
 // The blocks of lines that differ between a and b, in order. Added and
 // removed lines next to each other are one block.
 export function lineDiff(a: string, b: string): LineChange[] {
+  const linesA = lines(a);
+  const linesB = lines(b);
+  // Lines the same at the start and end of both are left out before
+  // diffing.
+  let start = 0;
+  while (
+    start < linesA.length &&
+    start < linesB.length &&
+    linesA[start] === linesB[start]
+  ) {
+    start++;
+  }
+  let end = 0;
+  while (
+    end < linesA.length - start &&
+    end < linesB.length - start &&
+    linesA[linesA.length - 1 - end] === linesB[linesB.length - 1 - end]
+  ) {
+    end++;
+  }
+  const middleA = linesA.slice(start, linesA.length - end);
+  const middleB = linesB.slice(start, linesB.length - end);
+  const offset = length(linesA.slice(0, start));
+  if (middleA.length === 0 && middleB.length === 0) return [];
+  const whole = {
+    fromA: offset,
+    toA: offset + length(middleA),
+    fromB: offset,
+    toB: offset + length(middleB),
+  };
+  if (middleA.length === 0 || middleB.length === 0) return [whole];
+  const parts = diffArrays(middleA, middleB, {
+    maxEditLength: maxChangedLines,
+  });
+  if (parts === undefined) return [whole];
+
   const changes: LineChange[] = [];
-  let posA = 0;
-  let posB = 0;
+  let posA = offset;
+  let posB = offset;
   // Where the current block of added and removed lines started.
-  let startA = 0;
-  let startB = 0;
+  let startA = posA;
+  let startB = posB;
   const flush = () => {
     if (startA !== posA || startB !== posB) {
       changes.push({ fromA: startA, toA: posA, fromB: startB, toB: posB });
     }
   };
-  for (const part of diffArrays(lines(a), lines(b))) {
-    const length = part.value.reduce((sum, line) => sum + line.length, 0);
-    if (part.added) posB += length;
-    else if (part.removed) posA += length;
+  for (const part of parts) {
+    const partLength = length(part.value);
+    if (part.added) posB += partLength;
+    else if (part.removed) posA += partLength;
     else {
       flush();
-      posA += length;
-      posB += length;
+      posA += partLength;
+      posB += partLength;
       startA = posA;
       startB = posB;
     }

@@ -169,8 +169,6 @@ details[open] > .one-line {
   line-height: 18px;
 }
 
-/* The editor's line height is what FileDiff.tsx estimates heights with, and
-   what the old line numbers next to removed lines are spaced by. */
 /* Its own stacking context, so CodeMirror's gutters stay under the sticky
    file headers. */
 .diff-editor {
@@ -181,6 +179,8 @@ details[open] > .one-line {
   font-size: 13px;
 }
 
+/* The editor's line height is what FileDiff.tsx estimates heights with, and
+   what the old line numbers next to removed lines are spaced by. */
 .diff-editor .cm-scroller {
   font-family: ui-monospace, monospace;
   line-height: 18px;
