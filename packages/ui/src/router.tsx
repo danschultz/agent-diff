@@ -40,6 +40,11 @@ const sessionRoute = createRoute({
         context.queryClient.ensureQueryData(
           orpc.review.list.queryOptions({ input: { sessionId: id } }),
         ),
+        context.queryClient.ensureQueryData(
+          orpc.diff.files.queryOptions({
+            input: { sessionId: id, mode: 'all' },
+          }),
+        ),
       ]);
     } catch (error) {
       if (error instanceof ORPCError && error.code === 'NOT_FOUND') {

@@ -96,3 +96,96 @@ details[open] > .one-line {
   font-family: ui-monospace, monospace;
   font-size: 0.85em;
 }
+
+/* The diff, in the middle of the session page. Each file's header sticks to
+   the top of the window while its file is in view. */
+.session-diff {
+  margin-bottom: 2rem;
+}
+
+.working-directory-changes h3 {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.working-directory-note,
+.file-note {
+  margin: 0.5rem 0;
+  color: #57606a;
+}
+
+.error {
+  color: #cf222e;
+}
+
+.file-diff {
+  margin-bottom: 1rem;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+}
+
+.file-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid #d0d7de;
+  border-radius: 6px 6px 0 0;
+  background: #f6f8fa;
+  font-size: 0.9rem;
+}
+
+.file-path {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, monospace;
+  overflow-wrap: anywhere;
+}
+
+.file-status {
+  color: #57606a;
+}
+
+.line-counts {
+  font-family: ui-monospace, monospace;
+  white-space: nowrap;
+}
+
+.line-counts .added {
+  color: #1a7f37;
+}
+
+.line-counts .removed {
+  color: #cf222e;
+}
+
+.file-body > .file-note {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  line-height: 18px;
+}
+
+/* The editor's line height is what FileDiff.tsx estimates heights with, and
+   what the old line numbers next to removed lines are spaced by. */
+/* Its own stacking context, so CodeMirror's gutters stay under the sticky
+   file headers. */
+.diff-editor {
+  isolation: isolate;
+}
+
+.diff-editor .cm-editor {
+  font-size: 13px;
+}
+
+.diff-editor .cm-scroller {
+  font-family: ui-monospace, monospace;
+  line-height: 18px;
+}
+
+.diff-editor .cm-oldLineNumbers > div {
+  height: 18px;
+}

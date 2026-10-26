@@ -1,11 +1,13 @@
 // Shows one session as the API returned it when the page loaded: its title
-// and ID, whether it's active or archived, when it was created, and its
-// working directories with their base refs, with the comment panel on the
-// right. The diff and the file view will take the space to its left.
+// and ID, whether it's active or archived, when it was created, its working
+// directories with their base refs, and the diff of every changed file, with
+// the comment panel on the right. Archived sessions show the current diff,
+// the same as active ones. The file view will go on the left of the diff.
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { getRouteApi } from '@tanstack/react-router';
 import { orpc } from '../client.ts';
 import { CommentPanel } from '../components/CommentPanel.tsx';
+import { SessionDiff } from '../components/SessionDiff.tsx';
 import { Time } from '../components/Time.tsx';
 
 const route = getRouteApi('/sessions/$id');
@@ -55,6 +57,7 @@ export function SessionPage() {
             </li>
           ))}
         </ul>
+        <SessionDiff sessionId={session.id} />
       </main>
       <CommentPanel
         sessionId={session.id}
