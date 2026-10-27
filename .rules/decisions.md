@@ -31,6 +31,19 @@ answering an open question in `README.md`.
 Follow-up design choices belong in the decision file. Keep `README.md`'s open
 questions for questions that aren't tied to a single decision.
 
+## What a decision records
+
+Every detail in a decision is one a build brief must escalate to change. So
+record only what the user would want to agree to before it changes: behavior
+that reviewers or agents see, the API's shape, choices that are expensive to
+undo, and rules other work depends on.
+
+Leave out details of how it's done when a test or the code settles them better,
+such as exact commands, pixel distances, time limits, or pinned versions. State
+the goal instead, such as "the review server never writes to the repo, and a
+test checks that `.git` doesn't change". Those details go in the build brief,
+the code, and its comments, and changing them doesn't need a new decision.
+
 ## Template
 
 ```markdown

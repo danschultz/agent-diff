@@ -38,6 +38,17 @@ A plan is made of the decision, research, and build briefs described in
 Don't open documentation pull requests from the agent session that plans. Agreed
 design reaches the repo through decision briefs.
 
+While planning, sort each choice Dan agrees by asking whether Dan would want to
+agree to it before it changes:
+
+- If so, a decision brief records it. These are behavior that reviewers or
+  agents see, the API's shape, choices that are expensive to undo, and rules
+  other work depends on.
+- If it only says how something is done, such as an exact command, a pixel
+  distance, a time limit, or a pinned version, a test or the code settles it
+  better. Put it in the build brief that needs it, or in the epic's notes until
+  that brief is written, and have the decision state the goal it serves.
+
 ## Splitting a feature into slices
 
 Split a feature into build briefs that are vertical slices. Each one delivers
