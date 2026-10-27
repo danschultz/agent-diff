@@ -34,10 +34,10 @@ fix, into a brief. Planning, which decides what to build and in what order, is
      recorded by a decision. A choice that only says how something is done, such
      as an exact command, a pixel distance, a time limit, or a pinned version,
      is settled better by a test or the code, so it goes in the Context of the
-     build brief that needs it, and changing it later doesn't need a new
-     decision.
-   - Write what Dan agrees into the brief's Context as design choices agreed
-     with Dan.
+     build brief that needs it, or in the plan's epic until that brief is
+     written, and changing it later doesn't need a new decision.
+   - Write the choices that belong in this brief into its Context as design
+     choices agreed with Dan.
 2. **Write it.** Follow the template for its [kind](#kinds-of-brief).
 3. **Create it.** Add it to Aven, following
    [Creating a brief](#creating-a-brief), with its
