@@ -2,6 +2,11 @@
 import { implement, ORPCError } from '@orpc/server';
 import { contract } from '@agent-diff/shared/contract';
 import {
+  FileContentsError,
+  fileContents,
+  workingDirectoryDiff,
+} from './diff.ts';
+import {
   ConflictError,
   NotFoundError,
   type Entity,
@@ -148,6 +153,40 @@ export function createRouter(store: Store, { env }: RouterOptions) {
         const reviews = store.listReviews(input.sessionId);
         if (!reviews) throw notFound('session', input.sessionId);
         return reviews;
+      }),
+    },
+    // Git runs outside any store call, since node:sqlite is synchronous.
+    diff: {
+      files: os.diff.files.handler(async ({ input }) => {
+        const session = store.getSession(input.sessionId);
+        if (!session) throw notFound('session', input.sessionId);
+        return {
+          workingDirectories: await Promise.all(
+            session.workingDirectories.map((workingDirectory) =>
+              workingDirectoryDiff(workingDirectory, env),
+            ),
+          ),
+        };
+      }),
+      contents: os.diff.contents.handler(async ({ input }) => {
+        const session = store.getSession(input.sessionId);
+        if (!session) throw notFound('session', input.sessionId);
+        const workingDirectory = session.workingDirectories.find(
+          (w) => w.path === input.workingDirectory,
+        );
+        if (!workingDirectory) {
+          throw new ORPCError('NOT_FOUND', {
+            message: `There's no working directory ${input.workingDirectory} in session ${input.sessionId}.`,
+          });
+        }
+        try {
+          return await fileContents(workingDirectory, input.path, env);
+        } catch (error) {
+          if (error instanceof FileContentsError) {
+            throw new ORPCError('NOT_FOUND', { message: error.message });
+          }
+          throw error;
+        }
       }),
     },
   });

@@ -231,6 +231,121 @@ export const ReplyOutput = v.object({
   status: CommentStatus,
 });
 
+// A diff mode (0044). Only All changes, `all`, is served so far.
+export const DiffMode = v.picklist(
+  ['all'],
+  (issue) =>
+    `The diff mode ${JSON.stringify(issue.input)} isn't supported. Only all, for All changes, is.`,
+);
+
+// A file's git status in a diff mode. The status of a file that's binary,
+// a symlink, or a submodule is git's, as for any other file.
+export const FileStatus = v.picklist([
+  'added',
+  'modified',
+  'deleted',
+  'renamed',
+  'copied',
+  'type_changed',
+  'conflicted',
+  'untracked',
+]);
+
+// A changed file in a working directory's file list. Paths are relative to
+// the working directory, with `/` between segments. The line counts are null
+// when git, or the review server for an untracked file, finds the file
+// binary, or when it's a submodule that isn't in git yet.
+export const ChangedFile = v.object({
+  path: v.string(),
+  // Set when the file was renamed or copied.
+  oldPath: v.nullable(v.string()),
+  status: FileStatus,
+  added: v.nullable(v.number()),
+  removed: v.nullable(v.number()),
+});
+
+// What a working directory shows in a diff mode, by its real path.
+export const WorkingDirectoryDiff = v.variant('kind', [
+  // Uses git, and its changes were worked out. `mergeBase` is the commit the
+  // diff compares from: the merge-base of the base ref and HEAD, or the base
+  // ref's own commit when they have none, and null when HEAD is unborn, which
+  // compares from the empty tree. Files are sorted by path.
+  v.object({
+    kind: v.literal('git'),
+    path: v.string(),
+    baseRef: v.string(),
+    mergeBase: v.nullable(v.string()),
+    files: v.array(ChangedFile),
+  }),
+  // Uses git, but its changes couldn't be worked out, such as when its base
+  // ref doesn't resolve.
+  v.object({
+    kind: v.literal('error'),
+    path: v.string(),
+    baseRef: v.string(),
+    message: v.string(),
+  }),
+  // Doesn't use git, so it has no diff, and its files aren't listed yet.
+  v.object({ kind: v.literal('no_git'), path: v.string() }),
+  // No longer exists on disk.
+  v.object({
+    kind: v.literal('missing'),
+    path: v.string(),
+    baseRef: v.nullable(v.string()),
+  }),
+]);
+
+// Every working directory in a session, in the order they were added.
+export const SessionDiff = v.object({
+  workingDirectories: v.array(WorkingDirectoryDiff),
+});
+
+export const DiffFilesInput = v.object({
+  sessionId: SessionId,
+  mode: DiffMode,
+});
+
+// A path in a working directory's file list. Absolute paths and paths with
+// `..` are rejected before the file list is checked.
+const FilePath = v.pipe(
+  v.string('The file path must be a string.'),
+  v.minLength(1, 'The file path must not be empty.'),
+  v.check(
+    (path) => !path.startsWith('/'),
+    (issue) =>
+      `The file path ${String(issue.input)} must be relative to its working directory.`,
+  ),
+  v.check(
+    (path) => !path.split('/').includes('..'),
+    (issue) => `The file path ${String(issue.input)} must not contain "..".`,
+  ),
+);
+
+export const FileContentsInput = v.object({
+  sessionId: SessionId,
+  mode: DiffMode,
+  // The working directory's real path, as the session has it.
+  workingDirectory: v.string('The working directory must be a string.'),
+  path: FilePath,
+});
+
+// One side of a changed file. A symlink's text is its target. A side is
+// binary when its first 8,000 bytes contain a NUL byte, and too large when
+// it's over 2 MB.
+export const FileSide = v.variant('type', [
+  v.object({ type: v.literal('text'), text: v.string() }),
+  v.object({ type: v.literal('binary') }),
+  v.object({ type: v.literal('too_large'), size: v.number() }),
+  v.object({ type: v.literal('submodule') }),
+]);
+
+// A changed file's two sides. A side is null when the file isn't there,
+// such as the old side of an added file, or the new side of a deleted one.
+export const FileContents = v.object({
+  old: v.nullable(FileSide),
+  new: v.nullable(FileSide),
+});
+
 export type NewSessionInput = v.InferOutput<typeof NewSessionInput>;
 export type AddWorkingDirectoriesInput = v.InferOutput<
   typeof AddWorkingDirectoriesInput
@@ -251,3 +366,10 @@ export type Comment = v.InferOutput<typeof Comment>;
 export type Review = v.InferOutput<typeof Review>;
 export type ReviewDetails = v.InferOutput<typeof ReviewDetails>;
 export type SessionReviews = v.InferOutput<typeof SessionReviews>;
+export type DiffMode = v.InferOutput<typeof DiffMode>;
+export type FileStatus = v.InferOutput<typeof FileStatus>;
+export type ChangedFile = v.InferOutput<typeof ChangedFile>;
+export type WorkingDirectoryDiff = v.InferOutput<typeof WorkingDirectoryDiff>;
+export type SessionDiff = v.InferOutput<typeof SessionDiff>;
+export type FileSide = v.InferOutput<typeof FileSide>;
+export type FileContents = v.InferOutput<typeof FileContents>;

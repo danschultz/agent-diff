@@ -10,8 +10,11 @@ import {
   AddWorkingDirectoriesOutput,
   ArchiveSessionOutput,
   CommentRef,
+  DiffFilesInput,
   DraftComment,
   EditCommentInput,
+  FileContents,
+  FileContentsInput,
   Health,
   ListSessionsInput,
   NewSessionInput,
@@ -22,6 +25,7 @@ import {
   ReviewRef,
   Session,
   SessionDetails,
+  SessionDiff,
   SessionIdInput,
   SessionRef,
   SessionReviews,
@@ -69,6 +73,15 @@ export const contract = {
     // For the review UI: the session's submitted comments, its draft
     // review, and its submitted reviews.
     list: oc.input(SessionIdInput).output(SessionReviews),
+  },
+  // Diffs, from decision 0044, for a diff mode. Neither writes to a working
+  // directory's repo.
+  diff: {
+    // Every working directory's file list, or why it has none.
+    files: oc.input(DiffFilesInput).output(SessionDiff),
+    // One changed file's two sides. Fails with NOT_FOUND unless the
+    // working directory is in the session and the path is in its file list.
+    contents: oc.input(FileContentsInput).output(FileContents),
   },
 };
 
