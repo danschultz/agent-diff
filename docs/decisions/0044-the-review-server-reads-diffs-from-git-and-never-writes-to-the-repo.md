@@ -1,7 +1,15 @@
 # 0044: The review server works out diffs by reading git, and never writes to the repo
 
-- Status: Accepted
+- Status: Accepted, amended by
+  [0047](0047-the-review-server-reads-tracked-changes-with-git-plumbing-not-git-diff.md)
 - Date: 2026-10-24
+
+> **Amended by
+> [0047](0047-the-review-server-reads-tracked-changes-with-git-plumbing-not-git-diff.md):**
+> tracked changes come from `git diff-index`, `git diff-tree` and
+> `git diff-files`, not `git diff`, which rewrites the index whenever a file's
+> modification time is out of date, even with `GIT_OPTIONAL_LOCKS=0`. Files
+> whose modification time changed but whose contents didn't are left out.
 
 ## Problem
 

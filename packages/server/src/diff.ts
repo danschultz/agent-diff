@@ -4,9 +4,9 @@
 // directory, never once per file.
 //
 // Tracked changes come from `git diff-index`, the plumbing that
-// `git diff <merge-base>` runs. `git diff` itself refreshes the index and
-// writes it whenever a file's modification time no longer matches it, even
-// with GIT_OPTIONAL_LOCKS=0, and diff-index never does.
+// `git diff <merge-base>` runs, from decision 0047. `git diff` itself refreshes
+// the index and writes it whenever a file's modification time no longer
+// matches it, even with GIT_OPTIONAL_LOCKS=0, and diff-index never does.
 import { createReadStream } from 'node:fs';
 import { lstat, readFile, readlink } from 'node:fs/promises';
 import path from 'node:path';
